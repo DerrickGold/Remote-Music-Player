@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 from flask import Flask
 from flask import request
@@ -21,7 +21,7 @@ class MPlayer:
     def __init__(self):
         self.fifofile = os.path.abspath(GLOBAL_SETTINGS['mplayer-fifo-file'])
         self.process = None
-        
+
         if not os.path.exists(self.fifofile):
             os.mkfifo(self.fifofile)
 
@@ -31,7 +31,6 @@ class MPlayer:
         with open(file, 'w') as fp:
             fp.write(str(command) + '\n')
 
-            
     def MplayerParams(self, track):
         defaults = ['mplayer', '-slave', '-input', 'file={}'.format(self.fifofile),track]
 
@@ -47,10 +46,9 @@ class MPlayer:
     def IsRunning(self):
         if self.process is None: return False
         return self.process.poll() ==  None
-        
+
     def Mute(self):
         self.SendCmd('mute')
-
 
     def Play(self, filepath):
         if self.IsRunning():
@@ -60,44 +58,42 @@ class MPlayer:
 
     def Pause(self):
         self.SendCmd('pause')
-        
-            
+
 
 class MusicList:
 
     def __init__(self, root):
         self.listFile = GLOBAL_SETTINGS['music-list-name']
         self.totalFileCount = 0;
-        self.generateMusicList(root)
+        self.GenerateMusicList(root)
 
-        
-    def generateMusicList(self, musicRoot, outputFile=None):
+
+    def GenerateMusicList(self, musicRoot, outputFile=None):
         if outputFile is None: outputFile = self.listFile
-        
+
         try:
             listFile = open(outputFile, "w")
         except (e):
             print(e)
             return
-        
+
         self.totalFileCount = 0;
-        
+
         for root, dirs, files in os.walk(musicRoot):
             for f in files:
                 self.totalFileCount+=1
                 if self.totalFileCount % 1000 == 0:
                     print("Generating music list... {}".format(self.totalFileCount))
-                        
-                listFile.write(os.path.join(root, f) + '\n')
+
+                if f[0] != '.':
+                    listFile.write(os.path.join(root, f) + '\n')
 
         listFile.close()
         print("Scanned {} files.".format(self.totalFileCount))
         return self.totalFileCount
 
-    
     def Count(self):
         return self.totalFileCount
-
 
     def GetTrack(self, trackNum):
 
@@ -114,12 +110,11 @@ class MusicList:
 
         list.close()
         return trackpath.replace('\n', '')
-        
+
 
 music = MusicList(GLOBAL_SETTINGS['music-dir'])
 mplayer = MPlayer()
 
-    
 @app.route("/")
 def hello():
     return "Hello, World!"
@@ -128,19 +123,18 @@ def hello():
 @app.route("/next", methods=['POST'])
 def next():
     if request.method == 'POST':
-        track = os.path.join(GLOBAL_SETTINGS['running-dir'], music.GetTrack(1123))    
+        track = os.path.join(GLOBAL_SETTINGS['running-dir'], music.GetTrack(1123))
         mplayer.Play(track)
 
-    
 
 def main():
     print(sys.argv[0])
     GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
-    
-    track = os.path.join(GLOBAL_SETTINGS['running-dir'], music.GetTrack(666))    
+
+    track = os.path.join(GLOBAL_SETTINGS['running-dir'], music.GetTrack(666))
+
     mplayer.Play(track)
 
-    
     app.run()
 
 
