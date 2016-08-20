@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from flask import Flask
+from flask import request
 import os
 import sys
 import subprocess
@@ -8,6 +9,7 @@ import subprocess
 app = Flask(__name__)
 
 GLOBAL_SETTINGS = {
+    'music-dir': sys.argv[1],
     'music-list-name': '.music',
     'mplayer-fifo-file': '/tmp/mplayer.fifo',
     'server-port': 25222,
@@ -114,22 +116,28 @@ class MusicList:
         return trackpath.replace('\n', '')
         
 
+music = MusicList(GLOBAL_SETTINGS['music-dir'])
+mplayer = MPlayer()
+
     
 @app.route("/")
 def hello():
     return "Hello, World!"
 
 
+@app.route("/next", methods=['POST'])
+def next():
+    if request.method == 'POST':
+        track = os.path.join(GLOBAL_SETTINGS['running-dir'], music.GetTrack(1123))    
+        mplayer.Play(track)
+
+    
+
 def main():
     print(sys.argv[0])
-    musicDir = sys.argv[1]
-
-    dir_path = os.path.dirname(os.path.realpath(__file__))
+    GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
     
-    music = MusicList(musicDir)
-    mplayer = MPlayer()
-
-    track = os.path.join(dir_path, music.GetTrack(666))    
+    track = os.path.join(GLOBAL_SETTINGS['running-dir'], music.GetTrack(666))    
     mplayer.Play(track)
 
     
