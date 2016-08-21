@@ -19,6 +19,33 @@ GLOBAL_SETTINGS = {
     'debug-out':True
 }
 
+
+def make_file(path, name, directory=False, parent=None):
+    return {'path': path, 'name': name, 'directory': directory, 'id': str(uuid.uuid4()), 'children': [], 'parent': parent}
+
+
+def scan_directory(path, name='.', parent='.'):
+    fileMapping = {}
+    node = make_file(path, name, True, parent)
+    fileMapping[str(node['id'])] = node
+    
+    for root, dirs, files in os.walk(os.path.normpath(os.path.join(path, name))):
+        newDirs = list(dirs)
+        del(dirs[:])
+        for file in files:
+            if file[0] != '.':
+                newFile = make_file(root, file, False, node['id'])
+                node['children'].append(newFile)
+                fileMapping[newFile['id']] = newFile
+
+        for d in newDirs:
+            childNodes, childFiles = scan_directory(root, d, node['id']) 
+            node['children'].append(childNodes)
+            fileMapping.update(childFiles)
+
+    return node, fileMapping
+
+
 class MPlayer:
 
     def __init__(self):
@@ -43,6 +70,9 @@ class MPlayer:
         return defaults
 
     def kill(self):
+        if not self.is_running():
+            return
+        
         self.process.kill()
         self.process = None
 
@@ -54,13 +84,14 @@ class MPlayer:
         self.send_cmd('mute')
 
     def play(self, filepath):
-        if self.is_running():
-            self.kill()
-
+        self.kill()
         self.process = subprocess.Popen(self.mplayer_params(filepath))
 
     def pause(self):
         self.send_cmd('pause')
+
+    def stop(self):
+        self.kill()
 
 class MusicList:
 
@@ -114,37 +145,15 @@ class MusicList:
         index = (index + 1) % len(parent['children'])
         return parent['children'][index]
 
-
-def make_file(path, name, directory=False, parent=None):
-    return {'path': path, 'name': name, 'directory': directory, 'id': str(uuid.uuid4()), 'children': [], 'parent': parent}
-
-
-def scan_directory(path, name='.', parent='.'):
-    fileMapping = {}
-    node = make_file(path, name, True, parent)
-    fileMapping[str(node['id'])] = node
     
-    for root, dirs, files in os.walk(os.path.normpath(os.path.join(path, name))):
-        newDirs = list(dirs)
-        del(dirs[:])
-        for file in files:
-            if file[0] != '.':
-                newFile = make_file(root, file, False, node['id'])
-                node['children'].append(newFile)
-                fileMapping[newFile['id']] = newFile
-
-        for d in newDirs:
-            childNodes, childFiles = scan_directory(root, d, node['id']) 
-            node['children'].append(childNodes)
-            fileMapping.update(childFiles)
-
-    return node, fileMapping
-
+'''
+Program Entry
+'''
 
 music = MusicList(GLOBAL_SETTINGS['music-dir'])
 mplayer = MPlayer()
 
-def PlayFile(file):
+def play_file(file):
     music.currentFile = file
     mplayer.play(os.path.join(file['path'], file['name']))
 
@@ -155,7 +164,7 @@ def next_song():
     file = music.get_next_file(music.currentFile)
     if file is None:
         return '', 400
-    PlayFile(file)
+    play_file(file)
     return '', 200
 
 @app.route('/api/commands/pause', methods=['POST'])
@@ -165,7 +174,7 @@ def pause():
 
 @app.route('/api/commands/stop', methods=['POST'])
 def stop():
-    mplayer.Stop()
+    mplayer.stop()
     return '', 200
 
 @app.route('/api/files')
@@ -188,7 +197,7 @@ def play(identifier):
     file = music.get_file(identifier)
     if not file:
         return '', 400
-    PlayFile(file)
+    play_file(file)
     return '', 200
 
 @app.route('/')
