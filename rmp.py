@@ -28,13 +28,13 @@ class MPlayer:
         if not os.path.exists(self.fifofile):
             os.mkfifo(self.fifofile)
 
-    def SendCmd(self, command, file=None):
+    def send_cmd(self, command, file=None):
         if file is None: file = self.fifofile
 
         with open(file, 'w') as fp:
             fp.write(str(command) + '\n')
 
-    def MplayerParams(self, track):
+    def mplayer_params(self, track):
         defaults = ['mplayer', '-slave', '-input', 'file={}'.format(self.fifofile),track]
 
         if not GLOBAL_SETTINGS['debug-out']:
@@ -42,35 +42,35 @@ class MPlayer:
 
         return defaults
 
-    def Kill(self):
+    def kill(self):
         self.process.kill()
         self.process = None
 
-    def IsRunning(self):
+    def is_running(self):
         if self.process is None: return False
         return self.process.poll() ==  None
 
-    def Mute(self):
-        self.SendCmd('mute')
+    def mute(self):
+        self.send_cmd('mute')
 
-    def Play(self, filepath):
-        if self.IsRunning():
-            self.Kill()
+    def play(self, filepath):
+        if self.is_running():
+            self.kill()
 
-        self.process = subprocess.Popen(self.MplayerParams(filepath))
+        self.process = subprocess.Popen(self.mplayer_params(filepath))
 
-    def Pause(self):
-        self.SendCmd('pause')
+    def pause(self):
+        self.send_cmd('pause')
 
 class MusicList:
 
     def __init__(self, root):
         self.listFile = GLOBAL_SETTINGS['music-list-name']
         self.totalFileCount = 0;
-        self.GenerateMusicList(root)
+        self.generate_music_list(root)
 
 
-    def GenerateMusicList(self, musicRoot, outputFile=None):
+    def generate_music_list(self, musicRoot, outputFile=None):
         if outputFile is None: outputFile = self.listFile
 
         try:
@@ -80,8 +80,8 @@ class MusicList:
             return
 
         self.totalFileCount = 0;
-        self.files = ScanDirectory(musicRoot)
-        self.mapping = FlattenFiles(self.files)
+        self.files = scan_directory(musicRoot)
+        self.mapping = flatten_files(self.files)
 
         for root, dirs, files in os.walk(musicRoot):
             for f in files:
@@ -94,16 +94,16 @@ class MusicList:
         logging.info('Scanned {} files.'.format(self.totalFileCount))
         return self.totalFileCount
 
-    def Count(self):
+    def count(self):
         return self.totalFileCount
 
-    def GetFile(self, identifier):
+    def get_file(self, identifier):
         if not identifier in self.mapping:
             logging.debug('Track number {} does not exist'.format(identifier))
             return None
         return self.mapping[identifier]
 
-    def GetNextFile(self, currentFile):
+    def get_next_file(self, currentFile):
         if not currentFile or not currentFile['parent'] or currentFile['parent'] not in self.mapping:
             return None
         parent = self.mapping[currentFile['parent']]
@@ -116,33 +116,33 @@ class MusicList:
         return parent['children'][index]
 
 
-def MakeFile(path, name, directory=False, parent=None):
+def make_file(path, name, directory=False, parent=None):
     return {'path': path, 'name': name, 'directory': directory, 'id': str(uuid.uuid4()), 'children': [], 'parent': parent}
 
 
-def ScanDirectory(path, name='.', parent='.'):
-    node = MakeFile(path, name, True, parent)
+def scan_directory(path, name='.', parent='.'):
+    node = make_file(path, name, True, parent)
     for root, dirs, files in os.walk(os.path.normpath(os.path.join(path, name))):
         newDirs = list(dirs)
         del(dirs[:])
         for file in files:
             if file[0] != '.':
-                node['children'].append(MakeFile(root, file, False, node['id']))
+                node['children'].append(make_file(root, file, False, node['id']))
 
         for d in newDirs:
-            node['children'].append(ScanDirectory(root, d, node['id']))
+            node['children'].append(scan_directory(root, d, node['id']))
 
     return node
 
 
-def FlattenFiles(root):
+def flatten_files(root):
     files = {}
     files[str(root['id'])] = root
     for child in root['children']:
         if not child['directory']:
             files[child['id']] = child
         else:
-            files.update(FlattenFiles(child))
+            files.update(flatten_files(child))
 
     return files
 
@@ -152,13 +152,13 @@ mplayer = MPlayer()
 
 def PlayFile(file):
     music.currentFile = file
-    mplayer.Play(os.path.join(file['path'], file['name']))
+    mplayer.play(os.path.join(file['path'], file['name']))
 
 @app.route('/api/commands/next', methods=['POST'])
-def nextSong():
-    if not mplayer.IsRunning():
+def next_song():
+    if not mplayer.is_running():
         return '', 400
-    file = music.GetNextFile(music.currentFile)
+    file = music.get_next_file(music.currentFile)
     if file is None:
         return '', 400
     PlayFile(file)
@@ -166,7 +166,7 @@ def nextSong():
 
 @app.route('/api/commands/pause', methods=['POST'])
 def pause():
-    mplayer.Pause()
+    mplayer.pause()
     return '', 200
 
 @app.route('/api/commands/stop', methods=['POST'])
@@ -184,14 +184,14 @@ def files():
 
 @app.route('/api/files/<string:identifier>')
 def file(identifier):
-    file = music.GetFile(identifier)
+    file = music.get_file(identifier)
     if not file:
         return '', 400
     return jsonify(**file)
 
 @app.route('/api/files/<string:identifier>/play')
 def play(identifier):
-    file = music.GetFile(identifier)
+    file = music.get_file(identifier)
     if not file:
         return '', 400
     PlayFile(file)
