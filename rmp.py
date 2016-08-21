@@ -80,8 +80,7 @@ class MusicList:
             return
 
         self.totalFileCount = 0;
-        self.files = scan_directory(musicRoot)
-        self.mapping = flatten_files(self.files)
+        self.files, self.mapping = scan_directory(musicRoot)
 
         for root, dirs, files in os.walk(musicRoot):
             for f in files:
@@ -121,30 +120,25 @@ def make_file(path, name, directory=False, parent=None):
 
 
 def scan_directory(path, name='.', parent='.'):
+    fileMapping = {}
     node = make_file(path, name, True, parent)
+    fileMapping[str(node['id'])] = node
+    
     for root, dirs, files in os.walk(os.path.normpath(os.path.join(path, name))):
         newDirs = list(dirs)
         del(dirs[:])
         for file in files:
             if file[0] != '.':
-                node['children'].append(make_file(root, file, False, node['id']))
+                newFile = make_file(root, file, False, node['id'])
+                node['children'].append(newFile)
+                fileMapping[newFile['id']] = newFile
 
         for d in newDirs:
-            node['children'].append(scan_directory(root, d, node['id']))
+            childNodes, childFiles = scan_directory(root, d, node['id']) 
+            node['children'].append(childNodes)
+            fileMapping.update(childFiles)
 
-    return node
-
-
-def flatten_files(root):
-    files = {}
-    files[str(root['id'])] = root
-    for child in root['children']:
-        if not child['directory']:
-            files[child['id']] = child
-        else:
-            files.update(flatten_files(child))
-
-    return files
+    return node, fileMapping
 
 
 music = MusicList(GLOBAL_SETTINGS['music-dir'])
