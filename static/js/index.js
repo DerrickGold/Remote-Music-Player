@@ -96,7 +96,7 @@ MusicLibrary = function(doStreaming) {
 	    xhttp.onreadystatechange = function() {
 		if (xhttp.readyState == 4 && xhttp.status == 200) {
 		    var trackData = JSON.parse(xhttp.responseText);
-		    audioDiv.src =  trackData.path + "/" + trackData.name;
+		    audioDiv.src =   trackData.path + "/" + trackData.name;
 		    audioDiv.play();
 		}
 	    }

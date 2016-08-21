@@ -251,7 +251,10 @@ def togui():
 
 @app.route('/gui')
 def index():
-    return render_template('index.html')
+    doStream = bool(request.args.get('stream'))
+    return render_template('index.html', enableStream=doStream)
+
+
 
 @app.route('/<path:filename>')
 def serving(filename):
@@ -261,7 +264,7 @@ def serving(filename):
 def main():
     print(sys.argv[0])
     GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
-    app.run()
+    app.run(host='0.0.0.0')
 
 if __name__ == '__main__':
     main()
