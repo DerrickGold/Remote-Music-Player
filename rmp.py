@@ -6,6 +6,7 @@ import sys
 import subprocess
 import uuid
 import logging
+import re
 
 app = Flask(__name__)
 
@@ -16,7 +17,7 @@ GLOBAL_SETTINGS = {
     'music-list-name': '.music',
     'mplayer-fifo-file': '/tmp/mplayer.fifo',
     'server-port': 25222,
-    'debug-out':True
+    'debug-out': True
 }
 
 
@@ -61,6 +62,7 @@ class MPlayer:
         with open(file, 'w') as fp:
             fp.write(str(command) + '\n')
 
+
     def mplayer_params(self, track):
         defaults = ['mplayer', '-slave', '-input', 'file={}'.format(self.fifofile),track]
 
@@ -69,10 +71,21 @@ class MPlayer:
 
         return defaults
 
+    def get_mplayer_response(self, respHeader):
+        stdout_lines = iter(self.process.stdout.readline, "")
+        for l in stdout_lines:
+            regex = '^{}'.format(respHeader)
+            m = re.search(regex, l)
+            if m:
+                return l.replace(respHeader+'=', '').strip().replace("'", '')
+
+            
+            
     def kill(self):
         if not self.is_running():
             return
-        
+
+        self.process.stdout.close()
         self.process.kill()
         self.process = None
 
@@ -85,13 +98,41 @@ class MPlayer:
 
     def play(self, filepath):
         self.kill()
-        self.process = subprocess.Popen(self.mplayer_params(filepath))
+        self.process = subprocess.Popen(self.mplayer_params(filepath), stdout=subprocess.PIPE, universal_newlines=True)
+        
 
     def pause(self):
         self.send_cmd('pause')
 
     def stop(self):
         self.kill()
+
+
+    def get_info(self, info):
+
+        tags = {
+            'get_meta_artist': 'ANS_META_ARTIST',
+            'get_meta_album': 'ANS_META_ALBUM',
+            'get_meta_title': 'ANS_META_TITLE',
+            'get_meta_genre': 'ANS_META_GENRE'
+            }
+
+        self.send_cmd(info)
+        return self.get_mplayer_response(tags[info])
+        
+    def get_playing_track_info(self):
+
+        return {'artist': self.get_info('get_meta_artist'),
+                'album': self.get_info('get_meta_album'),
+                'title': self.get_info('get_meta_title'),
+                'genre': self.get_info('get_meta_genre')
+                }
+
+
+
+                
+
+        
 
 class MusicList:
 
@@ -176,6 +217,10 @@ def pause():
 def stop():
     mplayer.stop()
     return '', 200
+
+@app.route('/api/commands/info', methods=['POST'])
+def get_info():
+    return jsonify(**mplayer.get_playing_track_info())
 
 @app.route('/api/files')
 def files():
