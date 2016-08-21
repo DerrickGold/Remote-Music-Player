@@ -4,7 +4,9 @@ body {
 
 
 .FolderEntry {
-    background-color: grey;
+    /*    background-color: grey; */
+    text-decoration: underline;
+    font-weight: bold;
     margin-left: 0;
 }
 

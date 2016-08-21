@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, jsonify, redirect, url_for, render_template
+from flask import Flask, request, jsonify, redirect, url_for, render_template, send_file
 import os
 import sys
 import subprocess
@@ -253,6 +253,10 @@ def togui():
 def index():
     return render_template('index.html')
 
+@app.route('/<path:filename>')
+def serving(filename):
+    return send_file(filename)
+    
 
 def main():
     print(sys.argv[0])
