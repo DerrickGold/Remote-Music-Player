@@ -1,0 +1,15 @@
+body {
+    color: red;
+}
+
+
+.FolderEntry {
+    background-color: grey;
+    margin-left: 0;
+}
+
+.FileEntry {
+    background-color: white;
+    margin-left: 0;
+}
+
