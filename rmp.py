@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect, url_for, render_template
 import os
 import sys
 import subprocess
@@ -196,6 +196,15 @@ def play(identifier):
         return '', 400
     PlayFile(file)
     return '', 200
+
+@app.route('/')
+def togui():
+    return redirect(url_for('index'))
+
+@app.route('/gui')
+def index():
+    return render_template('index.html')
+
 
 def main():
     print(sys.argv[0])
