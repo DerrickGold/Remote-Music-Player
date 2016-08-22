@@ -128,7 +128,7 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.stopSong = function() {
 
 	if (!that.streaming) {
-	    that.apiCall("/api/commands/stop", "POST", false, function(resp) {
+	    that.apiCall("/api/commands/stop", "POST", true, function(resp) {
 		that.playbackState = PlayBackStates["STOPPED"];
 		that.evtSys.dispatchEvent('media state change', that.playbackState);
 	    });
@@ -149,7 +149,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    if (offset >= 0)
 		url += "?offset=" + offset;
 	    
-	    that.apiCall(url, "GET", false, function(resp) {
+	    that.apiCall(url, "GET", true, function(resp) {
 		that.playbackState = PlayBackStates["PLAYING"];
 		that.evtSys.dispatchEvent('media state change', that.playbackState);
 	    });
@@ -157,7 +157,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    that.updateTrackInfo();
 	} else {
 	    //if we are streaming, get audio file path to add to local web player
-	    that.apiCall("/api/files/" + songEntry.id, "GET", false, function(resp) {
+	    that.apiCall("/api/files/" + songEntry.id, "GET", true, function(resp) {
 		var trackData = JSON.parse(resp);
 		that.audioDiv.src =   trackData.path + "/" + trackData.name;
 		that.audioDiv.currentTime = offset;
@@ -171,7 +171,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 
     this.pauseSong = function() {
 	if (!that.streaming) {
-	    that.apiCall("/api/commands/pause", "POST", false, function(resp) {
+	    that.apiCall("/api/commands/pause", "POST", true, function(resp) {
 		that.playbackState = PlayBackStates["PAUSED"];
 		that.evtSys.dispatchEvent('media state change', that.playbackState);
 	    });
@@ -186,7 +186,7 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.unpauseSong = function() {
 	if (!that.streaming) {
 	    //server operates using a toggle	    
-	    that.apiCall("/api/commands/pause", "POST", false, function(resp) {
+	    that.apiCall("/api/commands/pause", "POST", true, function(resp) {
 		that.playbackState = PlayBackStates["PLAYING"];
 		that.evtSys.dispatchEvent('media state change', that.playbackState);
 	    });
@@ -198,9 +198,24 @@ MusicLibrary = function(evtSys, doStreaming) {
 	}
     }
 
+    this.nextSong = function() {
+
+	that.apiCall("/api/files/next", "GET", true, function(resp) {
+	    var file = JSON.parse(resp);
+	    
+	    that.playSong(file, 0);
+	    that.playbackState = PlayBackStates["PLAYING"];
+	    that.evtSys.dispatchEvent('media state change', that.playbackState);
+
+	    if (!that.streaming)
+		that.updateTrackInfo();
+	});
+	
+    }
+
     
     this.updateTrackInfo = function() {
-	that.apiCall("/api/commands/info", "POST", false, function(resp) {
+	that.apiCall("/api/commands/info", "POST", true, function(resp) {
 	    var data = JSON.parse(resp);
 	    document.getElementById("curInfo-artist").innerHTML = data.artist;
 	    document.getElementById("curInfo-title").innerHTML = data.title;

@@ -20,6 +20,8 @@ GLOBAL_SETTINGS = {
     'debug-out': True
 }
 
+AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac"]
+
 
 def make_file(path, name, directory=False, parent=None):
     return {'path': path, 'name': name, 'directory': directory, 'id': str(uuid.uuid4()), 'children': [], 'parent': parent}
@@ -34,15 +36,17 @@ def scan_directory(path, name='.', parent='.'):
         newDirs = list(dirs)
         del(dirs[:])
         for file in files:
-            if file[0] != '.':
+            ext =  os.path.splitext(file)
+            if file[0] != '.' and ext[1] in AUDIO_EXT:
                 newFile = make_file(root, file, False, node['id'])
                 node['children'].append(newFile)
                 fileMapping[newFile['id']] = newFile
 
         for d in newDirs:
-            childNodes, childFiles = scan_directory(root, d, node['id']) 
-            node['children'].append(childNodes)
-            fileMapping.update(childFiles)
+            childNodes, childFiles = scan_directory(root, d, node['id'])
+            if len(childFiles) > 1:
+                node['children'].append(childNodes)
+                fileMapping.update(childFiles)
 
     return node, fileMapping
 
@@ -176,17 +180,24 @@ class MusicList:
             return None
         return self.mapping[identifier]
 
-    def get_next_file(self, currentFile):
-        if not currentFile or not currentFile['parent'] or currentFile['parent'] not in self.mapping:
-            return None
+    def get_file_index(self, currentFile):
         parent = self.mapping[currentFile['parent']]
         if not parent:
             return None
+        
         index = next((i for i, file in enumerate(parent['children']) if file['id'] == currentFile['id']), None)
-        if index is None:
+        return parent, index
+    
+    def get_next_file(self, currentFile):
+        if not currentFile or not currentFile['parent'] or currentFile['parent'] not in self.mapping:
             return None
+
+        parent, index = self.get_file_index(currentFile)
         index = (index + 1) % len(parent['children'])
         return parent['children'][index]
+
+
+    
 
     
 '''
@@ -200,15 +211,6 @@ def play_file(file, offset):
     music.currentFile = file
     mplayer.play(os.path.join(file['path'], file['name']), offset)
 
-@app.route('/api/commands/next', methods=['POST'])
-def next_song():
-    if not mplayer.is_running():
-        return '', 400
-    file = music.get_next_file(music.currentFile)
-    if file is None:
-        return '', 400
-    play_file(file)
-    return '', 200
 
 @app.route('/api/commands/pause', methods=['POST'])
 def pause():
@@ -238,6 +240,15 @@ def file(identifier):
     if not file:
         return '', 400
     return jsonify(**file)
+
+
+@app.route('/api/files/next')
+def next_song():
+    file = music.get_next_file(music.currentFile)
+    if file is None:
+        return '', 400
+    return jsonify(**file)
+
 
 @app.route('/api/files/<string:identifier>/play')
 def play(identifier):

@@ -33,10 +33,12 @@ MediaButtons = function(evtSys, mediaLibrary) {
 	that.mediaLibrary.swapOutput();
     }
 
-    
-    this.evtSys.addEventListener('media state change', function(state) {
-	console.log("Media state changed! " + state);
-    });
+
+    var nextBtn = document.getElementById("NextBtn");
+    nextBtn.onclick = function() {
+	that.mediaLibrary.nextSong();
+    }
+
 
     this.evtSys.addEventListener('media state change', updatePlayPauseBtn);
 }
