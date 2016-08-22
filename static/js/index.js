@@ -20,7 +20,7 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.apiCall = function(route, method, async, successCb) {
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
-	    if ( xhttp.readyState == 4 && xhttp.status == 200) {
+	    if (xhttp.readyState == 4 && xhttp.status == 200) {
 		if (successCb)
 		    successCb(xhttp.responseText);
 	    }
@@ -102,27 +102,41 @@ MusicLibrary = function(evtSys, doStreaming) {
 	});
     }
 
-    this.swapOutput = function() {
+    this.swapStreamingToServer = function() {
 	
-	var timeoffset = 0;
-
-	console.log(that.audioDiv);
-	if (that.streaming)
-	    timeoffset = that.curTimeOffset;
-	else {
-	    that.updateTrackInfo();
-	    timeoffset = that.curTimeOffset;
-	}
+	//round value to one decimal place for mplayer
+	var timeoffset = parseFloat(that.curTimeOffset)
+	timeoffset = timeoffset.toFixed(1);
 
 	that.pauseSong();
-	that.streaming = !that.streaming;
+	that.streaming = false;
 
-	that.audioDiv.src = "";
-	if (that.streaming)
-	    that.audioDiv.play();
-	
 	that.playSong(that.curTrack, timeoffset);
-	
+    }
+
+    this.swapServerToStreaming = function() {
+
+	that.pauseSong();
+	that.updateTrackInfo(function() {
+	    
+	    var timeoffset = parseFloat(that.curTimeOffset);
+	    timeoffset += 0.1;
+	    timeoffset = timeoffset.toFixed(1);
+	    that.streaming = true;
+
+	    that.audioDiv.src = "";
+	    that.audioDiv.play();
+
+	    that.playSong(that.curTrack, timeoffset);
+
+	});
+    }
+    
+    this.swapOutput = function() {
+	if (that.streaming)
+	    that.swapStreamingToServer();
+	else
+	    that.swapServerToStreaming();
     }
 
     this.stopSong = function() {
@@ -137,7 +151,6 @@ MusicLibrary = function(evtSys, doStreaming) {
 	}
 
     }
-
     
     this.playSong = function(songEntry, offset) {
 	console.log("OFFSET: " + offset);
@@ -152,16 +165,25 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    that.apiCall(url, "GET", true, function(resp) {
 		that.playbackState = PlayBackStates["PLAYING"];
 		that.evtSys.dispatchEvent('media state change', that.playbackState);
+		that.updateTrackInfo();
 	    });
 
-	    that.updateTrackInfo();
+	    
 	} else {
 	    //if we are streaming, get audio file path to add to local web player
 	    that.apiCall("/api/files/" + songEntry.id, "GET", true, function(resp) {
+
 		var trackData = JSON.parse(resp);
 		that.audioDiv.src =   trackData.path + "/" + trackData.name;
-		that.audioDiv.currentTime = offset;
 		that.audioDiv.play();
+
+		var seekHandler = function(audio) {
+		    that.audioDiv.removeEventListener('canplay', seekHandler);
+		    console.log("CAN PLAY THROUGH EVENT");
+		    audio.target.currentTime = offset;
+		    
+		}
+		that.audioDiv.addEventListener("canplay",seekHandler);
 		
 		that.playbackState = PlayBackStates["PLAYING"];
 		that.evtSys.dispatchEvent('media state change', that.playbackState);		
@@ -214,13 +236,15 @@ MusicLibrary = function(evtSys, doStreaming) {
     }
 
     
-    this.updateTrackInfo = function() {
+    this.updateTrackInfo = function(doneCb) {
 	that.apiCall("/api/commands/info", "POST", true, function(resp) {
 	    var data = JSON.parse(resp);
 	    document.getElementById("curInfo-artist").innerHTML = data.artist;
 	    document.getElementById("curInfo-title").innerHTML = data.title;
 	    document.getElementById("curInfo-album").innerHTML = data.album;
 	    that.curTimeOffset = data.pos;
+
+	    if (doneCb) doneCb(data);
 	});
     }
 
@@ -236,6 +260,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	that.audioDiv.ontimeupdate = function(e) {
 	    that.curTimeOffset = this.currentTime;
 	}
+	
 	document.body.appendChild(that.audioDiv);
 
 	that.evtSys.registerEvent('media state change');

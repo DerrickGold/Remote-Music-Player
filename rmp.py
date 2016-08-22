@@ -256,6 +256,8 @@ def play(identifier):
     file = music.get_file(identifier)
     if not file:
         return '', 400
+
+    
     play_file(file, offset)
     return '', 200
 
@@ -278,7 +280,7 @@ def serving(filename):
 def main():
     print(sys.argv[0])
     GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', threaded=True)
 
 if __name__ == '__main__':
     main()
