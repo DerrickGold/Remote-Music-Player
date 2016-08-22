@@ -63,8 +63,8 @@ class MPlayer:
             fp.write(str(command) + '\n')
 
 
-    def mplayer_params(self, track):
-        defaults = ['mplayer', '-slave', '-input', 'file={}'.format(self.fifofile),track]
+    def mplayer_params(self, track, seek):
+        defaults = ['mplayer', '-slave', '-input', 'file={}'.format(self.fifofile),'-ss', seek, track]
 
         if not GLOBAL_SETTINGS['debug-out']:
             defaults.extend(['-really-quiet'])
@@ -96,9 +96,9 @@ class MPlayer:
     def mute(self):
         self.send_cmd('mute')
 
-    def play(self, filepath):
+    def play(self, filepath, seek=0):
         self.kill()
-        self.process = subprocess.Popen(self.mplayer_params(filepath), stdout=subprocess.PIPE, universal_newlines=True)
+        self.process = subprocess.Popen(self.mplayer_params(filepath,seek), stdout=subprocess.PIPE, universal_newlines=True)
         
 
     def pause(self):
@@ -194,9 +194,9 @@ Program Entry
 music = MusicList(GLOBAL_SETTINGS['music-dir'])
 mplayer = MPlayer()
 
-def play_file(file):
+def play_file(file, offset):
     music.currentFile = file
-    mplayer.play(os.path.join(file['path'], file['name']))
+    mplayer.play(os.path.join(file['path'], file['name']), offset)
 
 @app.route('/api/commands/next', methods=['POST'])
 def next_song():
@@ -239,10 +239,11 @@ def file(identifier):
 
 @app.route('/api/files/<string:identifier>/play')
 def play(identifier):
+    offset = request.args.get('offset')
     file = music.get_file(identifier)
     if not file:
         return '', 400
-    play_file(file)
+    play_file(file, offset)
     return '', 200
 
 @app.route('/')

@@ -2,6 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Remote Music Player Web Interface</title>
 
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/index.css') }}">
@@ -11,22 +13,73 @@
     <script src="{{ url_for('static', filename='js/jquery-1.12.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/MediaButtons.js') }}"></script>
   </head>
 
   <script>
     $(document).ready(function() {
-    	Media = new MusicLibrary('{{ enableStream }}' === 'True');
+    	function Event(name){
+    		this.name = name;
+  		this.callbacks = [];
+	}
+	Event.prototype.registerCallback = function(callback){
+  		this.callbacks.push(callback);
+	}
+
+	function Reactor(){
+  		this.events = {};
+	}
+
+	Reactor.prototype.registerEvent = function(eventName){
+  		var event = new Event(eventName);
+  		this.events[eventName] = event;
+	};
+
+	Reactor.prototype.dispatchEvent = function(eventName, eventArgs){
+  		this.events[eventName].callbacks.forEach(function(callback){
+    			callback(eventArgs);
+  		});
+	};
+
+	Reactor.prototype.addEventListener = function(eventName, callback){
+  		this.events[eventName].registerCallback(callback);
+    	};
+
+    	var reactor = new Reactor();
+
+    
+    	var Media = new MusicLibrary(reactor, '{{ enableStream }}' === 'True');
+    	var MediaControls = new MediaButtons(reactor, Media);
 
     });
   </script>
   
   <body>
-    <h1>Get Schwifty</h1>
     <div class="curInfo">
       Artist: <div id="curInfo-artist"></div>
       Title: <div id="curInfo-title"></div>
       Album: <div id="curInfo-album"></div>
     </div>
+
+    <div class="input-group" id="mediaBtns">
+      <button type="button" class="btn btn-primary" id="PrevBtn">
+        <span class="glyphicon glyphicon-step-backward" aria-hidden="true"></span>
+      </button>
+      
+      <button type="button" class="btn btn-primary" id="PlayPauseBtn">
+        <span id="PlayPauseIcon" class="glyphicon glyphicon-play" aria-hidden="true"></span>
+      </button>
+      
+      <button type="button" class="btn btn-primary" id="NextBtn">
+        <span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span>
+      </button>
+
+      <button type="button" class="btn btn-primary" id="SpeakerBtn">
+	<span class="glypicon glyphicon-upload" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    
     <hr>
     
     <div id="dirlist"></div>
