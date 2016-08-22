@@ -13,8 +13,22 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.streaming = doStreaming;
     this.playbackState = PlayBackStates["STOPPED"];
     this.evtSys = evtSys;
-    this.curTrackID = '';
+    this.curTrack = [];
     this.curTimeOffset = 0;
+
+
+    this.apiCall = function(route, method, async, successCb) {
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {
+	    if ( xhttp.readyState == 4 && xhttp.status == 200) {
+		if (successCb)
+		    successCb(xhttp.responseText);
+	    }
+	}
+
+	xhttp.open(method, route, async);
+	xhttp.send();	
+    }
     
     this.getRootDirDiv = function() {
 	return document.getElementById("dirlist");
@@ -69,7 +83,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 			that.audioDiv.src = '';
 		    	that.audioDiv.play();
 		    }
-		    that.playSong(f.id, 0);
+		    that.playSong(f, 0);
 		}
 	    };
 	    
@@ -82,18 +96,10 @@ MusicLibrary = function(evtSys, doStreaming) {
     
 
     this.getFiles = function() {
-
-	xhttp = new XMLHttpRequest();
-	xhttp.onreadystatechange = function() {
-	    if (xhttp.readyState == 4 && xhttp.status == 200) {
-		that.mediaDir = JSON.parse(xhttp.responseText);
-		that.displayFolder(that.mediaDir.files, that.getRootDirDiv());
-	    }
-	}
-
-
-	xhttp.open("GET", "/api/files", true);
-	xhttp.send();
+	that.apiCall("/api/files", "GET", true, function(resp) {
+	    that.mediaDir = JSON.parse(resp);
+	    that.displayFolder(that.mediaDir.files, that.getRootDirDiv());
+	});
     }
 
     this.swapOutput = function() {
@@ -102,98 +108,73 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 	console.log(that.audioDiv);
 	if (that.streaming)
-	    timeoffset = parseInt(that.curTimeOffset);
+	    timeoffset = that.curTimeOffset;
+	else {
+	    that.updateTrackInfo();
+	    timeoffset = that.curTimeOffset;
+	}
 
 	that.pauseSong();
-	//that.stopSong();
 	that.streaming = !that.streaming;
-	console.log("Streaming: " + that.streaming);
 
 	that.audioDiv.src = "";
 	if (that.streaming)
 	    that.audioDiv.play();
 	
-	that.playSong(that.curTrackId, timeoffset);
+	that.playSong(that.curTrack, timeoffset);
 	
     }
 
     this.stopSong = function() {
 
 	if (!that.streaming) {
-	    xhttp = new XMLHttpRequest();
-	    xhttp.onreadystatechange = function() {
-		console.log("ready: " + xhttp.readyState);
-		console.log("status: " + xhttp.status);
-		if (!xhttp.status || xhttp.status == 200) {
-		    that.playbackState = PlayBackStates["STOPPED"];
-		    that.evtSys.dispatchEvent('media state change', that.playbackState);
-		}
-	    }
-	    xhttp.open("POST", "/api/commands/stop");
-	    xhttp.send();
+	    that.apiCall("/api/commands/stop", "POST", false, function(resp) {
+		that.playbackState = PlayBackStates["STOPPED"];
+		that.evtSys.dispatchEvent('media state change', that.playbackState);
+	    });
 	} else {
 	    that.audioDiv.pause();
-	    that.audioDiv.src = "";
 	}
 
     }
 
     
-    this.playSong = function(id, offset) {
+    this.playSong = function(songEntry, offset) {
 	console.log("OFFSET: " + offset);
-	that.curTrackId = id;
+	that.curTrack = songEntry;
 	
 	if (!that.streaming) {
 	    //not streaming, tell server to play file
-	    xhttp = new XMLHttpRequest();
-	    xhttp.onreadystatechange = function() {
-		console.log("ready: " + xhttp.readyState);
-		console.log("status: " + xhttp.status);
-		if (!xhttp.status || xhttp.status == 200) {
-		    that.playbackState = PlayBackStates["PLAYING"];
-		    that.evtSys.dispatchEvent('media state change', that.playbackState);
-		}
-	    }
-	    var url = "/api/files/" + id + "/play";
+	    var url = "/api/files/" + songEntry.id + "/play";
 	    if (offset >= 0)
 		url += "?offset=" + offset;
-	    console.log("URL: " + url);
 	    
-	    xhttp.open("GET", url);
-	    xhttp.send();
+	    that.apiCall(url, "GET", false, function(resp) {
+		that.playbackState = PlayBackStates["PLAYING"];
+		that.evtSys.dispatchEvent('media state change', that.playbackState);
+	    });
+
 	    that.updateTrackInfo();
 	} else {
 	    //if we are streaming, get audio file path to add to local web player
-	    xhttp = new XMLHttpRequest();
-	    xhttp.onreadystatechange = function() {
-		console.log("ready: " + xhttp.readyState);
-		console.log("status: " + xhttp.status);
-		if (xhttp.readyState == 4 && xhttp.status == 200) {
-		    var trackData = JSON.parse(xhttp.responseText);
-		    that.audioDiv.src =   trackData.path + "/" + trackData.name;
-		    that.audioDiv.play();
-		    that.playbackState = PlayBackStates["PLAYING"];
-		    that.evtSys.dispatchEvent('media state change', that.playbackState);
-		}
-	    }
-	    xhttp.open("GET", "/api/files/" + id);
-	    xhttp.send();
+	    that.apiCall("/api/files/" + songEntry.id, "GET", false, function(resp) {
+		var trackData = JSON.parse(resp);
+		that.audioDiv.src =   trackData.path + "/" + trackData.name;
+		that.audioDiv.currentTime = offset;
+		that.audioDiv.play();
+		
+		that.playbackState = PlayBackStates["PLAYING"];
+		that.evtSys.dispatchEvent('media state change', that.playbackState);		
+	    });
 	}
     }
 
     this.pauseSong = function() {
 	if (!that.streaming) {
-	    xhttp = new XMLHttpRequest();
-
-	    xhttp.onreadystatechange = function() {
-		if (xhttp.readyState == 4 && xhttp.status == 200) {
-		    that.playbackState = PlayBackStates["PAUSED"];
-		    that.evtSys.dispatchEvent('media state change', that.playbackState);
-		}
-	    }
-	   
-	    xhttp.open("POST", "/api/commands/pause");
-	    xhttp.send();
+	    that.apiCall("/api/commands/pause", "POST", false, function(resp) {
+		that.playbackState = PlayBackStates["PAUSED"];
+		that.evtSys.dispatchEvent('media state change', that.playbackState);
+	    });
 	} else {
 	    that.audioDiv.pause();
 	    that.playbackState = PlayBackStates["PAUSED"];
@@ -204,17 +185,11 @@ MusicLibrary = function(evtSys, doStreaming) {
     
     this.unpauseSong = function() {
 	if (!that.streaming) {
-	    //server operates using a toggle
-	    xhttp = new XMLHttpRequest();
-	    xhttp.onreadystatechange = function() {
-		if (!xhttp.status ||  xhttp.status == 200) {
-		    that.playbackState = PlayBackStates["PLAYING"];
-		    that.evtSys.dispatchEvent('media state change', that.playbackState);
-		}
-	    }
-
-	    xhttp.open("POST", "/api/commands/pause");
-	    xhttp.send();
+	    //server operates using a toggle	    
+	    that.apiCall("/api/commands/pause", "POST", false, function(resp) {
+		that.playbackState = PlayBackStates["PLAYING"];
+		that.evtSys.dispatchEvent('media state change', that.playbackState);
+	    });
 	}
 	else {
 	    that.audioDiv.play();
@@ -225,19 +200,13 @@ MusicLibrary = function(evtSys, doStreaming) {
 
     
     this.updateTrackInfo = function() {
-	xhttp = new XMLHttpRequest();
-	xhttp.onreadystatechange = function() {
-	    if (xhttp.readyState == 4 && xhttp.status == 200) {
-		var data = JSON.parse(xhttp.responseText);
-		
-		document.getElementById("curInfo-artist").innerHTML = data.artist;
-		document.getElementById("curInfo-title").innerHTML = data.title;
-		document.getElementById("curInfo-album").innerHTML = data.album;
-		
-	    }
-	}
-	xhttp.open("POST", "/api/commands/info");
-	xhttp.send();
+	that.apiCall("/api/commands/info", "POST", false, function(resp) {
+	    var data = JSON.parse(resp);
+	    document.getElementById("curInfo-artist").innerHTML = data.artist;
+	    document.getElementById("curInfo-title").innerHTML = data.title;
+	    document.getElementById("curInfo-album").innerHTML = data.album;
+	    that.curTimeOffset = data.pos;
+	});
     }
 
     this.getPlaybackState = function() {
@@ -248,17 +217,11 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.init = function() {
 	that.getFiles();
 
-//	if (that.streaming) {
-	    //if streaming, create the audio player on the page
 	that.audioDiv = document.createElement("AUDIO");
 	that.audioDiv.ontimeupdate = function(e) {
-	    console.log("UPDATE: ");
-	    console.log(e);
-	    console.log(this.currentTime);
 	    that.curTimeOffset = this.currentTime;
 	}
-	    document.body.appendChild(that.audioDiv);
-//	}
+	document.body.appendChild(that.audioDiv);
 
 	that.evtSys.registerEvent('media state change');
     }

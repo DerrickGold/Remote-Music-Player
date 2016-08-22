@@ -114,7 +114,8 @@ class MPlayer:
             'get_meta_artist': 'ANS_META_ARTIST',
             'get_meta_album': 'ANS_META_ALBUM',
             'get_meta_title': 'ANS_META_TITLE',
-            'get_meta_genre': 'ANS_META_GENRE'
+            'get_meta_genre': 'ANS_META_GENRE',
+            'get_time_pos': 'ANS_TIME_POSITION',
             }
 
         self.send_cmd(info)
@@ -125,7 +126,8 @@ class MPlayer:
         return {'artist': self.get_info('get_meta_artist'),
                 'album': self.get_info('get_meta_album'),
                 'title': self.get_info('get_meta_title'),
-                'genre': self.get_info('get_meta_genre')
+                'genre': self.get_info('get_meta_genre'),
+                'pos': self.get_info('get_time_pos')
                 }
 
 
