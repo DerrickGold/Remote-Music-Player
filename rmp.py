@@ -13,11 +13,13 @@ app = Flask(__name__)
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 GLOBAL_SETTINGS = {
-    'music-dir': sys.argv[1],
+    'music-dir': '.',
     'music-list-name': '.music',
     'mplayer-fifo-file': '/tmp/mplayer.fifo',
-    'server-port': 25222,
-    'debug-out': True
+    'server-port': 5000,
+    'debug-out': True,
+    'MPlayerClass': None,
+    'MusicListClass': None
 }
 
 AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac"]
@@ -204,39 +206,36 @@ class MusicList:
 Program Entry
 '''
 
-music = MusicList(GLOBAL_SETTINGS['music-dir'])
-mplayer = MPlayer()
-
 def play_file(file, offset):
-    music.currentFile = file
-    mplayer.play(os.path.join(file['path'], file['name']), offset)
+    GLOBAL_SETTINGS['MusicListClass'].currentFile = file
+    GLOBAL_SETTINGS['MPlayerClass'].play(os.path.join(file['path'], file['name']), offset)
 
 
 @app.route('/api/commands/pause', methods=['POST'])
 def pause():
-    mplayer.pause()
+    GLOBAL_SETTINGS['MPlayerClass'].pause()
     return '', 200
 
 @app.route('/api/commands/stop', methods=['POST'])
 def stop():
-    mplayer.stop()
+    GLOBAL_SETTINGS['MPlayerClass'].stop()
     return '', 200
 
 @app.route('/api/commands/info', methods=['POST'])
 def get_info():
-    return jsonify(**mplayer.get_playing_track_info())
+    return jsonify(**GLOBAL_SETTINGS['MPlayerClass'].get_playing_track_info())
 
 @app.route('/api/files')
 def files():
     obj = {
-        'files': music.files,
-        'count': len(music.mapping.keys())
+        'files': GLOBAL_SETTINGS['MusicListClass'].files,
+        'count': len(GLOBAL_SETTINGS['MusicListClass'].mapping.keys())
     }
     return jsonify(**obj)
 
 @app.route('/api/files/<string:identifier>')
 def file(identifier):
-    file = music.get_file(identifier)
+    file = GLOBAL_SETTINGS['MusicListClass'].get_file(identifier)
     if not file:
         return '', 400
     return jsonify(**file)
@@ -244,7 +243,7 @@ def file(identifier):
 
 @app.route('/api/files/next')
 def next_song():
-    file = music.get_next_file(music.currentFile)
+    file = GLOBAL_SETTINGS['MusicListClass'].get_next_file(GLOBAL_SETTINGS['MusicListClass'].currentFile)
     if file is None:
         return '', 400
     return jsonify(**file)
@@ -253,7 +252,7 @@ def next_song():
 @app.route('/api/files/<string:identifier>/play')
 def play(identifier):
     offset = request.args.get('offset')
-    file = music.get_file(identifier)
+    file = GLOBAL_SETTINGS['MusicListClass'].get_file(identifier)
     if not file:
         return '', 400
 
@@ -277,10 +276,25 @@ def serving(filename):
     return send_file(filename)
     
 
+def args():
+    try:
+        idx = sys.argv.index('-p')
+        if idx + 1 < len(sys.argv):
+            GLOBAL_SETTINGS['server-port'] = sys.argv[idx + 1]
+            
+    except(ValueError):
+        print("Using default port: {}".format(GLOBAL_SETTINGS['server-port']))
+              
+
+    GLOBAL_SETTINGS['music-dir'] = sys.argv[-1]
+
+
 def main():
-    print(sys.argv[0])
+    args()
+    GLOBAL_SETTINGS['MPlayerClass'] = MPlayer()
+    GLOBAL_SETTINGS['MusicListClass'] = MusicList(GLOBAL_SETTINGS['music-dir'])
     GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
-    app.run(host='0.0.0.0', threaded=True)
+    app.run(host='0.0.0.0', threaded=True, port=GLOBAL_SETTINGS['server-port'])
 
 if __name__ == '__main__':
     main()
