@@ -50,6 +50,8 @@ def scan_directory(path, name='.', parent='.'):
                 node['children'].append(childNodes)
                 fileMapping.update(childFiles)
 
+        node['children'] = sorted(node['children'], key=lambda k: k['name'])
+        
     return node, fileMapping
 
 
@@ -217,7 +219,20 @@ class MusicList:
                 response[info[0]] = info[1]
 
         return response
+
+    
+    def search_media(self, key):
+
+        key = key.lower()
+        response = {"results": []}
+
+        for k, value in self.mapping.items():
+            if key in value['name'].lower():
+                response['results'].append(k)
+
+        return response
         
+
         
         
     
@@ -254,6 +269,15 @@ def files():
     }
     return jsonify(**obj)
 
+@app.route('/api/files/search/<string:keyword>')
+def search(keyword):
+    if len(keyword) <= 0:
+        return '', 400
+    
+    return jsonify(**GLOBAL_SETTINGS["MusicListClass"].search_media(keyword))
+
+
+
 @app.route('/api/files/<string:identifier>')
 def file(identifier):
     file = GLOBAL_SETTINGS['MusicListClass'].get_file(identifier)
@@ -261,13 +285,6 @@ def file(identifier):
         return '', 400
     return jsonify(**file)
 
-
-@app.route('/api/files/next')
-def next_song():
-    file = GLOBAL_SETTINGS['MusicListClass'].get_next_file(GLOBAL_SETTINGS['MusicListClass'].currentFile)
-    if file is None:
-        return '', 400
-    return jsonify(**file)
 
 
 @app.route('/api/files/<string:identifier>/play')

@@ -26,7 +26,6 @@ body {
 
 .curInfo {
     display: inline-block;
-    width: 50%;
 }
 
 #curInfo-artist, #curInfo-album, #curInfo-title {

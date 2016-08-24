@@ -52,6 +52,24 @@ MediaButtons = function(evtSys, mediaLibrary) {
 	that.mediaLibrary.prevSong();
     }
 
+
+    var searchBtn = document.getElementById("SearchBtn");
+    searchBtn.onclick = function(e) {
+	e.preventDefault();
+	var searchKey = document.getElementById("SearchText").value;
+	if (searchKey.length > 0)
+	    that.mediaLibrary.showSearch(searchKey);
+	else
+	    that.mediaLibrary.clearSearch();
+    }
+
+    var clearSearchBtn = document.getElementById("ClearSearchBtn");
+    clearSearchBtn.onclick = function(e) {
+	e.preventDefault();
+	var searchBox = document.getElementById("SearchText");
+	searchBox.value = "";
+	that.mediaLibrary.clearSearch();
+    }
     
     this.evtSys.addEventListener('media state change', updatePlayPauseBtn);
 }

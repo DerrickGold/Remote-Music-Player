@@ -57,7 +57,7 @@
   <body>
     
     
-    <nav class="navbar navbar-default navbar-fixed-top">
+    <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
 
 	<div class="navbar-header">
@@ -76,6 +76,19 @@
 	  <div class="curInfo navbar-text">
 	    <div id="curInfo-artist"></div> -- <div id="curInfo-title"></div> (<div id="curInfo-album"></div>)
 	  </div>
+
+	  <form class="navbar-form navbar-left">
+	    <div class="input-group">
+	      <input id="SearchText" type="text" class="form-control" placeholder="Song Title">
+	      <span class="input-group-btn">
+		<button id="ClearSearchBtn" class="btn btn-default">
+		  <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
+		</button>
+		<button id="SearchBtn" class="btn btn-default">Search</button>
+	      </span>
+	    </div>
+
+	  </form>
 
 	  <div class="navbar-right">
 	  <button type="button" class="btn btn-primary navbar-btn" id="PrevBtn">
@@ -105,8 +118,8 @@
     </nav>
 
     <div class="container-fluid">
-      <div class="row" id="dirlist"></div>
+      <div class="row panel-group" role="tablist" id="dirlist" aria-multiselectable="false"></div>
     </div>
-    
+
   </body>
 </html>

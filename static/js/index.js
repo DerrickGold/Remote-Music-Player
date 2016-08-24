@@ -10,7 +10,7 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.mediaDir = null;
     this.mediaHash = {};
     
-    this.indentSize = 30;
+    this.indentSize = 10;
     this.audioDiv = null;
     this.streaming = doStreaming;
     this.playbackState = PlayBackStates["STOPPED"];
@@ -70,51 +70,89 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    folderDiv.parentNode.removeChild(folderDiv.nextSibling);
 	}
     }
+
+    this.displayMakeFolder = function(folderEntry, expanded, depth) {
+	var panelBody = null;
+	var panel = null;
+	var panelHeader = document.createElement("div");
+	panelHeader.setAttribute("id", folderEntry.id);
+	panelHeader.classList.add("panel-heading");
+	panelHeader.setAttribute("role", "tab");
+	
+	//create collapse button
+	var collapseButton = document.createElement("a");
+	collapseButton.setAttribute("role", "button");
+	collapseButton.setAttribute("data-toggle", "collapse");
+	
+//	if (depth == 0)
+//	    collapseButton.setAttribute("data-parent", "#dirlist");
+//	else
+//	    collapseButton.setAttribute('data-parent', '#' + folderEntry.id);
+	
+	collapseButton.setAttribute("href", "#collapse-"+folderEntry.id);
+	if (expanded)
+	    collapseButton.setAttribute("aria-expanded", "true");
+	else
+	    collapseButton.setAttribute("aria-expanded", "false");
+	    
+	collapseButton.setAttribute("aria-controls", "collapse-"+folderEntry.id);
+	collapseButton.innerHTML = folderEntry.name;
+	panelHeader.appendChild(collapseButton);
+	
+
+	
+	panel = document.createElement("div");
+	panel.appendChild(panelHeader);
+	panel.classList.add("panel");
+	panel.classList.add("FolderEntry");
+	panel.classList.add("panel-default");
+	
+	
+	var bodyCollapse = document.createElement("div");
+	bodyCollapse.setAttribute("id", "collapse-"+folderEntry.id);
+	bodyCollapse.className = "panel-collapse collapse";
+	bodyCollapse.setAttribute("role", "tabpanel");
+	
+	
+	panelBody = document.createElement("div");
+	panelBody.className = "panel-body";
+	
+	bodyCollapse.appendChild(panelBody);
+	panel.appendChild(bodyCollapse);
+
+	return [panel, panelBody];
+    }
+
+    this.displayMakeFile = function(fileEntry, depth) {
+	var file = document.createElement("div");
+	file.setAttribute("id", fileEntry.id);
+
+	file.innerHTML = fileEntry.name;
+	file.className = "FileEntry";
+
+	file.onclick = function() {
+	    if (that.streaming) {
+		that.audioDiv.src = '';
+		that.audioDiv.play();
+	    }
+	    that.playSong(fileEntry, 0);
+	}
+
+	return file;
+    }
     
     this.displayFolder = function(folder, parentDiv, depth) {
 
 	if (!depth) depth = 0;
 	
 	folder.children.forEach(function(f) {
-
-	    var entryHeader = document.createElement("div");
-	    entryHeader.innerHTML = f.name;
-	    entryHeader.setAttribute("id", f.id);
-	    var entry = entryHeader;
-
-	    
 	    if (f.directory) {
-		entryHeader.className = "FolderEntry";
-		var folderContent = document.createElement("div");
-		folderContent.appendChild(entryHeader);
-		entry = folderContent;
-	    } else
-		entryHeader.className = "FileEntry";
-	    
-	    entryHeader.onclick = function() {
-		if (f.directory) {
-		    if (!f._opened) {
-			that.displayFolder(f, entry, depth+1);
-			f._opened = true;
-		    } else {
-			that.closeDirectory(entryHeader);
-			f._opened = false;
-		    }
-		}
-		else {
-		    //gain audio player control on mobile devices
-		    if (that.streaming) {
-			that.audioDiv.src = '';
-		    	that.audioDiv.play();
-		    }
-		    that.playSong(f, 0);
-		}
-	    };
-	    
-
-	    entry.style.marginLeft = (that.indentSize * depth) + "px";
-	    parentDiv.appendChild(entry);
-
+		var things = that.displayMakeFolder(f, false, depth);
+		parentDiv.appendChild(things[0]);
+		that.displayFolder(f, things[1], depth + 1);
+	    } else {
+		parentDiv.appendChild(that.displayMakeFile(f, depth));
+	    }
 	});
     }
 
@@ -161,19 +199,85 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 	while(nodes.length > 0) {
 	    var id = nodes.pop();
-	    
-	    lastDiv = document.getElementById(id);
-	    if (!lastDiv)
-		continue;
 
-	    if (!that.mediaHash[id]._opened && that.mediaHash[id].directory)
-		lastDiv.click();
+	    if (that.mediaHash[id].directory) {
+		lastDiv = document.getElementById(id).children[0];
+		if (!lastDiv)
+		    continue;
+
+		console.log("EXPANDED: " + lastDiv.getAttribute("aria-expanded"));
+		if (lastDiv.getAttribute("aria-expanded") == 'false')
+		    lastDiv.click();
+		
+	    } else 
+		lastDiv = document.getElementById(id);
 	}
 
-	lastDiv.scrollIntoView();
-	window.scrollBy(0, -that.navbarOffset);
+	setTimeout(function() {
+	    lastDiv.scrollIntoView(true);
+	    window.scrollBy(0, -that.navbarOffset);
+	}, 500);
+	
 	lastDiv.classList.add('PlayingEntry');
     }
+
+    this.showSearch = function(keyword) {
+	
+	keyword = keyword.replace(' ', '%20');
+	that.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
+	    var data = JSON.parse(resp);
+
+
+	    //make everything hidden, then only show search results
+	    var x = document.getElementsByClassName("FileEntry");
+	    for (var i = 0; i < x.length; i++) 
+		x[i].style.display="none";
+
+
+	    x = document.getElementsByClassName("FolderEntry");
+	    for (var i = 0; i < x.length; i++)
+		x[i].style.display="none";
+
+
+
+	    data.results.forEach(function(d) {
+		console.log("ENABLE: ");
+		console.log(d);
+		var song = document.getElementById(d);
+		song.style.display = "block";
+
+		var nodes = that.reverseTrackHashLookup(that.mediaHash[d]);
+
+		while(nodes.length > 0) {
+		    var id = nodes.pop();
+
+		    if (that.mediaHash[id].directory) {
+
+			var div = document.getElementById(id);
+			div.parentNode.style.display = "block";
+			div.children[0].click();
+		    } else
+			div.style.display = "block";
+		}
+	    });	    
+
+	    
+	});	
+    }
+
+    this.clearSearch = function(keyword) {
+
+	var x = document.getElementsByClassName("FileEntry");
+	for (var i = 0; i < x.length; i++) 
+	    x[i].style.display="block";
+
+
+	x = document.getElementsByClassName("FolderEntry");
+	for (var i = 0; i < x.length; i++)
+	    x[i].style.display="block";
+
+    }
+
     
     this.swapStreamingToServer = function() {
 	
