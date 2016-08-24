@@ -227,7 +227,7 @@ class MusicList:
         response = {"results": []}
 
         for k, value in self.mapping.items():
-            if key in value['name'].lower():
+            if not value['directory'] and key in value['name'].lower():
                 response['results'].append(k)
 
         return response

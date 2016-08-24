@@ -233,21 +233,15 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    for (var i = 0; i < x.length; i++) 
 		x[i].style.display="none";
 
-
 	    x = document.getElementsByClassName("FolderEntry");
 	    for (var i = 0; i < x.length; i++)
 		x[i].style.display="none";
 
-
-
 	    data.results.forEach(function(d) {
-		console.log("ENABLE: ");
-		console.log(d);
 		var song = document.getElementById(d);
 		song.style.display = "block";
 
 		var nodes = that.reverseTrackHashLookup(that.mediaHash[d]);
-
 		while(nodes.length > 0) {
 		    var id = nodes.pop();
 
@@ -456,11 +450,10 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.updateTrackInfo = function(doneCb) {
 	that.apiCall("/api/files/"+ that.curTrackInfo.id + "/data", "GET", true, function(resp) {
 	    var data = JSON.parse(resp);
-	    document.getElementById("curInfo-artist").innerHTML = data.artist;
-	    document.getElementById("curInfo-title").innerHTML = data.title;
-	    document.getElementById("curInfo-album").innerHTML = data.album;
-	    that.curTimeOffset = data.pos;
 
+	    var infoStr = data.artist + " -- " + data.title + " (" + data.album + ")";
+	    document.getElementById("CurTrackInfo").innerHTML = infoStr;
+	    document.title = infoStr;
 	    if (doneCb) doneCb(data);
 	});
     }
