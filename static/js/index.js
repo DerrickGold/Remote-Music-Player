@@ -78,9 +78,15 @@ MusicLibrary = function(evtSys, doStreaming) {
 	panelHeader.setAttribute("id", folderEntry.id);
 	panelHeader.classList.add("panel-heading");
 	panelHeader.setAttribute("role", "tab");
+
+	var icon = document.createElement("span");
+	icon.className = "glyphicon glyphicon-folder-close";
+	icon.setAttribute("aria-hidden", "true");
+	panelHeader.appendChild(icon);
 	
 	//create collapse button
 	var collapseButton = document.createElement("a");
+	collapseButton.classList.add("FolderEntryText");
 	collapseButton.setAttribute("role", "button");
 	collapseButton.setAttribute("data-toggle", "collapse");
 	
@@ -119,7 +125,6 @@ MusicLibrary = function(evtSys, doStreaming) {
 	
 	bodyCollapse.appendChild(panelBody);
 	panel.appendChild(bodyCollapse);
-
 	return [panel, panelBody];
     }
 
@@ -127,8 +132,19 @@ MusicLibrary = function(evtSys, doStreaming) {
 	var file = document.createElement("div");
 	file.setAttribute("id", fileEntry.id);
 
-	file.innerHTML = fileEntry.name;
-	file.className = "FileEntry";
+	var icon = document.createElement("span");
+	icon.className = "glyphicon glyphicon-music";
+	icon.setAttribute("aria-hidden", "true");
+	file.appendChild(icon);
+
+	var text = document.createElement("a");
+	text.innerHTML = fileEntry.name;
+	text.classList.add("FileEntryText");
+	text.setAttribute("href", "#");
+	
+	file.appendChild(text);
+	file.classList.add("FileEntry");
+	file.classList.add("panel-heading");
 
 	file.onclick = function() {
 	    if (that.streaming) {
@@ -149,6 +165,21 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    if (f.directory) {
 		var things = that.displayMakeFolder(f, false, depth);
 		parentDiv.appendChild(things[0]);
+
+/*		setTimeout(function() {
+		    
+		    var collapser = document.getElementById("collapse-" + f.id);
+			//things[0].getElementsByClassName("collapse")[0];
+		    console.log(collapser);
+		    collapser.addEventListener("hide bs collapse", function() {
+			console.log("COLLAPSED");
+		    });
+
+		    collapser.addEventListener("click", function() {
+			console.log("CLICKED");
+		    });
+		    }, 1000);*/
+		
 		that.displayFolder(f, things[1], depth + 1);
 	    } else {
 		parentDiv.appendChild(that.displayMakeFile(f, depth));
@@ -461,6 +492,10 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.updateTrackInfo = function(doneCb) {
 	that.apiCall("/api/files/"+ that.curTrackInfo.id + "/data", "GET", true, function(resp) {
 	    var data = JSON.parse(resp);
+
+	    if (!data.artist.length) data.artist = "UNKNOWN ARTIST";
+	    if (!data.title.length) data.title = that.curTrackInfo.name;
+	    if (!data.album.length) data.album = "UNKNOWN ALBUM";
 
 	    var infoStr = data.artist + " -- " + data.title + " (" + data.album + ")";
 	    document.getElementById("CurTrackInfo").innerHTML = infoStr;

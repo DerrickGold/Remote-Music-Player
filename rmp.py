@@ -305,6 +305,12 @@ def metadata(identifier):
 
 
 
+@app.route('/<path:filename>')
+def serving(filename):
+    return send_file(filename)
+    
+
+
 @app.route('/')
 def togui():
     return redirect(url_for('index'))
@@ -316,10 +322,7 @@ def index():
 
 
 
-@app.route('/<path:filename>')
-def serving(filename):
-    return send_file(filename)
-    
+
 
 def args():
     try:
