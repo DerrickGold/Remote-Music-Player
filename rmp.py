@@ -128,13 +128,7 @@ class MPlayer:
         return self.get_mplayer_response(tags[info])
         
     def get_playing_track_info(self):
-
-        return {'artist': self.get_info('get_meta_artist'),
-                'album': self.get_info('get_meta_album'),
-                'title': self.get_info('get_meta_title'),
-                'genre': self.get_info('get_meta_genre'),
-                'pos': self.get_info('get_time_pos')
-                }
+        return {'pos': self.get_info('get_time_pos')}
 
 
 
@@ -199,6 +193,33 @@ class MusicList:
         return parent['children'][index]
 
 
+    def get_audio_mtadata(self, identifier):
+
+        response = {'artist': '', 'album': '', 'title': '', 'genre': ''}        
+        
+        file = self.get_file(identifier)
+
+        if file is None:
+            return response
+
+        print("Getting metadata")
+        path = os.path.join(file['path'], file['name'])
+        args = ["ffmpeg", "-i", path, "-f", "ffmetadata", "-"]
+        process = subprocess.Popen(args, stdout=subprocess.PIPE)
+        output = process.communicate();
+
+        data = output[0].decode().splitlines()
+        data.sort()
+
+        for l in data:
+            info = l.split('=')
+            if len(info) > 1:
+                response[info[0]] = info[1]
+
+        return response
+        
+        
+        
     
 
     
@@ -259,6 +280,13 @@ def play(identifier):
     
     play_file(file, offset)
     return '', 200
+
+@app.route('/api/files/<string:identifier>/data')
+def metadata(identifier):
+    data = GLOBAL_SETTINGS['MusicListClass'].get_audio_mtadata(identifier)
+    return jsonify(**data)
+
+
 
 @app.route('/')
 def togui():

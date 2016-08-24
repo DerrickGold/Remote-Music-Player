@@ -10,7 +10,7 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.mediaDir = null;
     this.mediaHash = {};
     
-    this.indentSize = 10;
+    this.indentSize = 30;
     this.audioDiv = null;
     this.streaming = doStreaming;
     this.playbackState = PlayBackStates["STOPPED"];
@@ -190,7 +190,7 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.swapServerToStreaming = function() {
 
 	that.pauseSong();
-	that.updateTrackInfo(function() {
+	that.getTrackPos(function() {
 	    
 	    var timeoffset = parseFloat(that.curTimeOffset);
 	    timeoffset += 0.1;
@@ -269,7 +269,8 @@ MusicLibrary = function(evtSys, doStreaming) {
 		that.audioDiv.addEventListener("canplay",seekHandler);
 		
 		that.playbackState = PlayBackStates["PLAYING"];
-		that.evtSys.dispatchEvent('media state change', that.playbackState);		
+		that.evtSys.dispatchEvent('media state change', that.playbackState);
+		that.updateTrackInfo();
 	    });
 	}
     }
@@ -335,9 +336,21 @@ MusicLibrary = function(evtSys, doStreaming) {
 	return;
     }
 
+    this.getTrackPos = function(doneCb) {
+
+	//don't need to query the server if we are streaming
+	if (that.streaming)
+	    return;
+	
+	this.apiCall("/api/commands/info", "POST", true, function(resp) {
+	    var data = JSON.parse(resp);
+	    that.curTimeOffset = data.pos;
+	    if (doneCb) doneCb(data);
+	});
+    }
     
     this.updateTrackInfo = function(doneCb) {
-	that.apiCall("/api/commands/info", "POST", true, function(resp) {
+	that.apiCall("/api/files/"+ that.curTrackInfo.id + "/data", "GET", true, function(resp) {
 	    var data = JSON.parse(resp);
 	    document.getElementById("curInfo-artist").innerHTML = data.artist;
 	    document.getElementById("curInfo-title").innerHTML = data.title;
@@ -357,8 +370,15 @@ MusicLibrary = function(evtSys, doStreaming) {
 	that.getFiles();
 
 	that.audioDiv = document.createElement("AUDIO");
+
 	that.audioDiv.ontimeupdate = function(e) {
 	    that.curTimeOffset = this.currentTime;
+	}
+
+	that.audioDiv.onended = function() {
+	    console.log("AUDIO ENDED");
+	    if (that.streaming && that.audioDiv.src.length > 0)
+		that.nextSong();
 	}
 	
 	document.body.appendChild(that.audioDiv);
@@ -369,8 +389,6 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 	var style = window.getComputedStyle(document.body);
 	that.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
-
-	
     }
 
     this.init();
