@@ -170,7 +170,6 @@ MusicLibrary = function(evtSys, doStreaming) {
 	that.evtSys.dispatchEvent("loading");
 	that.apiCall("/api/files", "GET", true, function(resp) {
 	    that.mediaDir = JSON.parse(resp);
-	    console.log(that.mediaDir);
 	    that.makeMediaLibHash(that.mediaDir.files);
 	    that.displayFolder(that.mediaDir.files, that.getRootDirDiv());
 	    that.evtSys.dispatchEvent("loading done");
@@ -196,21 +195,19 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.openFileDisplayToTrack = function(track) {
 
 	var nodes = that.reverseTrackHashLookup(track);
-	console.log(nodes);
 	var lastDiv = null;
 
 	while(nodes.length > 0) {
 	    var id = nodes.pop();
 
 	    if (that.mediaHash[id].directory) {
-		lastDiv = document.getElementById(id).children[0];
+		lastDiv = document.getElementById(id);
 		if (!lastDiv)
 		    continue;
-
-		console.log("EXPANDED: " + lastDiv.getAttribute("aria-expanded"));
-		if (lastDiv.getAttribute("aria-expanded") == 'false')
-		    lastDiv.click();
 		
+		//expand accordion views
+		lastDiv.parentNode.children[1].classList.remove("collapse");
+		lastDiv.parentNode.children[1].classList.add("in");
 	    } else 
 		lastDiv = document.getElementById(id);
 	}
@@ -230,42 +227,53 @@ MusicLibrary = function(evtSys, doStreaming) {
 	that.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
 	    var data = JSON.parse(resp);
 
-
 	    //make everything hidden, then only show search results
 	    var x = document.getElementsByClassName("FileEntry");
-	    for (var i = 0; i < x.length; i++) 
-		x[i].style.display="none";
+	    for (var i = 0; i < x.length; i++)
+		x[i].style.display = "none";
 
 	    x = document.getElementsByClassName("FolderEntry");
 	    for (var i = 0; i < x.length; i++)
-		x[i].style.display="none";
+		x[i].style.display = "none";
+	   
+	    var perChunk = 5;
+	    var numChunks = parseInt(Math.ceil(data.results.length/perChunk));
+	    for (var cchunk = 0; cchunk < numChunks; cchunk++) {
 
-	    data.results.forEach(function(d) {
-		var song = document.getElementById(d);
-		song.style.display = "block";
+		setTimeout(function(curChunk, numPerChunk, results) {
+		    for (var i = 0; i < numPerChunk; i++) {
+			    
+			var index = i + (curChunk * numPerChunk);
+			if (index >= results.length) {
+			    that.evtSys.dispatchEvent("loading done");
+			    return;
+			}
 
-		var nodes = that.reverseTrackHashLookup(that.mediaHash[d]);
-		while(nodes.length > 0) {
-		    var id = nodes.pop();
+			var d = results[index];
+			var song = document.getElementById(d);
+			song.style.display = "block";
 
-		    if (that.mediaHash[id].directory) {
-
-			var div = document.getElementById(id);
-			div.parentNode.style.display = "block";
-			div.children[0].click();
-		    } else
-			div.style.display = "block";
-		}
-	    });	    
-
-	    that.evtSys.dispatchEvent("loading done");
+			var nodes = that.reverseTrackHashLookup(that.mediaHash[d]);
+			while(nodes.length > 0) {
+			    var nodeID = nodes.pop();
+			    var div = document.getElementById(nodeID);
+			    if (that.mediaHash[nodeID].directory) {
+				div.parentNode.style.display = "block";
+				div.parentNode.children[1].classList.remove("collapse");
+				div.parentNode.children[1].classList.add("in");
+			    } else
+				div.style.display = "block";
+			}
+		    }
+		}, 10, cchunk, perChunk, data.results);
+	    }
 	});	
     }
 
     this.clearSearch = function(keyword) {
 
 	var x = document.getElementsByClassName("FileEntry");
-	for (var i = 0; i < x.length; i++) 
+	for (var i = 0; i < x.length; i++)
 	    x[i].style.display="block";
 
 
@@ -335,8 +343,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    lastPlayed.classList.remove('PlayingEntry');
 	}
 
-	console.log("History len: " + that.playHist.length);
-	
+	console.log("History len: " + that.playHist.length);	
 	console.log("OFFSET: " + offset);
 	that.curTrackInfo = songEntry;
 	that.openFileDisplayToTrack(songEntry);
@@ -365,7 +372,6 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 		var seekHandler = function(audio) {
 		    that.audioDiv.removeEventListener('canplay', seekHandler);
-		    console.log("CAN PLAY THROUGH EVENT");
 		    audio.target.currentTime = offset;
 		    that.evtSys.dispatchEvent("loading done");		    
 		}

@@ -3,7 +3,6 @@ body {
     height: 100%;
 }
 
-
 .FolderEntry {
     text-decoration: underline;
     font-weight: bold;
@@ -23,11 +22,15 @@ body {
 
 }
 
-
 .curInfo {
     display: inline-block;
 }
 
 #curInfo-artist, #curInfo-album, #curInfo-title {
     display: inline-block;
+}
+
+.collapsing {
+    -webkit-transition: none;
+    transition: none;
 }
