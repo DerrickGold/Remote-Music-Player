@@ -167,11 +167,13 @@ MusicLibrary = function(evtSys, doStreaming) {
     
 
     this.getFiles = function() {
+	that.evtSys.dispatchEvent("loading");
 	that.apiCall("/api/files", "GET", true, function(resp) {
 	    that.mediaDir = JSON.parse(resp);
 	    console.log(that.mediaDir);
 	    that.makeMediaLibHash(that.mediaDir.files);
 	    that.displayFolder(that.mediaDir.files, that.getRootDirDiv());
+	    that.evtSys.dispatchEvent("loading done");
 	});
     }
 
@@ -222,7 +224,8 @@ MusicLibrary = function(evtSys, doStreaming) {
     }
 
     this.showSearch = function(keyword) {
-	
+
+	that.evtSys.dispatchEvent("loading");
 	keyword = keyword.replace(' ', '%20');
 	that.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
 	    var data = JSON.parse(resp);
@@ -255,7 +258,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 		}
 	    });	    
 
-	    
+	    that.evtSys.dispatchEvent("loading done");
 	});	
     }
 
@@ -274,7 +277,6 @@ MusicLibrary = function(evtSys, doStreaming) {
 
     
     this.swapStreamingToServer = function() {
-	
 	//round value to one decimal place for mplayer
 	var timeoffset = parseFloat(that.curTimeOffset)
 	timeoffset = timeoffset.toFixed(1);
@@ -304,6 +306,7 @@ MusicLibrary = function(evtSys, doStreaming) {
     }
     
     this.swapOutput = function() {
+	that.evtSys.dispatchEvent("loading");
 	if (that.streaming)
 	    that.swapStreamingToServer();
 	else
@@ -325,6 +328,7 @@ MusicLibrary = function(evtSys, doStreaming) {
     
     this.playSong = function(songEntry, offset) {
 
+	that.evtSys.dispatchEvent("loading");
 	if (that.curTrackInfo) {
 	    that.playHist.push(that.curTrackInfo);
 	    var lastPlayed = document.getElementById(that.curTrackInfo.id);
@@ -347,6 +351,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 		that.playbackState = PlayBackStates["PLAYING"];
 		that.evtSys.dispatchEvent('media state change', that.playbackState);
 		that.updateTrackInfo();
+		that.evtSys.dispatchEvent("loading done");
 	    });
 
 	    
@@ -362,7 +367,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 		    that.audioDiv.removeEventListener('canplay', seekHandler);
 		    console.log("CAN PLAY THROUGH EVENT");
 		    audio.target.currentTime = offset;
-		    
+		    that.evtSys.dispatchEvent("loading done");		    
 		}
 		that.audioDiv.addEventListener("canplay",seekHandler);
 		
