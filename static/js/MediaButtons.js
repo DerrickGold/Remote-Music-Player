@@ -21,6 +21,14 @@ MediaButtons = function(evtSys, mediaLibrary) {
     
     var playPauseBtn = document.getElementById("PlayPauseBtn");
     playPauseBtn.onclick = function() {
+
+	if (!that.mediaLibrary.curTrackInfo) {
+	    var track = that.mediaLibrary.getRandomTrack();
+	    that.mediaLibrary.playSong(track, 0);
+	    return;
+	}
+
+	
 	if (that.currentState == PlayBackStates["PAUSED"] || that.currentState == PlayBackStates["STOPPED"]) {
 	    that.mediaLibrary.unpauseSong();
 	} else {
@@ -39,6 +47,11 @@ MediaButtons = function(evtSys, mediaLibrary) {
 	that.mediaLibrary.nextSong();
     }
 
+    var prevBtn = document.getElementById("PrevBtn");
+    prevBtn.onclick = function() {
+	that.mediaLibrary.prevSong();
+    }
 
+    
     this.evtSys.addEventListener('media state change', updatePlayPauseBtn);
 }

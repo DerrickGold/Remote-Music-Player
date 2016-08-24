@@ -55,33 +55,59 @@
   </script>
   
   <body>
-    <div class="curInfo">
-      Artist: <div id="curInfo-artist"></div>
-      Title: <div id="curInfo-title"></div>
-      Album: <div id="curInfo-album"></div>
-    </div>
-
-    <div class="input-group" id="mediaBtns">
-      <button type="button" class="btn btn-primary" id="PrevBtn">
-        <span class="glyphicon glyphicon-step-backward" aria-hidden="true"></span>
-      </button>
-      
-      <button type="button" class="btn btn-primary" id="PlayPauseBtn">
-        <span id="PlayPauseIcon" class="glyphicon glyphicon-play" aria-hidden="true"></span>
-      </button>
-      
-      <button type="button" class="btn btn-primary" id="NextBtn">
-        <span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span>
-      </button>
-
-      <button type="button" class="btn btn-primary" id="SpeakerBtn">
-	<span class="glypicon glyphicon-upload" aria-hidden="true"></span>
-      </button>
-    </div>
-
     
-    <hr>
     
-    <div id="dirlist"></div>
+    <nav class="navbar navbar-default navbar-fixed-top">
+      <div class="container-fluid">
+
+	<div class="navbar-header">
+	  <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#media-controls"
+		  aria-expanded="false">
+	    <span class="sr-only">Toggle navigation</span>
+	    <span class="icon-bar"></span>
+	    <span class="icon-bar"></span>
+	    <span class="icon-bar"></span>
+	  </button>
+	  <a class="navbar-brand" href="#">RMP</a>
+	</div>
+
+	<div class="collapse navbar-collapse" id="media-controls">
+
+	  <!--div class="curInfo">
+	    Artist: <div id="curInfo-artist"></div>
+	    Title: <div id="curInfo-title"></div>
+	    Album: <div id="curInfo-album"></div>
+	  </div-->
+
+	  <button type="button" class="btn btn-primary navbar-btn" id="PrevBtn">
+            <span class="glyphicon glyphicon-step-backward" aria-hidden="true"></span>
+	  </button>
+      
+	  <button type="button" class="btn btn-primary navbar-btn" id="PlayPauseBtn">
+            <span id="PlayPauseIcon" class="glyphicon glyphicon-play" aria-hidden="true"></span>
+	  </button>
+      
+	  <button type="button" class="btn btn-primary navbar-btn" id="NextBtn">
+            <span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span>
+	  </button>
+
+	  <button type="button" class="btn btn-primary navbar-btn" id="SpeakerBtn">
+	    <span class="glypicon glyphicon-upload" aria-hidden="true"></span>
+	  </button>
+
+	  <button type="button" class="btn btn-primary navbar-btn" id="ShuffleBtn">
+	    <p>SHUFFLE</p>
+	  </button>
+	  
+	</div><!--end of navbar-collapse-->
+    
+    
+      </div>
+    </nav>
+
+    <div class="container-fluid">
+      <div class="row" id="dirlist"></div>
+    </div>
+    
   </body>
 </html>

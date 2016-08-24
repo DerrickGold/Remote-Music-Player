@@ -8,14 +8,37 @@ MusicLibrary = function(evtSys, doStreaming) {
 
     var that = this;
     this.mediaDir = null;
+    this.mediaHash = {};
+    
     this.indentSize = 10;
     this.audioDiv = null;
     this.streaming = doStreaming;
     this.playbackState = PlayBackStates["STOPPED"];
     this.evtSys = evtSys;
-    this.curTrack = [];
+    this.curTrackInfo = null;
     this.curTimeOffset = 0;
 
+    this.shuffle = true;
+    this.playHist = [];
+
+    this.navbarOffset = "";
+
+
+
+    
+    this.getRandomTrack = function(directory) {
+
+	if (!directory) directory = that.mediaDir.files;
+
+	var index = Math.floor(Math.random() * (directory.children.length - 1));
+	var file = directory.children[index];
+
+	if (file.directory)
+	    return that.getRandomTrack(file);
+
+	return file;
+    }
+    
 
     this.apiCall = function(route, method, async, successCb) {
 	var xhttp = new XMLHttpRequest();
@@ -56,6 +79,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 	    var entryHeader = document.createElement("div");
 	    entryHeader.innerHTML = f.name;
+	    entryHeader.setAttribute("id", f.id);
 	    var entry = entryHeader;
 
 	    
@@ -93,15 +117,64 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 	});
     }
+
+    this.makeMediaLibHash = function(root) {
+
+	that.mediaHash[root.id] = root;
+
+	for(var i = 0; i < root.children.length; i++) {
+	    this.makeMediaLibHash(root.children[i]);
+	}
+    }
     
 
     this.getFiles = function() {
 	that.apiCall("/api/files", "GET", true, function(resp) {
 	    that.mediaDir = JSON.parse(resp);
+	    console.log(that.mediaDir);
+	    that.makeMediaLibHash(that.mediaDir.files);
 	    that.displayFolder(that.mediaDir.files, that.getRootDirDiv());
 	});
     }
 
+
+    
+    this.reverseTrackHashLookup = function(startNode) {
+
+	var findStack = [];
+	var curNode = startNode;
+	
+	while(curNode.parent != ".") {
+	    findStack.push(curNode.id);
+	    curNode = that.mediaHash[curNode.parent]
+	}
+
+	return findStack;
+    }
+
+
+    this.openFileDisplayToTrack = function(track) {
+
+	var nodes = that.reverseTrackHashLookup(track);
+	console.log(nodes);
+	var lastDiv = null;
+
+	while(nodes.length > 0) {
+	    var id = nodes.pop();
+	    
+	    lastDiv = document.getElementById(id);
+	    if (!lastDiv)
+		continue;
+
+	    if (!that.mediaHash[id]._opened && that.mediaHash[id].directory)
+		lastDiv.click();
+	}
+
+	lastDiv.scrollIntoView();
+	window.scrollBy(0, -that.navbarOffset);
+	lastDiv.classList.add('PlayingEntry');
+    }
+    
     this.swapStreamingToServer = function() {
 	
 	//round value to one decimal place for mplayer
@@ -111,7 +184,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	that.pauseSong();
 	that.streaming = false;
 
-	that.playSong(that.curTrack, timeoffset);
+	that.playSong(that.curTrackInfo, timeoffset);
     }
 
     this.swapServerToStreaming = function() {
@@ -127,7 +200,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    that.audioDiv.src = "";
 	    that.audioDiv.play();
 
-	    that.playSong(that.curTrack, timeoffset);
+	    that.playSong(that.curTrackInfo, timeoffset);
 
 	});
     }
@@ -153,8 +226,18 @@ MusicLibrary = function(evtSys, doStreaming) {
     }
     
     this.playSong = function(songEntry, offset) {
+
+	if (that.curTrackInfo) {
+	    that.playHist.push(that.curTrackInfo);
+	    var lastPlayed = document.getElementById(that.curTrackInfo.id);
+	    lastPlayed.classList.remove('PlayingEntry');
+	}
+
+	console.log("History len: " + that.playHist.length);
+	
 	console.log("OFFSET: " + offset);
-	that.curTrack = songEntry;
+	that.curTrackInfo = songEntry;
+	that.openFileDisplayToTrack(songEntry);
 	
 	if (!that.streaming) {
 	    //not streaming, tell server to play file
@@ -222,6 +305,13 @@ MusicLibrary = function(evtSys, doStreaming) {
 
     this.nextSong = function() {
 
+
+	if (that.shuffle) {
+	    var track = that.getRandomTrack();
+	    that.playSong(track, 0);
+	    return;
+	}
+	
 	that.apiCall("/api/files/next", "GET", true, function(resp) {
 	    var file = JSON.parse(resp);
 	    
@@ -233,6 +323,16 @@ MusicLibrary = function(evtSys, doStreaming) {
 		that.updateTrackInfo();
 	});
 	
+    }
+
+    this.prevSong = function() {
+	if (that.playHist.length < 1)
+	    return;
+
+	that.curTrackInfo = null;
+	var lastTrack = that.playHist.pop();
+	that.playSong(lastTrack, 0);
+	return;
     }
 
     
@@ -264,6 +364,13 @@ MusicLibrary = function(evtSys, doStreaming) {
 	document.body.appendChild(that.audioDiv);
 
 	that.evtSys.registerEvent('media state change');
+
+	console.log(document.body.style);
+
+	var style = window.getComputedStyle(document.body);
+	that.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
+
+	
     }
 
     this.init();
