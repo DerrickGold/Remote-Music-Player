@@ -142,35 +142,12 @@ class MusicList:
 
     def __init__(self, root):
         self.listFile = GLOBAL_SETTINGS['music-list-name']
-        self.totalFileCount = 0;
         self.generate_music_list(root)
 
 
     def generate_music_list(self, musicRoot, outputFile=None):
-        if outputFile is None: outputFile = self.listFile
-
-        try:
-            listFile = open(outputFile, 'w')
-        except (e):
-            logging.error(e)
-            return
-
-        self.totalFileCount = 0;
         self.files, self.mapping = scan_directory(musicRoot)
 
-        for root, dirs, files in os.walk(musicRoot):
-            for f in files:
-                self.totalFileCount+=1
-
-                if f[0] != '.':
-                    listFile.write(os.path.join(root, f) + '\n')
-
-        listFile.close()
-        logging.info('Scanned {} files.'.format(self.totalFileCount))
-        return self.totalFileCount
-
-    def count(self):
-        return self.totalFileCount
 
     def get_file(self, identifier):
         if not identifier in self.mapping:
