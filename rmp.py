@@ -271,6 +271,7 @@ def files():
 
 @app.route('/api/files/search/<string:keyword>')
 def search(keyword):
+    keyword = keyword.strip()
     if len(keyword) <= 0:
         return '', 400
     

@@ -40,12 +40,15 @@ MusicLibrary = function(evtSys, doStreaming) {
     }
     
 
-    this.apiCall = function(route, method, async, successCb) {
+    this.apiCall = function(route, method, async, successCb, errorCb) {
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
 	    if (xhttp.readyState == 4 && xhttp.status == 200) {
 		if (successCb)
 		    successCb(xhttp.responseText);
+	    } else if (xhttp.readyState > 0 && xhttp.status != 200) {
+		if (errorCb)
+		    errorCb(xhttp.responseText);
 	    }
 	}
 
@@ -237,8 +240,8 @@ MusicLibrary = function(evtSys, doStreaming) {
 		    continue;
 		
 		//expand accordion views
-		lastDiv.parentNode.children[1].classList.remove("collapse");
-		lastDiv.parentNode.children[1].classList.add("in");
+		var collapse = document.getElementById("collapse-" + id);
+		collapse.classList.add("in");
 	    } else 
 		lastDiv = document.getElementById(id);
 	}
@@ -253,8 +256,13 @@ MusicLibrary = function(evtSys, doStreaming) {
 
     this.showSearch = function(keyword) {
 
-	that.evtSys.dispatchEvent("loading");
+	keyword = keyword.replace(/^s+|\s+$/g, '');
 	keyword = keyword.replace(' ', '%20');
+	if (keyword.length <= 0)
+	    return;
+
+	that.evtSys.dispatchEvent("loading");
+	
 	that.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
 	    var data = JSON.parse(resp);
 
@@ -266,6 +274,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    x = document.getElementsByClassName("FolderEntry");
 	    for (var i = 0; i < x.length; i++)
 		x[i].style.display = "none";
+
 	   
 	    var perChunk = 5;
 	    var numChunks = parseInt(Math.ceil(data.results.length/perChunk));
@@ -289,29 +298,41 @@ MusicLibrary = function(evtSys, doStreaming) {
 			    var nodeID = nodes.pop();
 			    var div = document.getElementById(nodeID);
 			    if (that.mediaHash[nodeID].directory) {
-				div.parentNode.style.display = "block";
-				div.parentNode.children[1].classList.remove("collapse");
-				div.parentNode.children[1].classList.add("in");
+				div.parentNode.style.display = "";
+				var collapse = document.getElementById("collapse-" + nodeID);
+				collapse.classList.add("in");
 			    } else
-				div.style.display = "block";
+				div.style.display = "";
 			}
 		    }
 		}, 10, cchunk, perChunk, data.results);
 	    }
+	}, function(resp) {
+	    that.evtSys.dispatchEvent("loading done");
 	});	
     }
 
     this.clearSearch = function(keyword) {
 
+
+	var x = document.getElementsByClassName("FolderEntry");
+	for (var i = 0; i < x.length; i++) {
+	    x[i].style.display="";
+	    var closeBody = x[i].getElementsByClassName("panel-collapse");
+	    for (var z = 0; z < closeBody.length; z++) {
+		closeBody[z].classList.remove("in");
+		//if (closeBody[z].classList.contains("in"))
+		//    closeBody[z].classList.add("collapse", "in");
+	    }
+	}
+	
+
 	var x = document.getElementsByClassName("FileEntry");
-	for (var i = 0; i < x.length; i++)
-	    x[i].style.display="block";
+	for (var i = 0; i < x.length; i++) {
+	    x[i].style.display="";
+	}
 
-
-	x = document.getElementsByClassName("FolderEntry");
-	for (var i = 0; i < x.length; i++)
-	    x[i].style.display="block";
-
+	
     }
 
     
