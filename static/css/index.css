@@ -23,6 +23,10 @@ body {
     background-color: lightblue;
 }
 
+.ExcludeBtn {
+    padding-right: 5px;
+}
+
 #dirlist {
 
 }

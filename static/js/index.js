@@ -30,11 +30,15 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 	if (!directory) directory = that.mediaDir.files;
 
-	var index = Math.floor(Math.random() * (directory.children.length - 1));
+	var index = Math.floor(Math.random() * (directory.children.length));
 	var file = directory.children[index];
 
-	if (file.directory)
+	if (file._exclude)
+	    return that.getRandomTrack(directory);
+	
+	else if (file.directory)
 	    return that.getRandomTrack(file);
+	
 
 	return file;
     }
@@ -60,20 +64,58 @@ MusicLibrary = function(evtSys, doStreaming) {
 	return document.getElementById("dirlist");
     }
     
-    this.clearDirectoryBrowser = function() {
-	var masterListDiv = that.getRootDirDiv();
-
-	while (masterListDiv.firstChild) {
-	    masterListDiv.removeChild(masterListDiv.firstChild);
-	}
-    }
     
     this.closeDirectory = function(folderDiv) {
-	while (folderDiv.nextSibling) {
-	    folderDiv.parentNode.removeChild(folderDiv.nextSibling);
-	}
+
+	if (folderDiv.classList && folderDiv.classList.contains("FolderEntry"))
+	    return this.closeDirectory(folderDiv.parentNode);
+	    
+	var x = folderDiv.getElementsByClassName("FolderEntry");
+	for (var i = 0; i < x.length; i++) {
+	    x[i].style.display="";
+	    var closeBody = x[i].getElementsByClassName("panel-collapse");
+	    for (var z = 0; z < closeBody.length; z++) {
+		closeBody[z].classList.remove("in");
+	    }
+	}	
     }
 
+    this.displayMakeExcludeButton = function(container) {
+
+	
+	var icon = document.createElement("span");
+	icon.className = "glyphicon glyphicon-ban-circle ExcludeBtn";
+	icon.setAttribute("aria-hidden", "true");
+	
+	
+	icon.onclick = function(e) {
+	    e.preventDefault();
+	    console.log("EXCLUDE CLICK");
+	    var nodeID = container.getAttribute('id');	    
+	    that.mediaHash[nodeID]._exclude = !that.mediaHash[nodeID]._exclude;
+	    if (that.mediaHash[nodeID]._exclude) {
+		container.style.textDecoration = "line-through";
+		var aElm = container.getElementsByTagName("a");
+		//a[0].disabled = true;
+		aElm[0].style.pointerEvents = "none";
+//		aElm[0].disabled = true;
+		    //setAttribute('data-toggle', '');
+		//		container.disabled = "true";
+		that.closeDirectory(container.parentNode);
+	    } else {
+		container.style.textDecoration = "";
+		var aElm = container.getElementsByTagName("a");
+		//a[0].disabled = false;
+//		aElm[0].disabled = false;
+		    //setAttribute('data-toggle', 'collapse');
+		aElm[0].style.pointerEvents = "";
+//		container.disabled = "false";
+	    }
+	}
+
+	return icon;
+    }
+    
     this.displayMakeFolder = function(folderEntry, expanded, depth) {
 	var panelBody = null;
 	var panel = null;
@@ -82,6 +124,9 @@ MusicLibrary = function(evtSys, doStreaming) {
 	panelHeader.classList.add("panel-heading");
 	panelHeader.setAttribute("role", "tab");
 
+	var excludeBtn = that.displayMakeExcludeButton(panelHeader);
+	panelHeader.appendChild(excludeBtn);
+	
 	var icon = document.createElement("span");
 	icon.className = "glyphicon glyphicon-folder-close";
 	icon.setAttribute("aria-hidden", "true");
@@ -106,8 +151,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    
 	collapseButton.setAttribute("aria-controls", "collapse-"+folderEntry.id);
 	collapseButton.innerHTML = folderEntry.name;
-	panelHeader.appendChild(collapseButton);
-	
+	panelHeader.appendChild(collapseButton);	
 
 	
 	panel = document.createElement("div");
@@ -149,7 +193,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	file.classList.add("FileEntry");
 	file.classList.add("panel-heading");
 
-	file.onclick = function() {
+	text.onclick = function() {
 	    if (that.streaming) {
 		that.audioDiv.src = '';
 		that.audioDiv.play();
@@ -185,7 +229,8 @@ MusicLibrary = function(evtSys, doStreaming) {
 		
 		that.displayFolder(f, things[1], depth + 1);
 	    } else {
-		parentDiv.appendChild(that.displayMakeFile(f, depth));
+		var thing = that.displayMakeFile(f, depth)
+		parentDiv.appendChild(thing);
 	    }
 	});
     }
@@ -314,25 +359,12 @@ MusicLibrary = function(evtSys, doStreaming) {
 
     this.clearSearch = function(keyword) {
 
-
-	var x = document.getElementsByClassName("FolderEntry");
-	for (var i = 0; i < x.length; i++) {
-	    x[i].style.display="";
-	    var closeBody = x[i].getElementsByClassName("panel-collapse");
-	    for (var z = 0; z < closeBody.length; z++) {
-		closeBody[z].classList.remove("in");
-		//if (closeBody[z].classList.contains("in"))
-		//    closeBody[z].classList.add("collapse", "in");
-	    }
-	}
-	
+	that.closeDirectory(document);
 
 	var x = document.getElementsByClassName("FileEntry");
 	for (var i = 0; i < x.length; i++) {
 	    x[i].style.display="";
 	}
-
-	
     }
 
     
