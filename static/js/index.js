@@ -278,7 +278,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	(function(oldDiv) {
 	    if (!inView) {
 		setTimeout(function() {
-		    oldDiv.scrollIntoView();
+		    oldDiv.scrollIntoView(true);
 		    window.scrollBy(0, -that.navbarOffset);
 		}, 500);
 	    }
