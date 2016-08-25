@@ -54,14 +54,12 @@
 
     	reactor.registerEvent("loading");
     	reactor.addEventListener("loading", function() {
-    		console.log("LOADING EVENT");
     		var loadingScreen = document.getElementsByClassName("loaderContainer")[0];
     		loadingScreen.style.display="block";
     	});
 
     	reactor.registerEvent("loading done");
     	reactor.addEventListener("loading done", function() {
-    		console.log("LOADING DONE EVENT");
     		var loadingScreen = document.getElementsByClassName("loaderContainer")[0];
     		loadingScreen.style.display="none";
     	});

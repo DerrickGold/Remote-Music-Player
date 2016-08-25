@@ -18,11 +18,10 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.curTrackInfo = null;
     this.curTimeOffset = 0;
 
-    this.shuffle = true;
+    this.shuffle = false;
     this.playHist = [];
 
     this.navbarOffset = "";
-
 
 
     
@@ -96,20 +95,12 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    if (that.mediaHash[nodeID]._exclude) {
 		container.style.textDecoration = "line-through";
 		var aElm = container.getElementsByTagName("a");
-		//a[0].disabled = true;
 		aElm[0].style.pointerEvents = "none";
-//		aElm[0].disabled = true;
-		    //setAttribute('data-toggle', '');
-		//		container.disabled = "true";
 		that.closeDirectory(container.parentNode);
 	    } else {
 		container.style.textDecoration = "";
 		var aElm = container.getElementsByTagName("a");
-		//a[0].disabled = false;
-//		aElm[0].disabled = false;
-		    //setAttribute('data-toggle', 'collapse');
 		aElm[0].style.pointerEvents = "";
-//		container.disabled = "false";
 	    }
 	}
 
@@ -137,12 +128,6 @@ MusicLibrary = function(evtSys, doStreaming) {
 	collapseButton.classList.add("FolderEntryText");
 	collapseButton.setAttribute("role", "button");
 	collapseButton.setAttribute("data-toggle", "collapse");
-	
-//	if (depth == 0)
-//	    collapseButton.setAttribute("data-parent", "#dirlist");
-//	else
-//	    collapseButton.setAttribute('data-parent', '#' + folderEntry.id);
-	
 	collapseButton.setAttribute("href", "#collapse-"+folderEntry.id);
 	if (expanded)
 	    collapseButton.setAttribute("aria-expanded", "true");
@@ -193,7 +178,8 @@ MusicLibrary = function(evtSys, doStreaming) {
 	file.classList.add("FileEntry");
 	file.classList.add("panel-heading");
 
-	text.onclick = function() {
+	text.onclick = function(e) {
+	    e.preventDefault();
 	    if (that.streaming) {
 		that.audioDiv.src = '';
 		that.audioDiv.play();
@@ -212,21 +198,6 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    if (f.directory) {
 		var things = that.displayMakeFolder(f, false, depth);
 		parentDiv.appendChild(things[0]);
-
-/*		setTimeout(function() {
-		    
-		    var collapser = document.getElementById("collapse-" + f.id);
-			//things[0].getElementsByClassName("collapse")[0];
-		    console.log(collapser);
-		    collapser.addEventListener("hide bs collapse", function() {
-			console.log("COLLAPSED");
-		    });
-
-		    collapser.addEventListener("click", function() {
-			console.log("CLICKED");
-		    });
-		    }, 1000);*/
-		
 		that.displayFolder(f, things[1], depth + 1);
 	    } else {
 		var thing = that.displayMakeFile(f, depth)
@@ -266,18 +237,32 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    findStack.push(curNode.id);
 	    curNode = that.mediaHash[curNode.parent]
 	}
-
+	findStack.push(curNode.id);
 	return findStack;
     }
 
 
     this.openFileDisplayToTrack = function(track) {
 
+	//first check if item is not already in viewport before scrolling
+	var trackDiv = document.getElementById(track.id);
+	var inView = false;
+	if (trackDiv) {
+	    var trackDivBox = trackDiv.getBoundingClientRect();
+	    inView = (trackDivBox.top >= 0 && trackDivBox.left >= 0 &&
+		      trackDivBox.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+		      trackDivBox.right <= (window.innerWidth || document.documentElement.clientWidth));
+	}
+
 	var nodes = that.reverseTrackHashLookup(track);
 	var lastDiv = null;
 
 	while(nodes.length > 0) {
 	    var id = nodes.pop();
+
+	    //skip root dir
+	    if (that.mediaHash[id].parent == ".")
+		continue;
 
 	    if (that.mediaHash[id].directory) {
 		lastDiv = document.getElementById(id);
@@ -291,10 +276,12 @@ MusicLibrary = function(evtSys, doStreaming) {
 		lastDiv = document.getElementById(id);
 	}
 
-	setTimeout(function() {
-	    lastDiv.scrollIntoView(true);
-	    window.scrollBy(0, -that.navbarOffset);
-	}, 500);
+	if (!inView) {
+	    setTimeout(function() {
+		lastDiv.scrollIntoView();
+		window.scrollBy(0, -that.navbarOffset);
+	    }, 500);
+	}
 	
 	lastDiv.classList.add('PlayingEntry');
     }
@@ -341,6 +328,10 @@ MusicLibrary = function(evtSys, doStreaming) {
 			var nodes = that.reverseTrackHashLookup(that.mediaHash[d]);
 			while(nodes.length > 0) {
 			    var nodeID = nodes.pop();
+			    
+			    if (that.mediaHash[nodeID].parent == ".")
+				continue;
+			    
 			    var div = document.getElementById(nodeID);
 			    if (that.mediaHash[nodeID].directory) {
 				div.parentNode.style.display = "";
@@ -427,8 +418,6 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    lastPlayed.classList.remove('PlayingEntry');
 	}
 
-	console.log("History len: " + that.playHist.length);	
-	console.log("OFFSET: " + offset);
 	that.curTrackInfo = songEntry;
 	that.openFileDisplayToTrack(songEntry);
 	
@@ -499,24 +488,52 @@ MusicLibrary = function(evtSys, doStreaming) {
 
     this.nextSong = function() {
 
-
 	if (that.shuffle) {
 	    var track = that.getRandomTrack();
 	    that.playSong(track, 0);
 	    return;
-	}
-	
-	that.apiCall("/api/files/next", "GET", true, function(resp) {
-	    var file = JSON.parse(resp);
-	    
-	    that.playSong(file, 0);
-	    that.playbackState = PlayBackStates["PLAYING"];
-	    that.evtSys.dispatchEvent('media state change', that.playbackState);
+	} else {
+	    var nodes = that.reverseTrackHashLookup(that.curTrackInfo).reverse();
+	    var lastDir = that.curTrackInfo.id;
 
-	    if (!that.streaming)
-		that.updateTrackInfo();
-	});
-	
+	    while (nodes.length > 0) {
+		var popped = nodes.pop();
+		var directory = that.mediaHash[popped];
+
+		//if we popped off the current track, ignore it for now
+		if (!directory.directory)
+		    continue;
+
+		//look for the last directory or file visited to get position in directory
+		//to coninue from
+		var found = false;
+		var position = 0;
+		for(; position < directory.children.length; position++) {
+		    if (directory.children[position].id == lastDir) {
+			found = true;
+			break;
+		    }
+		}
+		if (found)
+		    position++;
+		else
+		    position = 0;
+		
+		//if we hit the end of the folder, continue up the next level
+		if (position >= directory.children.length) {
+		    lastDir = directory.id;
+		    continue;
+		}
+		
+		var nextTrack = directory.children[position];
+		while (nextTrack.directory)
+		    nextTrack = nextTrack.children[0];
+		
+		//otherwise, play the next song
+		that.playSong(nextTrack, 0);
+		return;
+	    }
+	}
     }
 
     this.prevSong = function() {
@@ -587,10 +604,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	}
 	
 	document.body.appendChild(that.audioDiv);
-
-	that.evtSys.registerEvent('media state change');
-
-	console.log(document.body.style);
+	
 
 	var style = window.getComputedStyle(document.body);
 	that.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
@@ -601,6 +615,9 @@ MusicLibrary = function(evtSys, doStreaming) {
 		that.openFileDisplayToTrack(that.curTrackInfo);
 	    });
 	}
+
+
+	that.evtSys.registerEvent('media state change');
     }
 
     this.init();

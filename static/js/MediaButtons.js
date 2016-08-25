@@ -27,7 +27,6 @@ MediaButtons = function(evtSys, mediaLibrary) {
 	    that.mediaLibrary.playSong(track, 0);
 	    return;
 	}
-
 	
 	if (that.currentState == PlayBackStates["PAUSED"] || that.currentState == PlayBackStates["STOPPED"]) {
 	    that.mediaLibrary.unpauseSong();
@@ -52,6 +51,19 @@ MediaButtons = function(evtSys, mediaLibrary) {
 	that.mediaLibrary.prevSong();
     }
 
+    var shuffleBtn = document.getElementById("ShuffleBtn");
+    shuffleBtn.onclick = function() {
+	that.mediaLibrary.shuffle = !that.mediaLibrary.shuffle;
+
+	if (that.mediaLibrary.shuffle) {
+	    shuffleBtn.classList.remove('btn-default');
+	    shuffleBtn.classList.add('btn-success');
+	} else {
+	    shuffleBtn.classList.remove('btn-success');
+	    shuffleBtn.classList.add('btn-default');
+	}
+    }
+    
 
     var searchBtn = document.getElementById("SearchBtn");
     searchBtn.onclick = function(e) {
