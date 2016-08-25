@@ -218,6 +218,14 @@ class MusicList:
             if len(info) > 1:
                 response[info[0]] = info[1]
 
+
+        #get track length
+        args = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", \
+                "default=noprint_wrappers=1:nokey=1", path]
+        process = subprocess.Popen(args, stdout=subprocess.PIPE)
+        output = process.communicate()
+
+        response['length'] = output[0].decode().strip()
         return response
 
     

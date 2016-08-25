@@ -275,13 +275,14 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    } else 
 		lastDiv = document.getElementById(id);
 	}
-
-	if (!inView) {
-	    setTimeout(function() {
-		lastDiv.scrollIntoView();
-		window.scrollBy(0, -that.navbarOffset);
-	    }, 500);
-	}
+	(function(oldDiv) {
+	    if (!inView) {
+		setTimeout(function() {
+		    oldDiv.scrollIntoView();
+		    window.scrollBy(0, -that.navbarOffset);
+		}, 500);
+	    }
+	}(lastDiv));
 	
 	lastDiv.classList.add('PlayingEntry');
     }
@@ -578,6 +579,8 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 	    document.getElementById("CurTrackInfo").innerHTML = infoStr;
 	    document.title = infoStr;
+
+	    document.getElementById("CurInfoTotalTime").innerHTML = '' + parseInt(data["length"]) + '';
 	    if (doneCb)
 		doneCb(data);
 	});
@@ -593,8 +596,10 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 	that.audioDiv = document.createElement("AUDIO");
 
+	var curTimeDiv = document.getElementById("CurInfoTime");
 	that.audioDiv.ontimeupdate = function(e) {
 	    that.curTimeOffset = this.currentTime;
+	    curTimeDiv.innerHTML = '' + parseInt(that.curTimeOffset) + '';
 	}
 
 	that.audioDiv.onended = function() {

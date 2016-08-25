@@ -27,12 +27,16 @@ body {
     padding-right: 5px;
 }
 
+#CurInfoTime, #CurInfoTotalTime {
+    display: inline-block;
+}
+
 #dirlist {
 
 }
 
 .marquee {
-    width: 300px;
+    width: 200px;
     margin: 0 auto;
     overflow: hidden;
     white-space: nowrap;
