@@ -502,8 +502,9 @@ MusicLibrary = function(evtSys, doStreaming) {
 		var directory = that.mediaHash[popped];
 
 		//if we popped off the current track, ignore it for now
-		if (!directory.directory)
+		if (!directory.directory) {
 		    continue;
+		}
 
 		//look for the last directory or file visited to get position in directory
 		//to coninue from
@@ -519,6 +520,10 @@ MusicLibrary = function(evtSys, doStreaming) {
 		    position++;
 		else
 		    position = 0;
+
+		while (position < directory.children.length && directory.children[position]._exclude) {
+		    position++;
+		}
 		
 		//if we hit the end of the folder, continue up the next level
 		if (position >= directory.children.length) {
