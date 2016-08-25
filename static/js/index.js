@@ -514,14 +514,23 @@ MusicLibrary = function(evtSys, doStreaming) {
 	that.apiCall("/api/files/"+ that.curTrackInfo.id + "/data", "GET", true, function(resp) {
 	    var data = JSON.parse(resp);
 
-	    if (!data.artist.length) data.artist = "UNKNOWN ARTIST";
-	    if (!data.title.length) data.title = that.curTrackInfo.name;
-	    if (!data.album.length) data.album = "UNKNOWN ALBUM";
+	    var infoStr = '';
+	    
+	    if (data.artist.length)
+		infoStr = data.artist + " -- ";
+	    
+	    if (!data.title.length)
+		data.title = that.curTrackInfo.name;
+	    
+	    infoStr += data.title;
+	    
+	    if (data.album.length)
+		infoStr += " (" + data.album + ")";
 
-	    var infoStr = data.artist + " -- " + data.title + " (" + data.album + ")";
 	    document.getElementById("CurTrackInfo").innerHTML = infoStr;
 	    document.title = infoStr;
-	    if (doneCb) doneCb(data);
+	    if (doneCb)
+		doneCb(data);
 	});
     }
 
@@ -553,6 +562,13 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 	var style = window.getComputedStyle(document.body);
 	that.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
+
+	var curInfo = document.getElementById("CurTrackInfo");
+	if (curInfo) {
+	    curInfo.addEventListener("click", function() {
+		that.openFileDisplayToTrack(that.curTrackInfo);
+	    });
+	}
     }
 
     this.init();
