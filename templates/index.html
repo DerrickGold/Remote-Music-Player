@@ -55,6 +55,7 @@
     	reactor.registerEvent("loading");
     	reactor.addEventListener("loading", function() {
     		var loadingScreen = document.getElementsByClassName("loaderContainer")[0];
+    		console.log("LOADING EVENT");
     		loadingScreen.style.display="block";
     	});
 
@@ -62,6 +63,7 @@
     	reactor.addEventListener("loading done", function() {
     		var loadingScreen = document.getElementsByClassName("loaderContainer")[0];
     		loadingScreen.style.display="none";
+    		console.log("LOADING DONE");
     	});
 
     

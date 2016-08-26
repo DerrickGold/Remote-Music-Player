@@ -24,7 +24,8 @@ GLOBAL_SETTINGS = {
     'MPlayerClass': None,
     'MusicListClass': None,
     'max-transcodes': 4,
-    'stream-quality': '128'
+    'stream-quality': '128',
+    'ffmpeg-flags': ["-hide_banner", "-loglevel", "panic"]
 }
 
 AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac", ".aiff"]
@@ -195,6 +196,7 @@ class MusicList:
         print("Getting metadata")
         path = os.path.join(file['path'], file['name'])
         args = ["ffmpeg", "-i", path, "-f", "ffmetadata", "-"]
+        args.extend(GLOBAL_SETTINGS['ffmpeg-flags'])
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         output = process.communicate();
 
@@ -253,8 +255,10 @@ class MusicList:
         args = ["ffmpeg", "-y", "-i", path, "-vn", "-ar", "44100", "-ac" , "2", "-ab", \
                 quality + "k", "-f", "mp3", outfile]
 
+        args.extend(GLOBAL_SETTINGS['ffmpeg-flags'])
+        
         self.transcodeProcess[self.transcodeID] = subprocess.Popen(args)
-        return (outfile, self.transcodeID)
+        return (outfile, self.transcodeProcess[self.transcodeID])
         
         
     
@@ -344,28 +348,32 @@ def serving(filename):
     ext = os.path.splitext(filename)
 
     if ext[1] in TRANSCODE_FROM or doTranscode:
-        newFile, id = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(filename, quality)
+        newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(filename, quality)
         #give ffmpeg some time to start transcoding
         time.sleep(1)
                 
         @stream_with_context
-        def generate(inFile, procID):
+        def generate(inFile, ffmpegProc):
             file = open(inFile, 'rb')
+            doneTranscode = False;
+            
             while True:
                 chunk = file.read(1024 * 512)
-                if chunk:
+                if len(chunk) > 0:
                     yield chunk
-
+                    
                 #if no bytes were read, check if transcoding is still happening
-                elif not chunk and GLOBAL_SETTINGS['MusicListClass'].is_transcoding(procID):
-                    #and if not, then we've streamed the entire file
+                doneTranscode = ffmpegProc.poll() is not None
+
+                if len(chunk) == 0 and doneTranscode:
+                    yield chunk
                     break
 
                 time.sleep(1)
-            print("[CLOSING FILE]")
+                
             file.close()
             
-        return Response(stream_with_context(generate(newFile, id)), mimetype="audio/mpeg")
+        return Response(stream_with_context(generate(newFile, proc)), mimetype="audio/mpeg")
         
     return send_file(newFile)
     

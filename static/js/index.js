@@ -299,7 +299,8 @@ MusicLibrary = function(evtSys, doStreaming) {
 			    
 			var index = i + (curChunk * numPerChunk);
 			if (index >= results.length) {
-			    that.evtSys.dispatchEvent("loading done");
+
+//			    that.evtSys.dispatchEvent("loading done");
 			    return;
 			}
 
@@ -311,7 +312,6 @@ MusicLibrary = function(evtSys, doStreaming) {
 			
 			while(nodes.length > 0) {
 			    var nodeID = nodes.pop();
-			    console.log(that.mediaHash[nodeID]);
 			    if (that.mediaHash[nodeID].parent == ".")
 				continue;
 			    
@@ -329,7 +329,22 @@ MusicLibrary = function(evtSys, doStreaming) {
 		    }
 		}, 10, cchunk, perChunk, data.results);
 	    }
+
+	    var intervalID = null;
+
+	    (function(total) {
+		intervalID = setInterval(function() {
+		    if (document.querySelectorAll('.FileEntry[style=""]').length >= total) {
+			console.log("SEACH LOADING DONE");
+			that.evtSys.dispatchEvent("loading done");
+			clearInterval(intervalID);
+		    }
+		}, 1000);
+	    }(data.results.length));
+
+	    
 	}, function(resp) {
+	    console.log("SEARCH LOADING ERROR");
 	    that.evtSys.dispatchEvent("loading done");
 	});	
     }
@@ -657,7 +672,7 @@ MusicLibrary.prototype.apiCall = function(route, method, async, successCb, error
 	if (xhttp.readyState == 4 && xhttp.status == 200) {
 	    if (successCb)
 		successCb(xhttp.responseText);
-	} else if (xhttp.readyState > 0 && xhttp.status != 200) {
+	} else if (xhttp.readyState == 4) {
 	    if (errorCb)
 		errorCb(xhttp.responseText);
 	}
