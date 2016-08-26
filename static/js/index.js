@@ -22,6 +22,8 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.playHist = [];
 
     this.navbarOffset = "";
+    this.supportedFormats = null;
+    
 
     this.setFolderView = function(folderIdDiv, view) {
 
@@ -460,20 +462,25 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 		var trackData = JSON.parse(resp);
 
+		var streamFormat = document.getElementById("stream-format");
+		var fmt = streamFormat.options[streamFormat.selectedIndex].value;
+		
 		var streamOptions = document.getElementById("stream-quality");
 		var quality = streamOptions.options[streamOptions.selectedIndex].value;
 
 		var transcodeOptions = document.getElementById("transcoding-option");
 		var transcode = transcodeOptions.options[transcodeOptions.selectedIndex].value;
 		
-		that.audioDiv.src =   trackData.path + "/" + trackData.name + "?quality=" + quality +
-		    "&transcode=" + transcode;
-		
-		that.audioDiv.play();
+		that.audioDiv.src =   trackData.path + "/" + trackData.name + "?format="+ fmt +
+		    "&quality=" + quality + "&transcode=" + transcode;
 
+		that.audioDiv.play();
+		
 		var seekHandler = function(audio) {
 		    that.audioDiv.removeEventListener('canplay', seekHandler);
-		    audio.target.currentTime = offset;
+		    if (offset > 0)
+			audio.target.currentTime = offset;
+		    
 		    that.evtSys.dispatchEvent("loading done");		    
 		}
 		that.audioDiv.addEventListener("canplay",seekHandler);
@@ -622,6 +629,23 @@ MusicLibrary = function(evtSys, doStreaming) {
 	return that.playbackState;
     }
 
+    this.updateQualitySelect = function(val) {
+
+	var qualityList = document.getElementById('stream-quality');
+	//clear options first
+	while (qualityList.firstChild)
+	    qualityList.removeChild(qualityList.firstChild);
+
+
+	that.supportedFormats.quality[val].forEach(function(q) {
+	    var option = document.createElement("option");
+		option.value = q;
+		option.text = q;
+		qualityList.appendChild(option);
+	});
+
+    }
+    
     
     this.init = function() {
 	that.getFiles();
@@ -657,6 +681,27 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 	document.getElementById('settings-menu').addEventListener('click', function(e) {
 	    e.stopPropagation();
+	});
+
+	that.apiCall('/api/commands/formats', 'GET', true, function(resp) {
+	    that.supportedFormats = JSON.parse(resp);
+	    console.log(that.supportedFormats);
+
+	    var formats = document.getElementById('stream-format');
+	    that.supportedFormats["format"].forEach(function(fmt) {
+
+		var option = document.createElement("option");
+		option.value = fmt;
+		option.text = fmt;
+		formats.appendChild(option);
+
+	    });
+	    that.updateQualitySelect(that.supportedFormats["format"][0]);
+	    
+	    formats.onchange = function(e) {
+		that.updateQualitySelect(e.target.value);
+	    }
+	    
 	});
     }
 

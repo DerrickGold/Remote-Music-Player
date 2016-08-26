@@ -24,14 +24,31 @@ GLOBAL_SETTINGS = {
     'MPlayerClass': None,
     'MusicListClass': None,
     'max-transcodes': 4,
-    'stream-quality': '128',
-    'ffmpeg-flags': ["-hide_banner", "-loglevel", "panic"]
+    'stream-format': 'mp3',
+#    'ffmpeg-flags': ["ffmpeg", "-y", "-hide_banner", "-loglevel", "panic"]
+    'ffmpeg-flags': ["ffmpeg", "-y"]
 }
 
 AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac", ".aiff"]
 TRANSCODE_FROM = [".aac", ".wav", ".flac", ".m4a", ".aiff"]
-STREAM_QUALITY = ["32", "48", "64", "96", "128", "144", "160", "192", "224", "256", "320"]
-lastRead = 0
+STREAM_FORMAT = ["mp3", "wav", "ogg"]
+STREAM_QUALITY = {
+    'mp3': ["32k", "48k", "64k", "96k", "128k", "144k", "160k", "192k", "224k", "256k", "320k"],
+    'wav': ["11025", "22050", "44100", "48000", "96000"],
+    'ogg': ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+}
+TRANSCODE_CMD = {
+    'mp3':["-i", "{infile}", "-vn", "-ar", "44100", "-ac" , "2", "-ab", "{quality}", "-f", "mp3", "{outfile}"],
+    'wav':["-i", "{infile}", "-vn", "-acodec", "pcm_s16le", "-ar", "{quality}", "-f", "wav", "{outfile}"],
+    'ogg':["-i", "{infile}", "-vn", "-c:a", "libvorbis", "-q:a", "{quality}", "-f", "ogg", "{outfile}"]
+}
+AUDIO_MIMETYPES = {
+    'mp3': 'audio/mpeg',
+    'wav': 'audio/wav',
+    'ogg': 'audio/ogg'
+}
+
+
 
 def make_file(path, name, directory=False, parent=None):
     return {'path': path, 'name': name, 'directory': directory, 'id': str(uuid.uuid4()), 'children': [], 'parent': parent}
@@ -195,8 +212,9 @@ class MusicList:
 
         print("Getting metadata")
         path = os.path.join(file['path'], file['name'])
-        args = ["ffmpeg", "-i", path, "-f", "ffmetadata", "-"]
-        args.extend(GLOBAL_SETTINGS['ffmpeg-flags'])
+        args = list(GLOBAL_SETTINGS['ffmpeg-flags'])
+        args.extend(['-i', path, '-f', 'ffmetadata', '-'])
+
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         output = process.communicate();
 
@@ -234,13 +252,15 @@ class MusicList:
         return self.transcodeProcess[id].poll()
         
 
-    def transcode_audio(self, path, quality="128"):
+    def transcode_audio(self, path, quality=None, fmt=None):
+        
+        if fmt is None:
+            fmt = GLOBAL_SETTINGS['stream-format']
 
-        if "k" in quality.lower():
-            quality = quality.replace('k', '')
-
-        if quality not in STREAM_QUALITY:
-            quality = GLOBAL_SETTINGS['stream-quality']
+        
+        if quality is None or quality.lower() not in STREAM_QUALITY['{}'.format(fmt)]:
+            selections = STREAM_QUALITY["{}".format(GLOBAL_SETTINGS['stream-format'])]
+            quality = selections[len(selections)//2]
         
         
         self.transcodeID = (self.transcodeID + 1) % GLOBAL_SETTINGS['max-transcodes']
@@ -251,12 +271,18 @@ class MusicList:
         
         ext = os.path.splitext(path)
 
-        outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "transcoded{}.mp3".format(self.transcodeID))
-        args = ["ffmpeg", "-y", "-i", path, "-vn", "-ar", "44100", "-ac" , "2", "-ab", \
-                quality + "k", "-f", "mp3", outfile]
+        #outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "transcoded{}".format(self.transcodeID) \
+        #                       + ".{}".format(fmt))
+        outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "transcoded{}.audio".format(self.transcodeID))
 
-        args.extend(GLOBAL_SETTINGS['ffmpeg-flags'])
-        
+        args = list(GLOBAL_SETTINGS['ffmpeg-flags'])
+        args.extend(TRANSCODE_CMD['{}'.format(fmt)])
+
+        args[args.index("{infile}")] =  path
+        args[args.index("{quality}")] = quality
+        args[args.index("{outfile}")] = outfile
+
+        print(args)
         self.transcodeProcess[self.transcodeID] = subprocess.Popen(args)
         return (outfile, self.transcodeProcess[self.transcodeID])
         
@@ -287,6 +313,17 @@ def stop():
 def get_info():
     return jsonify(**GLOBAL_SETTINGS['MPlayerClass'].get_playing_track_info())
 
+
+@app.route('/api/commands/formats')
+def get_quality():
+    response = {
+        'format': STREAM_FORMAT,
+        'quality': STREAM_QUALITY 
+    }
+    return jsonify(**response)
+
+
+    
 @app.route('/api/files')
 def files():
     obj = {
@@ -336,6 +373,12 @@ def metadata(identifier):
 def serving(filename):
 
     print("SERVING")
+    destType = request.args.get('format')
+    if destType is not None:
+        destType = destType.lower()
+        if destType not in STREAM_FORMAT:
+            destType = GLOBAL_SETTINGS['stream-format']
+    
     #allow user to force transcode all audio regardless if its already supported or not
     doTranscode = request.args.get('transcode')
     if doTranscode is not None:
@@ -353,7 +396,7 @@ def serving(filename):
     ext = os.path.splitext(filename)
 
     if ext[1] in TRANSCODE_FROM or doTranscode:
-        newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(filename, quality)
+        newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(filename, quality, destType)
         #give ffmpeg some time to start transcoding
         time.sleep(1)
                 
@@ -363,7 +406,8 @@ def serving(filename):
             doneTranscode = False;
             
             while True:
-                chunk = file.read(1024 * 512)
+                #chunk = file.read(1024 * 512)
+                chunk = file.read()
                 if len(chunk) > 0:
                     yield chunk
                     
@@ -371,14 +415,13 @@ def serving(filename):
                 doneTranscode = ffmpegProc.poll() is not None
 
                 if len(chunk) == 0 and doneTranscode:
-                    yield chunk
                     break
 
                 time.sleep(1)
                 
             file.close()
             
-        return Response(stream_with_context(generate(newFile, proc)), mimetype="audio/mpeg")
+        return Response(stream_with_context(generate(newFile, proc)), mimetype=AUDIO_MIMETYPES['{}'.format(destType)])
         
     return send_file(newFile)
     
@@ -409,17 +452,6 @@ def args():
             exit(1)
     except:
         print("Using default port: {}".format(GLOBAL_SETTINGS['server-port']))
-
-    #get default mp3 stream quality
-    try:
-        idx = sys.argv.index('-q')
-        if idx + 1 < len(sys.argv):
-            GLOBAL_SETTINGS['stream-quality'] = sys.argv[idx + 1]
-        else:
-            print("Missing quality value!")
-            exit(1)
-    except:
-        print("Using default stream quality: {}".format(GLOBAL_SETTINGS['stream-quality']))
 
     GLOBAL_SETTINGS['music-dir'] = sys.argv[-1]
 
