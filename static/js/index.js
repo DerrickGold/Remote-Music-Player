@@ -35,6 +35,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	findStack.push(curNode.id);
 	return findStack;
     }
+
     
     this.getRandomTrack = function(directory) {
 
@@ -222,15 +223,10 @@ MusicLibrary = function(evtSys, doStreaming) {
 		      trackDivBox.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
 		      trackDivBox.right <= (window.innerWidth || document.documentElement.clientWidth));
 
-	    console.log("inView: ");
-	    console.log(inView);
-	    
 	    //check if folder is open too
 	    var trackFolder = document.getElementById(that.getFolderCollapseId(track.parent));
-	    inView = (inView && trackFolder.classList.contains("in"));
-	    console.log("inView 2: ");
-	    console.log(inView);
-	    
+	    if (trackFolder)
+		inView = (inView && trackFolder.classList.contains("in"));
 	}
 
 	var nodes = that.reverseTrackHashLookup(track);
@@ -251,6 +247,11 @@ MusicLibrary = function(evtSys, doStreaming) {
 		//expand accordion views
 		var collapse = document.getElementById(that.getFolderCollapseId(id));
 		collapse.classList.add("in");
+		//set the expanded attribute
+		var fileEntryText = collapse.parentNode.getElementsByClassName("FolderEntryText")[0];
+		if (fileEntryText)
+		    fileEntryText.setAttribute("aria-expanded", "true");
+		
 	    } else 
 		lastDiv = document.getElementById(id);
 	}
@@ -307,9 +308,10 @@ MusicLibrary = function(evtSys, doStreaming) {
 			song.style.display = "block";
 
 			var nodes = that.reverseTrackHashLookup(that.mediaHash[d]);
+			
 			while(nodes.length > 0) {
 			    var nodeID = nodes.pop();
-			    
+			    console.log(that.mediaHash[nodeID]);
 			    if (that.mediaHash[nodeID].parent == ".")
 				continue;
 			    
@@ -318,6 +320,9 @@ MusicLibrary = function(evtSys, doStreaming) {
 				div.parentNode.style.display = "";
 				var collapse = document.getElementById(that.getFolderCollapseId(nodeID));
 				collapse.classList.add("in");
+				var fileEntryText = collapse.parentNode.getElementsByClassName("FolderEntryText")[0];
+				if (fileEntryText)
+				    fileEntryText.setAttribute("aria-expanded", "true");
 			    } else
 				div.style.display = "";
 			}
@@ -421,7 +426,16 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    that.apiCall("/api/files/" + songEntry.id, "GET", true, function(resp) {
 
 		var trackData = JSON.parse(resp);
-		that.audioDiv.src =   trackData.path + "/" + trackData.name;
+
+		var streamOptions = document.getElementById("stream-quality");
+		var quality = streamOptions.options[streamOptions.selectedIndex].value;
+
+		var transcodeOptions = document.getElementById("transcoding-option");
+		var transcode = transcodeOptions.options[transcodeOptions.selectedIndex].value;
+		
+		that.audioDiv.src =   trackData.path + "/" + trackData.name + "?quality=" + quality +
+		    "&transcode=" + transcode;
+		
 		that.audioDiv.play();
 
 		var seekHandler = function(audio) {
@@ -580,7 +594,8 @@ MusicLibrary = function(evtSys, doStreaming) {
 	that.getFiles();
 
 	that.audioDiv = document.createElement("AUDIO");
-
+	that.audioDiv.setAttribute("preload", "auto");
+	
 	var curTimeDiv = document.getElementById("CurInfoTime");
 	that.audioDiv.ontimeupdate = function(e) {
 	    that.curTimeOffset = this.currentTime;
@@ -606,6 +621,10 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    });
 	}
 	that.evtSys.registerEvent('media state change');
+
+	document.getElementById('settings-menu').addEventListener('click', function(e) {
+	    e.stopPropagation();
+	});
     }
 
     this.init();

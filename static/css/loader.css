@@ -1,8 +1,11 @@
 .loaderContainer {
     height: 100%;
     width: 100%;
+    margin: 0;
+    paddng: 0;
     background-color: rgba(0,0,0,0.7);
-    position:absolute;
+    position: fixed;
+
     vertical-align: middle;
     text-align: center;
     left: 0;

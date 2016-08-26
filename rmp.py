@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, jsonify, redirect, url_for, render_template, send_file
+from flask import Flask, request, jsonify, redirect, url_for, render_template, send_file, Response, stream_with_context
 import os
 import sys
 import subprocess
 import uuid
 import logging
 import re
+import signal
+import time
 
 app = Flask(__name__)
 
@@ -16,14 +18,19 @@ GLOBAL_SETTINGS = {
     'music-dir': '.',
     'music-list-name': '.music',
     'mplayer-fifo-file': '/tmp/mplayer.fifo',
+    'cache-dir': '.cache',
     'server-port': 5000,
     'debug-out': True,
     'MPlayerClass': None,
-    'MusicListClass': None
+    'MusicListClass': None,
+    'max-transcodes': 4,
+    'stream-quality': '128'
 }
 
-AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac"]
-
+AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac", ".aiff"]
+TRANSCODE_FROM = [".aac", ".wav", ".flac", ".m4a", ".aiff"]
+STREAM_QUALITY = ["32", "48", "64", "96", "128", "144", "160", "192", "224", "256", "320"]
+lastRead = 0
 
 def make_file(path, name, directory=False, parent=None):
     return {'path': path, 'name': name, 'directory': directory, 'id': str(uuid.uuid4()), 'children': [], 'parent': parent}
@@ -143,7 +150,11 @@ class MusicList:
     def __init__(self, root):
         self.listFile = GLOBAL_SETTINGS['music-list-name']
         self.generate_music_list(root)
+        self.transcodeProcess = []
+        self.transcodeID = 0
 
+        for i in range(0, GLOBAL_SETTINGS['max-transcodes']):
+            self.transcodeProcess.append(None)
 
     def generate_music_list(self, musicRoot, outputFile=None):
         self.files, self.mapping = scan_directory(musicRoot)
@@ -216,8 +227,34 @@ class MusicList:
                 response['results'].append(k)
 
         return response
+
+    def is_transcoding(self, id):
+        return self.transcodeProcess[id].poll()
         
 
+    def transcode_audio(self, path, quality="128"):
+
+        if "k" in quality.lower():
+            quality = quality.replace('k', '')
+
+        if quality not in STREAM_QUALITY:
+            quality = GLOBAL_SETTINGS['stream-quality']
+        
+        
+        self.transcodeID = (self.transcodeID + 1) % GLOBAL_SETTINGS['max-transcodes']
+        proc = self.transcodeProcess[self.transcodeID]
+        
+        if  proc is not None and proc.poll():
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        
+        ext = os.path.splitext(path)
+
+        outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "transcoded{}.mp3".format(self.transcodeID))
+        args = ["ffmpeg", "-y", "-i", path, "-vn", "-ar", "44100", "-ac" , "2", "-ab", \
+                quality + "k", "-f", "mp3", outfile]
+
+        self.transcodeProcess[self.transcodeID] = subprocess.Popen(args)
+        return (outfile, self.transcodeID)
         
         
     
@@ -293,7 +330,44 @@ def metadata(identifier):
 
 @app.route('/<path:filename>')
 def serving(filename):
-    return send_file(filename)
+
+    print("SERVING")
+    #allow user to force transcode all audio regardless if its already supported or not
+    doTranscode = (request.args.get('transcode').lower() == 'true')
+    #allow user to adjust quality of streaming
+    quality = request.args.get('quality')
+
+    print("TRANSCODE OPTION: {}".format(doTranscode))
+    print("QUALITY OPTION: {}".format(quality))
+    
+    newFile = filename
+    ext = os.path.splitext(filename)
+
+    if ext[1] in TRANSCODE_FROM or doTranscode:
+        newFile, id = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(filename, quality)
+        #give ffmpeg some time to start transcoding
+        time.sleep(1)
+                
+        @stream_with_context
+        def generate(inFile, procID):
+            file = open(inFile, 'rb')
+            while True:
+                chunk = file.read(1024 * 512)
+                if chunk:
+                    yield chunk
+
+                #if no bytes were read, check if transcoding is still happening
+                elif not chunk and GLOBAL_SETTINGS['MusicListClass'].is_transcoding(procID):
+                    #and if not, then we've streamed the entire file
+                    break
+
+                time.sleep(1)
+            print("[CLOSING FILE]")
+            file.close()
+            
+        return Response(stream_with_context(generate(newFile, id)), mimetype="audio/mpeg")
+        
+    return send_file(newFile)
     
 
 
@@ -311,14 +385,28 @@ def index():
 
 
 def args():
+
+    #get port number
     try:
         idx = sys.argv.index('-p')
         if idx + 1 < len(sys.argv):
             GLOBAL_SETTINGS['server-port'] = sys.argv[idx + 1]
-            
-    except(ValueError):
+        else:
+            print("Missing port value!")
+            exit(1)
+    except:
         print("Using default port: {}".format(GLOBAL_SETTINGS['server-port']))
-              
+
+    #get default mp3 stream quality
+    try:
+        idx = sys.argv.index('-q')
+        if idx + 1 < len(sys.argv):
+            GLOBAL_SETTINGS['stream-quality'] = sys.argv[idx + 1]
+        else:
+            print("Missing quality value!")
+            exit(1)
+    except:
+        print("Using default stream quality: {}".format(GLOBAL_SETTINGS['stream-quality']))
 
     GLOBAL_SETTINGS['music-dir'] = sys.argv[-1]
 
@@ -328,6 +416,13 @@ def main():
     GLOBAL_SETTINGS['MPlayerClass'] = MPlayer()
     GLOBAL_SETTINGS['MusicListClass'] = MusicList(GLOBAL_SETTINGS['music-dir'])
     GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
+
+    try:
+        os.stat(GLOBAL_SETTINGS["cache-dir"])
+    except:
+        os.mkdir(GLOBAL_SETTINGS["cache-dir"])
+
+                
     app.run(host='0.0.0.0', threaded=True, port=GLOBAL_SETTINGS['server-port'])
 
 if __name__ == '__main__':
