@@ -23,7 +23,9 @@ MusicLibrary = function(evtSys, doStreaming) {
 
     this.navbarOffset = "";
 
-
+    this.getFolderCollapseId = function(directoryID) {
+	return "collapse-" + directoryID;
+    }
     
     this.getRandomTrack = function(directory) {
 
@@ -128,13 +130,13 @@ MusicLibrary = function(evtSys, doStreaming) {
 	collapseButton.classList.add("FolderEntryText");
 	collapseButton.setAttribute("role", "button");
 	collapseButton.setAttribute("data-toggle", "collapse");
-	collapseButton.setAttribute("href", "#collapse-"+folderEntry.id);
+	collapseButton.setAttribute("href","#" + that.getFolderCollapseId(folderEntry.id));
 	if (expanded)
 	    collapseButton.setAttribute("aria-expanded", "true");
 	else
 	    collapseButton.setAttribute("aria-expanded", "false");
 	    
-	collapseButton.setAttribute("aria-controls", "collapse-"+folderEntry.id);
+	collapseButton.setAttribute("aria-controls", that.getFolderCollapseId(folderEntry.id));
 	collapseButton.innerHTML = folderEntry.name;
 	panelHeader.appendChild(collapseButton);	
 
@@ -147,7 +149,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	
 	
 	var bodyCollapse = document.createElement("div");
-	bodyCollapse.setAttribute("id", "collapse-"+folderEntry.id);
+	bodyCollapse.setAttribute("id", that.getFolderCollapseId(folderEntry.id));
 	bodyCollapse.className = "panel-collapse collapse";
 	bodyCollapse.setAttribute("role", "tabpanel");
 	
@@ -252,6 +254,16 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    inView = (trackDivBox.top >= 0 && trackDivBox.left >= 0 &&
 		      trackDivBox.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
 		      trackDivBox.right <= (window.innerWidth || document.documentElement.clientWidth));
+
+	    console.log("inView: ");
+	    console.log(inView);
+	    
+	    //check if folder is open too
+	    var trackFolder = document.getElementById(that.getFolderCollapseId(track.parent));
+	    inView = (inView && trackFolder.classList.contains("in"));
+	    console.log("inView 2: ");
+	    console.log(inView);
+	    
 	}
 
 	var nodes = that.reverseTrackHashLookup(track);
@@ -270,19 +282,20 @@ MusicLibrary = function(evtSys, doStreaming) {
 		    continue;
 		
 		//expand accordion views
-		var collapse = document.getElementById("collapse-" + id);
+		var collapse = document.getElementById(that.getFolderCollapseId(id));
 		collapse.classList.add("in");
 	    } else 
 		lastDiv = document.getElementById(id);
 	}
-	(function(oldDiv) {
-	    if (!inView) {
+	(function(oldDiv, isInView) {
+	    if (!isInView) {
 		setTimeout(function() {
+		    console.log("SCROLLING");
 		    oldDiv.scrollIntoView(true);
 		    window.scrollBy(0, -that.navbarOffset);
 		}, 500);
 	    }
-	}(lastDiv));
+	}(lastDiv, inView));
 	
 	lastDiv.classList.add('PlayingEntry');
     }
@@ -336,7 +349,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 			    var div = document.getElementById(nodeID);
 			    if (that.mediaHash[nodeID].directory) {
 				div.parentNode.style.display = "";
-				var collapse = document.getElementById("collapse-" + nodeID);
+				var collapse = document.getElementById(that.getFolderCollapseId(nodeID));
 				collapse.classList.add("in");
 			    } else
 				div.style.display = "";
