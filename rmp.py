@@ -258,7 +258,6 @@ class MusicList:
         
         if fmt is None:
             fmt = GLOBAL_SETTINGS['stream-format']
-
         
         if quality is None or quality.lower() not in STREAM_QUALITY['{}'.format(fmt)]:
             selections = STREAM_QUALITY["{}".format(GLOBAL_SETTINGS['stream-format'])]
@@ -272,9 +271,6 @@ class MusicList:
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
         
         ext = os.path.splitext(path)
-
-        #outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "transcoded{}".format(self.transcodeID) \
-        #                       + ".{}".format(fmt))
         outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "transcoded{}.audio".format(self.transcodeID))
 
         args = list(GLOBAL_SETTINGS['ffmpeg-flags'])
@@ -380,7 +376,11 @@ def serving(filename):
         destType = destType.lower()
         if destType not in STREAM_FORMAT:
             destType = GLOBAL_SETTINGS['stream-format']
-    
+    else:
+        destType = GLOBAL_SETTINGS['stream-format']
+            
+
+            
     #allow user to force transcode all audio regardless if its already supported or not
     doTranscode = request.args.get('transcode')
     if doTranscode is not None:
