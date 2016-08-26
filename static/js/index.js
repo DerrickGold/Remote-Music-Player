@@ -23,8 +23,17 @@ MusicLibrary = function(evtSys, doStreaming) {
 
     this.navbarOffset = "";
 
-    this.getFolderCollapseId = function(directoryID) {
-	return "collapse-" + directoryID;
+    this.reverseTrackHashLookup = function(startNode) {
+    
+	var findStack = [];
+	var curNode = startNode;
+	
+	while(curNode.parent != ".") {
+	    findStack.push(curNode.id);
+	    curNode = that.mediaHash[curNode.parent]
+	}
+	findStack.push(curNode.id);
+	return findStack;
     }
     
     this.getRandomTrack = function(directory) {
@@ -36,35 +45,11 @@ MusicLibrary = function(evtSys, doStreaming) {
 
 	if (file._exclude)
 	    return that.getRandomTrack(directory);
-	
 	else if (file.directory)
 	    return that.getRandomTrack(file);
-	
 
 	return file;
-    }
-    
-
-    this.apiCall = function(route, method, async, successCb, errorCb) {
-	var xhttp = new XMLHttpRequest();
-	xhttp.onreadystatechange = function() {
-	    if (xhttp.readyState == 4 && xhttp.status == 200) {
-		if (successCb)
-		    successCb(xhttp.responseText);
-	    } else if (xhttp.readyState > 0 && xhttp.status != 200) {
-		if (errorCb)
-		    errorCb(xhttp.responseText);
-	    }
-	}
-
-	xhttp.open(method, route, async);
-	xhttp.send();	
-    }
-    
-    this.getRootDirDiv = function() {
-	return document.getElementById("dirlist");
-    }
-    
+    }    
     
     this.closeDirectory = function(folderDiv) {
 
@@ -82,16 +67,13 @@ MusicLibrary = function(evtSys, doStreaming) {
     }
 
     this.displayMakeExcludeButton = function(container) {
-
 	
 	var icon = document.createElement("span");
 	icon.className = "glyphicon glyphicon-ban-circle ExcludeBtn";
 	icon.setAttribute("aria-hidden", "true");
 	
-	
 	icon.onclick = function(e) {
 	    e.preventDefault();
-	    console.log("EXCLUDE CLICK");
 	    var nodeID = container.getAttribute('id');	    
 	    that.mediaHash[nodeID]._exclude = !that.mediaHash[nodeID]._exclude;
 	    if (that.mediaHash[nodeID]._exclude) {
@@ -226,21 +208,6 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    that.displayFolder(that.mediaDir.files, that.getRootDirDiv());
 	    that.evtSys.dispatchEvent("loading done");
 	});
-    }
-
-
-    
-    this.reverseTrackHashLookup = function(startNode) {
-
-	var findStack = [];
-	var curNode = startNode;
-	
-	while(curNode.parent != ".") {
-	    findStack.push(curNode.id);
-	    curNode = that.mediaHash[curNode.parent]
-	}
-	findStack.push(curNode.id);
-	return findStack;
     }
 
 
@@ -515,9 +482,8 @@ MusicLibrary = function(evtSys, doStreaming) {
 		var directory = that.mediaHash[popped];
 
 		//if we popped off the current track, ignore it for now
-		if (!directory.directory) {
+		if (!directory.directory)
 		    continue;
-		}
 
 		//look for the last directory or file visited to get position in directory
 		//to coninue from
@@ -598,7 +564,8 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    document.getElementById("CurTrackInfo").innerHTML = infoStr;
 	    document.title = infoStr;
 
-	    document.getElementById("CurInfoTotalTime").innerHTML = '' + parseInt(data["length"]) + '';
+	    var len = that.secondsToMinutesStr(data["length"]);
+	    document.getElementById("CurInfoTotalTime").innerHTML = len;
 	    if (doneCb)
 		doneCb(data);
 	});
@@ -617,7 +584,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	var curTimeDiv = document.getElementById("CurInfoTime");
 	that.audioDiv.ontimeupdate = function(e) {
 	    that.curTimeOffset = this.currentTime;
-	    curTimeDiv.innerHTML = '' + parseInt(that.curTimeOffset) + '';
+	    curTimeDiv.innerHTML = that.secondsToMinutesStr(that.curTimeOffset);
 	}
 
 	that.audioDiv.onended = function() {
@@ -638,10 +605,50 @@ MusicLibrary = function(evtSys, doStreaming) {
 		that.openFileDisplayToTrack(that.curTrackInfo);
 	    });
 	}
-
-
 	that.evtSys.registerEvent('media state change');
     }
 
     this.init();
 }
+
+MusicLibrary.prototype.secondsToMinutesStr = function(time) {
+
+    time = parseInt(time);
+    var minutes = Math.floor(time / 60);
+    var seconds = time % 60;
+
+    var result = '' + minutes + ":";
+
+    if (seconds < 10)
+	result += "0";
+
+    result += seconds;
+    return result
+}
+
+
+MusicLibrary.prototype.getFolderCollapseId = function(directoryID) {
+    return "collapse-" + directoryID;
+}
+
+
+MusicLibrary.prototype.apiCall = function(route, method, async, successCb, errorCb) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+	if (xhttp.readyState == 4 && xhttp.status == 200) {
+	    if (successCb)
+		successCb(xhttp.responseText);
+	} else if (xhttp.readyState > 0 && xhttp.status != 200) {
+	    if (errorCb)
+		errorCb(xhttp.responseText);
+	}
+    }
+
+    xhttp.open(method, route, async);
+    xhttp.send();	
+}
+
+MusicLibrary.prototype.getRootDirDiv = function() {
+    return document.getElementById("dirlist");
+}
+
