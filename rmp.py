@@ -9,8 +9,10 @@ import logging
 import re
 import signal
 import time
+from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
+CORS(app)
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -25,8 +27,8 @@ GLOBAL_SETTINGS = {
     'MusicListClass': None,
     'max-transcodes': 4,
     'stream-format': 'mp3',
-#    'ffmpeg-flags': ["ffmpeg", "-y", "-hide_banner", "-loglevel", "panic"]
-    'ffmpeg-flags': ["ffmpeg", "-y"]
+    'ffmpeg-flags': ["ffmpeg", "-y", "-hide_banner", "-loglevel", "panic"]
+#    'ffmpeg-flags': ["ffmpeg", "-y"]
 }
 
 AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac", ".aiff"]
