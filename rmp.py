@@ -337,7 +337,12 @@ def serving(filename):
 
     print("SERVING")
     #allow user to force transcode all audio regardless if its already supported or not
-    doTranscode = (request.args.get('transcode').lower() == 'true')
+    doTranscode = request.args.get('transcode')
+    if doTranscode is not None:
+        doTranscode = (doTranscode.lower() == 'true')
+    else:
+        doTranscode = False
+        
     #allow user to adjust quality of streaming
     quality = request.args.get('quality')
 
