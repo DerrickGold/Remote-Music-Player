@@ -644,6 +644,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 		qualityList.appendChild(option);
 	});
 
+	qualityList.selectedIndex = 0;
     }
     
     
@@ -696,6 +697,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 		formats.appendChild(option);
 
 	    });
+	    formats.selectedIndex = 0;
 	    that.updateQualitySelect(that.supportedFormats["format"][0]);
 	    
 	    formats.onchange = function(e) {

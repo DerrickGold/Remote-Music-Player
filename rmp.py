@@ -397,6 +397,7 @@ def serving(filename):
     newFile = filename
     ext = os.path.splitext(filename)
 
+
     if ext[1] in TRANSCODE_FROM or doTranscode:
         newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(filename, quality, destType)
         #give ffmpeg some time to start transcoding
@@ -415,7 +416,6 @@ def serving(filename):
                     
                 #if no bytes were read, check if transcoding is still happening
                 doneTranscode = ffmpegProc.poll() is not None
-
                 if len(chunk) == 0 and doneTranscode:
                     break
 
@@ -424,7 +424,23 @@ def serving(filename):
             file.close()
             
         return Response(stream_with_context(generate(newFile, proc)), mimetype=AUDIO_MIMETYPES['{}'.format(destType)])
-        
+    
+    #no transcoding, just streaming if audio is already in a streamable format
+    elif ext[1].replace('.','') in STREAM_FORMAT:
+        def generate():
+            file = open(newFile, 'rb')
+            while True:
+                chunk = file.read()
+                if chunk:
+                    yield chunk
+                else:
+                    break
+            file.close()
+
+        sendtype=AUDIO_MIMETYPES['{}'.format(ext[1].replace('.',''))]
+        return Response(stream_with_context(generate()), mimetype=sendtype)
+
+    #for whatever isn't an audio file
     return send_file(newFile)
     
 
