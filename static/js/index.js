@@ -23,6 +23,28 @@ MusicLibrary = function(evtSys, doStreaming) {
 
     this.navbarOffset = "";
 
+    this.setFolderView = function(folderIdDiv, view) {
+
+	var folderNode = folderIdDiv.parentNode;
+
+	var toggler = folderNode.getElementsByTagName("a")[0];
+	if (view === "open")
+	    toggler.setAttribute("aria-expanded", "true");
+	else
+	    toggler.setAttribute("aria-expanded", "false");
+	
+	var collapser = folderNode.getElementsByClassName("panel-collapse")[0];
+	if (view === "open") {
+	    collapser.classList.add("in");
+	    collapser.setAttribute("aria-expanded", "true");
+	    collapser.style.height = null;
+	} else {
+	    collapser.classList.remove("in");
+	    collapser.setAttribute("aria-expanded", "true");
+	}
+    }
+
+    
     this.reverseTrackHashLookup = function(startNode) {
     
 	var findStack = [];
@@ -60,10 +82,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 	var x = folderDiv.getElementsByClassName("FolderEntry");
 	for (var i = 0; i < x.length; i++) {
 	    x[i].style.display="";
-	    var closeBody = x[i].getElementsByClassName("panel-collapse");
-	    for (var z = 0; z < closeBody.length; z++) {
-		closeBody[z].classList.remove("in");
-	    }
+	    that.setFolderView(x[i].children[0], "close");
 	}	
     }
 
@@ -243,15 +262,8 @@ MusicLibrary = function(evtSys, doStreaming) {
 		lastDiv = document.getElementById(id);
 		if (!lastDiv)
 		    continue;
-		
-		//expand accordion views
-		var collapse = document.getElementById(that.getFolderCollapseId(id));
-		collapse.classList.add("in");
-		//set the expanded attribute
-		var fileEntryText = collapse.parentNode.getElementsByClassName("FolderEntryText")[0];
-		if (fileEntryText)
-		    fileEntryText.setAttribute("aria-expanded", "true");
-		
+
+		that.setFolderView(lastDiv, "open");
 	    } else 
 		lastDiv = document.getElementById(id);
 	}
@@ -294,21 +306,34 @@ MusicLibrary = function(evtSys, doStreaming) {
 	    var numChunks = parseInt(Math.ceil(data.results.length/perChunk));
 	    for (var cchunk = 0; cchunk < numChunks; cchunk++) {
 
-		setTimeout(function(curChunk, numPerChunk, results) {
+		setTimeout(function(curChunk, numPerChunk) {
 		    for (var i = 0; i < numPerChunk; i++) {
 			    
 			var index = i + (curChunk * numPerChunk);
-			if (index >= results.length) {
-
-//			    that.evtSys.dispatchEvent("loading done");
+			if (index >= data.results.length)
 			    return;
+
+			var d = data.results[index];
+			var nodes = that.reverseTrackHashLookup(that.mediaHash[d]);
+
+			//make sure we aren't displaying excluded results
+			var skipEntry = false;
+			var checkExcluded = nodes.slice(0).reverse();
+			while (checkExcluded.length > 0) {
+			    var id = checkExcluded.pop();
+			    if (that.mediaHash[id]._exclude) {
+				skipEntry = true;
+				data.results.splice(index, 1);
+				i--;
+				break;
+			    }
 			}
 
-			var d = results[index];
+			if (skipEntry)
+			    continue;
+			    
 			var song = document.getElementById(d);
 			song.style.display = "block";
-
-			var nodes = that.reverseTrackHashLookup(that.mediaHash[d]);
 			
 			while(nodes.length > 0) {
 			    var nodeID = nodes.pop();
@@ -317,46 +342,39 @@ MusicLibrary = function(evtSys, doStreaming) {
 			    
 			    var div = document.getElementById(nodeID);
 			    if (that.mediaHash[nodeID].directory) {
+				that.setFolderView(div, "open");
 				div.parentNode.style.display = "";
-				var collapse = document.getElementById(that.getFolderCollapseId(nodeID));
-				collapse.classList.add("in");
-				var fileEntryText = collapse.parentNode.getElementsByClassName("FolderEntryText")[0];
-				if (fileEntryText)
-				    fileEntryText.setAttribute("aria-expanded", "true");
 			    } else
 				div.style.display = "";
 			}
 		    }
-		}, 10, cchunk, perChunk, data.results);
+		}, 10, cchunk, perChunk);
 	    }
 
 	    var intervalID = null;
+	    intervalID = setInterval(function() {
+		if (document.querySelectorAll('.FileEntry[style=""]').length >= data.results.length) {
+		    that.evtSys.dispatchEvent("loading done");
+		    clearInterval(intervalID);
+		}
+	    }, 1000);
 
-	    (function(total) {
-		intervalID = setInterval(function() {
-		    if (document.querySelectorAll('.FileEntry[style=""]').length >= total) {
-			console.log("SEACH LOADING DONE");
-			that.evtSys.dispatchEvent("loading done");
-			clearInterval(intervalID);
-		    }
-		}, 1000);
-	    }(data.results.length));
 
 	    
 	}, function(resp) {
-	    console.log("SEARCH LOADING ERROR");
 	    that.evtSys.dispatchEvent("loading done");
 	});	
     }
 
     this.clearSearch = function(keyword) {
-
-	that.closeDirectory(document);
-
 	var x = document.getElementsByClassName("FileEntry");
 	for (var i = 0; i < x.length; i++) {
 	    x[i].style.display="";
 	}
+
+	x = document.getElementsByClassName("FolderEntry");
+	for (var i = 0; i < x.length; i++)
+	    x[i].style.display ="";
     }
 
     
