@@ -75,7 +75,6 @@
   
   <body>
     
-    
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
 
@@ -89,7 +88,7 @@
 	  </button>
 	  <a class="navbar-brand" href="#">RMP</a>
 	</div>
-
+	
 	<div class="collapse navbar-collapse" id="navbar-toggler">
 	  
 	  <div class="navbar-left">
@@ -98,20 +97,20 @@
 	    </div>
 	    
 	    <div class="navbar-left marquee">
-		<span class="curInfo navbar-text" id="CurTrackInfo"></span>
+		<span class="curInfo navbar-text" id="curinfo-track"></span>
 	    </div>
 	    
 	    <div class="navbar-text">
-	      Time: <p id="CurInfoTime"></p> / <p id="CurInfoTotalTime"></p>
+	      Time: <p id="curinfo-time"></p> / <p id="curinfo-totaltime"></p>
 	    </div>
 	  </div>
 	  
 	  <form class="navbar-form navbar-right">
 	    <div class="input-group">
-	      <input id="SearchText" type="text" class="form-control" placeholder="Song Title">
+	      <input id="search-txt" type="text" class="form-control" placeholder="Song Title">
 	      <span class="input-group-btn">
-		<button id="SearchBtn" class="btn btn-default">Search</button>
-		<button id="ClearSearchBtn" class="btn btn-default">
+		<button id="search-btn" class="btn btn-default">Search</button>
+		<button id="search-btn-clear" class="btn btn-default">
 		  <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
 		</button>
 	      </span>
@@ -121,7 +120,7 @@
 	  <ul class="navbar-right nav navbar-nav">
 	    <li class="dropdown">
 	      <a href="#" id="SettingsDropDown" class="btn btn-secondary dropdown-toggle" type="button"
-		      data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="menu">
+		 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="menu">
 		<span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
 	      </a>
 	      <ul id="settings-menu" class="dropdown-menu">
@@ -144,43 +143,41 @@
 		  </select>
 		</li>
 	      </ul>
-	    </div>
+	    </li>
 	  </ul>
-	  
-
+	
 	</div><!--end of navbar-collapse-->
-    
-    
       </div>
     </nav>
 
-    <div class="container-fluid">
+    <div class="container-fluid col-md-8">
       <div class="row panel-group" role="tablist" id="dirlist" aria-multiselectable="false"></div>
     </div>
 
-    <div class="MediaInfoBox">	  
-	  <span class="input-group MediaButtons">
-	    <button type="button" class="btn btn-primary navbar-btn" id="PrevBtn">
+    <div class="media-infobox">	  
+	  <span class="input-group media-btns">
+	    <button type="button" class="btn btn-primary navbar-btn" id="media-btn-prev">
               <span class="glyphicon glyphicon-step-backward" aria-hidden="true"></span>
 	    </button>
-      
-	    <button type="button" class="btn btn-primary navbar-btn" id="PlayPauseBtn">
-              <span id="PlayPauseIcon" class="glyphicon glyphicon-play" aria-hidden="true"></span>
+
+	    <button type="button" class="btn btn-primary navbar-btn" id="media-btn-play">
+              <span id="media-btn-play-icon" class="glyphicon glyphicon-play" aria-hidden="true"></span>
 	    </button>
       
-	    <button type="button" class="btn btn-primary navbar-btn" id="NextBtn">
+	    <button type="button" class="btn btn-primary navbar-btn" id="media-btn-next">
               <span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span>
 	    </button>
 
-	    <button type="button" class="btn btn-primary navbar-btn" id="SpeakerBtn">
+	    <button type="button" class="btn btn-primary navbar-btn" id="media-btn-speaker">
 	      <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
 	    </button>
 
-	    <button type="button" class="btn btn-primary navbar-btn" id="ShuffleBtn">
+	    <button type="button" class="btn btn-primary navbar-btn" id="media-btn-shuffle">
 	      <span class="glyphicon glyphicon-random" aria-hidden="true"></span>
 	    </button>
 	  </span>
     </div>
+    
     <div class="loaderContainer">
       <div class="loader">
 	<div class="loader__bar"></div>
@@ -191,7 +188,5 @@
 	<div class="loader__ball"></div>
 	</div>
     </div>
-
-    
   </body>
 </html>

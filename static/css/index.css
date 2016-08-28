@@ -1,84 +1,80 @@
 body {
+    height: 100%;
     padding-top: 65px;
     padding-bottom: 65px;
     width: 100%;
-    height: 100%;
 }
 
-.FolderEntry {
-    text-decoration: underline;
+.folder-entry {
     font-weight: bold;
     margin-left: 0;
+    text-decoration: underline;
 }
 
-.FileEntry {
+.file-entry {
     border: 1px solid grey;
     border-radius: 3px;
     margin-left: 0;
 }
 
-.FolderEntryText, .FileEntryText {
+.folder-entry-name, .file-entry-next {
     padding-left: 5px;
 }
 
-.PlayingEntry {
+.playing-entry {
     background-color: lightblue;
 }
 
-.ExcludeBtn {
+.exclude-btn {
     padding-right: 5px;
 }
 
-#CurInfoTime, #CurInfoTotalTime {
+#curinfo-time, #curinfo-totaltime {
     display: inline-block;
 }
 
-.MediaInfoBox {
-    /*width: 100%;*/
-    width: 300px;
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-
-    margin-left: auto;
-    margin-right: auto;
+.media-infobox {
+    align: center;
     background-color: #222;
-    border-color: #080808;
-    border-width: 0 0 1px;
-    z-index: 1030;
-    border: 1px solid transparent;
-
     background-image: -webkit-linear-gradient(top,#3c3c3c 0,#222 100%);
     background-image: -o-linear-gradient(top,#3c3c3c 0,#222 100%);
     background-image: -webkit-gradient(linear,left top,left bottom,from(#3c3c3c),to(#222));
     background-image: linear-gradient(to bottom,#3c3c3c 0,#222 100%);
+    background-repeat: repeat-x;
+    border: 1px solid transparent;
+    border-color: #080808;
+    border-radius: 3px;
+    border-width: 0 0 1px;
+    bottom: 0;
+    color: #9d9d9d;
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff3c3c3c', endColorstr='#ff222222', GradientType=0);
     filter: progid:DXImageTransform.Microsoft.gradient(enabled=false);
-    background-repeat: repeat-x;
-    
-    color: #9d9d9d;
+    left: 0;
+    margin-left: auto;
+    margin-right: auto;
+    position: fixed;
+    right: 0;
     text-align: center;
-    align: center;
-    border-radius: 3px;
+    width: 300px;
+    z-index: 1030;
 }
 
-.MediaButtons {
+.media-btns {
     display: block;
 }
 
 .marquee {
-    width: 200px;
+    box-sizing: border-box;
     margin: 0 auto;
     overflow: hidden;
+    width: 200px;
     white-space: nowrap;
-    box-sizing: border-box;
 }
 
 .marquee span {
+    animation: marquee 30s linear infinite;
     display: inline-block;
     padding-left: 100%;
-    animation: marquee 30s linear infinite;
 }
 
 .marquee span:hover {
@@ -92,6 +88,6 @@ body {
 
  /*Disable boot strap collapse/expand animations*/
 .collapsing {
-    -webkit-transition: none;
     transition: none;
+    -webkit-transition: none;
 }
