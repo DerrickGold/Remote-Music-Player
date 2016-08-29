@@ -163,16 +163,17 @@ MusicLibrary.prototype.displayMakeExcludeButton = function(container) {
     var icon = document.createElement("span");
     icon.className = "glyphicon glyphicon-ban-circle exclude-btn";
     icon.setAttribute("aria-hidden", "true");
-	
+
+    var thisClass = this;
     icon.onclick = function(e) {
 	e.preventDefault();
 	var nodeID = container.getAttribute('id');	    
-	this.mediaHash[nodeID]._exclude = !this.mediaHash[nodeID]._exclude;
-	if (this.mediaHash[nodeID]._exclude) {
+	thisClass.mediaHash[nodeID]._exclude = !thisClass.mediaHash[nodeID]._exclude;
+	if (thisClass.mediaHash[nodeID]._exclude) {
 	    container.style.textDecoration = "line-through";
 	    var aElm = container.getElementsByTagName("a");
 	    aElm[0].style.pointerEvents = "none";
-	    this.closeDirectory(container.parentNode);
+	    thisClass.closeDirectory(container.parentNode);
 	} else {
 	    container.style.textDecoration = "";
 	    var aElm = container.getElementsByTagName("a");
@@ -320,13 +321,14 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
 	} else 
 	    lastDiv = document.getElementById(id);
     }
-    
+
+    var thisClass = this;
     (function(oldDiv, isInView) {
 	if (!isInView) {
 	    setTimeout(function() {
 		console.log("SCROLLING");
 		oldDiv.scrollIntoView(true);
-		window.scrollBy(0, -this.navbarOffset);
+		window.scrollBy(0, -thisClass.navbarOffset);
 	    }, 500);
 	}
     }(lastDiv, inView));
@@ -398,21 +400,23 @@ MusicLibrary.prototype.showSearch = function(keyword) {
 			var div = document.getElementById(nodeID);
 			if (thisClass.mediaHash[nodeID].directory) {
 			    thisClass.setFolderView(div, "open");
-			    div.parentNode.style.display = "";
+			    div.parentNode.style.display = "block";
 			} else
-			    div.style.display = "";
+			    div.style.display = "block";
 		    }
 		}
 	    }, 10, cchunk, perChunk);
 	}
 	
 	var intervalID = null;
-	intervalID = setInterval(function() {
-	    if (document.querySelectorAll('.file-entry[style=""]').length >= data.results.length) {
+	intervalID = setInterval(function(dataset) {
+	    if (document.querySelectorAll('.file-entry[style="display: block;"]').length >=
+		dataset.length)
+	    {
 		thisClass.evtSys.dispatchEvent("loading done");
 		clearInterval(intervalID);
 	    }
-	}, 1000);
+	}, 1000, data.results);
 	
 	
 	
