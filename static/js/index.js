@@ -526,10 +526,11 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
 	    
 	    var transcodeOptions = document.getElementById("transcoding-option");
 	    var transcode = transcodeOptions.options[transcodeOptions.selectedIndex].value;
-	    
-	    thisClass.audioDiv.src =   trackData.path + "/" + trackData.name + "?format="+ fmt +
+
+	    var srcURL = trackData.path + "/" + trackData.name + "?format="+ fmt +
 		"&quality=" + quality + "&transcode=" + transcode;
 	    
+	    thisClass.audioDiv.src = encodeURI(srcURL);
 	    thisClass.audioDiv.play();
 	    
 	    var seekHandler = function(audio) {
