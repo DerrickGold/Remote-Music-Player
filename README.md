@@ -2,6 +2,9 @@
 
 Stream music from your own server, or remotely control music through your server's own speakers.
 
+![Remote Music Player](/screenshots/rmp.png?raw=true "Remote Music Player")
+
+
 ## Requirements:
 - python3 (3.4 and 3.5 tested)
 - ffmpeg (for getting audio metadata on server)
