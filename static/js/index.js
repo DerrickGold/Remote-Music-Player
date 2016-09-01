@@ -46,6 +46,27 @@ MusicLibrary.prototype.getRootDirDiv = function() {
     return document.getElementById("dirlist");
 }
 
+
+MusicLibrary.prototype.toggleNowPlaying = function(preventClose) {
+    
+    var el = document.getElementsByClassName("nowplaying")[0];
+    var files = document.getElementsByClassName("file-listing")[0];
+    if (!preventClose && el.style.display === "block") {
+	el.style.display = "none";
+	files.style.pointerEvents = null;
+	files.onclick = function(e) {};
+    } else {
+	files.style.pointerEvents = "none";
+	files.onclick = function(e) {
+	    e.preventDefault();
+	    e.stopPropagation();
+	}
+	el.style.display = "block";
+    }
+}
+
+
+
 MusicLibrary.prototype.getFiles = function() {
     var thisClass = this;
     this.evtSys.dispatchEvent("loading");
@@ -334,6 +355,7 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
     }(lastDiv, inView));
     
     lastDiv.classList.add('playing-entry');
+    this.toggleNowPlaying(true);
 }
 
 MusicLibrary.prototype.showSearch = function(keyword) {
@@ -670,6 +692,23 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
 	if (doneCb)
 	    doneCb(data);
     });
+
+
+    this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
+	
+
+	var data = JSON.parse(resp);
+	console.log(data);
+	var covers = document.getElementsByClassName('cover-art');
+	for (var i = 0; i < covers.length; i++) {
+
+	    if (!data.code)
+		covers[i].setAttribute("src", data.path);
+	    else
+		covers[i].setAttribute("src", "static/img/default_album_art.png");
+	}
+    });
+
 }
 
 

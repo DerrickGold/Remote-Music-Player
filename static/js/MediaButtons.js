@@ -35,11 +35,15 @@ MediaButtons = function(evtSys, mediaLibrary) {
 	    thisClass.mediaLibrary.pauseSong();	
     }
 
-    var speakerBtn = document.getElementById("media-btn-speaker");
+/*    var speakerBtn = document.getElementById("media-btn-speaker");
     speakerBtn.onclick = function() {
 	thisClass.mediaLibrary.swapOutput();
     }
-
+*/
+    var nowPlayingBtn = document.getElementById("media-btn-exit");
+    nowPlayingBtn.onclick = function() {
+	thisClass.mediaLibrary.toggleNowPlaying(false);
+    }
 
     var nextBtn = document.getElementById("media-btn-next");
     nextBtn.onclick = function() {

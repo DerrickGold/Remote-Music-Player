@@ -71,6 +71,7 @@
     	var MediaControls = new MediaButtons(reactor, Media);
 
     });
+
   </script>
   
   <body>
@@ -91,19 +92,7 @@
 	
 	<div class="collapse navbar-collapse" id="navbar-toggler">
 	  
-	  <div class="navbar-left">
-	    <div class="navbar-text">
-	      Title:
-	    </div>
-	    
-	    <div class="navbar-left marquee">
-		<span class="curInfo navbar-text" id="curinfo-track"></span>
-	    </div>
-	    
-	    <div class="navbar-text">
-	      Time: <p id="curinfo-time"></p> / <p id="curinfo-totaltime"></p>
-	    </div>
-	  </div>
+	 
 	  
 	  <form class="navbar-form navbar-right">
 	    <div class="input-group">
@@ -150,32 +139,49 @@
       </div>
     </nav>
 
-    <div class="container-fluid col-md-8">
+    <div class="container-fluid nowplaying">
+      <div class="screen-center">
+	<img class="cover-art img-responsive" src="static/img/default_album_art.png"/>
+	<div>
+	  <span class="curInfo" id="curinfo-track"></span>
+	</div>
+	
+	<div>
+	  <p id="curinfo-time"></p> / <p id="curinfo-totaltime"></p>
+	</div>
+      </div> <!--screen centering-->
+    </div>
+    
+    <div class="container-fluid file-listing">
       <div class="row panel-group" role="tablist" id="dirlist" aria-multiselectable="false"></div>
     </div>
 
-    <div class="media-infobox">	  
-	  <span class="input-group media-btns">
-	    <button type="button" class="btn btn-primary navbar-btn" id="media-btn-prev">
-              <span class="glyphicon glyphicon-step-backward" aria-hidden="true"></span>
-	    </button>
-
-	    <button type="button" class="btn btn-primary navbar-btn" id="media-btn-play">
-              <span id="media-btn-play-icon" class="glyphicon glyphicon-play" aria-hidden="true"></span>
-	    </button>
-      
-	    <button type="button" class="btn btn-primary navbar-btn" id="media-btn-next">
-              <span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span>
-	    </button>
-
-	    <button type="button" class="btn btn-primary navbar-btn" id="media-btn-speaker">
-	      <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-	    </button>
-
-	    <button type="button" class="btn btn-primary navbar-btn" id="media-btn-shuffle">
-	      <span class="glyphicon glyphicon-random" aria-hidden="true"></span>
-	    </button>
-	  </span>
+    <div class="media-btnbox">	  
+      <span class="input-group media-btns">
+	<button type="button" class="btn btn-danger navbar-btn" id="media-btn-exit">
+	  <span class="glyphicon glyphicon-modal-window"></span>
+	</button>
+	
+	<button type="button" class="btn btn-default navbar-btn" id="media-btn-prev">
+          <span class="glyphicon glyphicon-step-backward" aria-hidden="true"></span>
+	</button>
+	
+	<button type="button" class="btn btn-default navbar-btn" id="media-btn-play">
+          <span id="media-btn-play-icon" class="glyphicon glyphicon-play" aria-hidden="true"></span>
+	</button>
+	
+	<button type="button" class="btn btn-default navbar-btn" id="media-btn-next">
+          <span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span>
+	</button>
+	
+	<!--button type="button" class="btn btn-primary navbar-btn" id="media-btn-speaker">
+	    <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+	    </button-->
+	
+	<button type="button" class="btn btn-default navbar-btn" id="media-btn-shuffle">
+	  <span class="glyphicon glyphicon-random" aria-hidden="true"></span>
+	</button>
+      </span>
     </div>
     
     <div class="loaderContainer">

@@ -27,8 +27,8 @@ GLOBAL_SETTINGS = {
     'MusicListClass': None,
     'max-transcodes': 4,
     'stream-format': 'mp3',
-    'ffmpeg-flags': ["ffmpeg", "-y", "-hide_banner", "-loglevel", "panic"]
-#    'ffmpeg-flags': ["ffmpeg", "-y"]
+#    'ffmpeg-flags': ["ffmpeg", "-y", "-hide_banner", "-loglevel", "panic"]
+    'ffmpeg-flags': ["ffmpeg", "-y"]
 }
 
 AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac", ".aiff"]
@@ -283,8 +283,18 @@ class MusicList:
         print(args)
         self.transcodeProcess[self.transcodeID] = subprocess.Popen(args)
         return (outfile, self.transcodeProcess[self.transcodeID])
+
+    def extract_album_art(self, filepath):
         
-        
+        args = list(GLOBAL_SETTINGS['ffmpeg-flags'])
+
+        outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "curcover.jpg")
+        args.extend(['-i', filepath, '-an', '-vcodec', 'copy', outfile])
+
+        print(args)
+        coverProc = subprocess.Popen(args)
+        res = coverProc.communicate()
+        return outfile, coverProc.returncode
     
 
     
@@ -320,8 +330,6 @@ def get_quality():
     }
     return jsonify(**response)
 
-
-    
 @app.route('/api/files')
 def files():
     obj = {
@@ -347,6 +355,20 @@ def file(identifier):
         return '', 400
     return jsonify(**file)
 
+
+@app.route('/api/files/<string:identifier>/cover')
+def get_cover(identifier):
+
+    file = GLOBAL_SETTINGS['MusicListClass'].get_file(identifier)
+    filepath = os.path.join(file['path'], file['name'])
+    
+    path, code = GLOBAL_SETTINGS['MusicListClass'].extract_album_art(filepath)
+    response = {
+        'code': code,
+        'path': path
+    }
+
+    return jsonify(**response)
 
 
 @app.route('/api/files/<string:identifier>/play')
