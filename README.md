@@ -2,8 +2,13 @@
 
 Stream music from your own server, or remotely control music through your server's own speakers.
 
-![Remote Music Player](/screenshots/rmp.png?raw=true "Remote Music Player")
+##Desktop Browser
+![Remote Music Player](/screenshots/desktop1.png?raw=true "Remote Music Player")
+![Remote Music Player](/screenshots/desktop2.png?raw=true "Remote Music Player")
 
+##Mobile Browser
+![Remote Music Player](/screenshots/mobile1.png?raw=true "Remote Music Player")
+![Remote Music Player](/screenshots/mobile2.png?raw=true "Remote Music Player")
 
 ## Requirements:
 - python3 (3.4 and 3.5 tested)
