@@ -47,11 +47,11 @@ MusicLibrary.prototype.getRootDirDiv = function() {
 }
 
 
-MusicLibrary.prototype.toggleNowPlaying = function(preventClose) {
+MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {
     
     var el = document.getElementsByClassName("nowplaying")[0];
     var files = document.getElementsByClassName("file-listing")[0];
-    if (!preventClose && el.style.display === "block") {
+    if (forceClose || (!preventClose && el.style.display === "block")) {
 	el.style.display = "none";
 	files.style.pointerEvents = null;
 	files.onclick = function(e) {};
@@ -365,7 +365,8 @@ MusicLibrary.prototype.showSearch = function(keyword) {
     keyword = keyword.replace(' ', '%20');
     if (keyword.length <= 0)
 	return;
-    
+
+    this.toggleNowPlaying(false, true);
     this.evtSys.dispatchEvent("loading");
     
     this.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
