@@ -696,15 +696,13 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
 
 
     this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
-	
-
 	var data = JSON.parse(resp);
 	console.log(data);
 	var covers = document.getElementsByClassName('cover-art');
 	for (var i = 0; i < covers.length; i++) {
 
 	    if (!data.code)
-		covers[i].setAttribute("src", data.path);
+		covers[i].setAttribute("src", data.path + "?" + Math.floor(Math.random() * 1000000) + 1);
 	    else
 		covers[i].setAttribute("src", "static/img/default_album_art.png");
 	}
