@@ -1,6 +1,6 @@
 # Remote-Music-Player
 
-Stream music from your own server, or remotely control music through your server's own speakers.
+Stream your own music from your own server right through your browser.
 
 ##Desktop Browser
 ![Remote Music Player](/screenshots/desktop1.png?raw=true "Remote Music Player")
