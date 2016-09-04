@@ -1,28 +1,28 @@
 PlayBackStates = {
-    "STOPPED": -1,
-    "PLAYING": 0,
-    "PAUSED": 1
+  "STOPPED": -1,
+  "PLAYING": 0,
+  "PAUSED": 1
 }
 
 MusicLibrary = function(evtSys, doStreaming) {
-    this.mediaDir = null;
-    this.mediaHash = {};
-    this.indentSize = 10;
-    this.audioDiv = null;
-    this.streaming = doStreaming;
-    this.playbackState = PlayBackStates["STOPPED"];
-    this.evtSys = evtSys;
-    this.curTrackInfo = null;
-    this.curTimeOffset = 0;
-    this.shuffle = false;
-    this.playHist = [];
-    this.navbarOffset = "";
-    this.supportedFormats = null;
-    this.init();
+  this.mediaDir = null;
+  this.mediaHash = {};
+  this.indentSize = 10;
+  this.audioDiv = null;
+  this.streaming = doStreaming;
+  this.playbackState = PlayBackStates["STOPPED"];
+  this.evtSys = evtSys;
+  this.curTrackInfo = null;
+  this.curTimeOffset = 0;
+  this.shuffle = false;
+  this.playHist = [];
+  this.navbarOffset = "";
+  this.supportedFormats = null;
+  this.init();
 }
 
 MusicLibrary.prototype.getFolderCollapseId = function(directoryID) {
-    return "collapse-" + directoryID;
+  return "collapse-" + directoryID;
 }
 
 MusicLibrary.prototype.getRandomTrack = function(directory) {
@@ -143,15 +143,15 @@ MusicLibrary.prototype.reverseTrackHashLookup = function(startNode) {
 MusicLibrary.prototype.displayMakeExcludeButton = function(container) {
   var self = this
   var icon = document.createElement("span");
-  icon.className = "fa fa-dot-circle-o exclude-btn";
+  icon.className = "fa fa-fw fa-check-square-o exclude-btn";
   icon.setAttribute("aria-hidden", "true");
   icon.onclick = function(e) {
     e.preventDefault();
     var nodeID = container.getAttribute('id');
     var state = !self.mediaHash[nodeID]._exclude
     self.mediaHash[nodeID]._exclude = state
-    icon.classList.toggle('fa-dot-circle-o', !state)
-    icon.classList.toggle('fa-circle-o', state)
+    icon.classList.toggle('fa-check-square-o', !state)
+    icon.classList.toggle('fa-square-o', state)
     if (state) {
       container.style.textDecoration = "line-through";
       var aElm = container.getElementsByTagName("a");
@@ -640,15 +640,21 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
 
   this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
     var data = JSON.parse(resp);
-    var covers = document.querySelectorAll('[role="background-cover-art"]');
-    var path = "static/img/default_album_art.png"
-    if (!data.code) path = data.path + "?" + Math.floor(Math.random() * 1000000) + 1
-    var img = new Image()
-    img.src = path
-    img.onload = function () {
+    var path = !data.code ? data.path + "?" + Math.floor(Math.random() * 1000000) + 1 : ""
+    function setArt () {
+      var covers = document.querySelectorAll('[role="background-cover-art"]');
       for (var i = 0; i < covers.length; i++) {
         covers[i].style.backgroundImage = 'url("' + path + '")';
       }
+    }
+    if (path) {
+      var img = new Image()
+      img.src = path
+      img.onload = setArt
+    } else {
+      setArt();
+      document.querySelector('.now-playing .info [role="background-cover-art"]')
+        .style.backgroundImage = 'url("/static/img/default.jpg")'
     }
   });
 }

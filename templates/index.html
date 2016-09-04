@@ -5,6 +5,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
   <title>Remote Music Player Web Interface</title>
+  <link rel="icon" type="image/jpg" href="{{ url_for('static', filename='img/default.jpg') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/loader.css') }}">
   <link rel="stylesheet" type="text/css" 
@@ -80,12 +81,12 @@
 				<div class="info">
         	<div class="artwork" 
 							 role="background-cover-art" 
-							 style="background-image: url('static/img/default_album_art.png')"/>
+							 style="background-image: url('static/img/default.jpg')"/>
 					</div>
           <p id="curinfo-track" class="bold">No track is playing.</p>
           <p id="curinfo-details"></p>
 					<p>
-            <span id="curinfo-time">--:--</span> / <span id="curinfo-totaltime">--:--</span>
+            <span id="curinfo-time"></span> &mdash; <span id="curinfo-totaltime"></span>
 					</p>
 				</div>
       </div>

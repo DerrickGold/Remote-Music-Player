@@ -18,7 +18,8 @@ body {
 	font-family: Helvetica, Arial, sans-serif;
 	overflow: hidden;
 	position: relative;
-  background: black;
+  background-color: black;
+  background: linear-gradient(45deg, #f6f6f4, #d5d4d1);
 }
 
 header {
@@ -158,7 +159,8 @@ footer {
 	padding: 0.5em;
 }
 
-.root-listing > .directory-listing > li {
+.root-listing > .directory-listing > li.folder-entry,
+.root-listing > .directory-listing > li.file-entry {
 	margin-left: 0;
 }
 
@@ -172,10 +174,29 @@ footer {
 }
 
 .directory-listing > li {
-	margin: 0.3em 0 0.3em 1em;
+	margin: 0.5em 0 0.5em 2em;
 }
 
-.playing-entry {
+.directory-listing > li a {
+  text-decoration: none;
+  color: black;
+  transition: color 0.2s;
+}
+
+.directory-listing > li a:hover {
+  color: dodgerblue;
+}
+
+.directory-listing li.playing-entry > a {
+  color: dodgerblue;
+}
+
+.directory-listing li.folder-entry {
+  margin-left: 1em;
+}
+
+.directory-listing li.file-entry {
+  list-style-type: circle;
 }
 
 .now-playing {
