@@ -3,6 +3,10 @@
   padding: 0;
 }
 
+html {
+  overflow: hidden;
+}
+
 html, body {
   width: 100%;
   height: 100%;
@@ -14,6 +18,7 @@ body {
 	font-family: Helvetica, Arial, sans-serif;
 	overflow: hidden;
 	position: relative;
+  background: black;
 }
 
 header {
@@ -23,7 +28,7 @@ header {
 }
 
 header, footer {
-	background: black;
+  background: rgba(0, 0, 0, 0.7);
 }
 
 header button,
@@ -83,6 +88,7 @@ button.fux {
 
 .fill-flex {
   height: 100%
+  -webkit-overflow-scrolling: touch;
 }
 
 .cl-white {
@@ -98,6 +104,7 @@ content {
   height: 100%;
   overflow-y: auto;
   position: relative;
+  -webkit-overflow-scrolling: touch;
 }
 
 content.loading > div > .now-playing,
@@ -115,6 +122,10 @@ content.playing > div > .loading {
 	display: none;
 }
 
+content.listing {
+  background: white;
+}
+
 footer {
   flex-shrink: 0;
   padding: 1em;
@@ -127,6 +138,12 @@ footer {
 .controls button {
   margin: 0 1em;
   vertical-align: middle;
+}
+
+@media (max-width: 799px) {
+  .controls button {
+    margin: 0 5%;
+  }
 }
 
 .controls #media-btn-play i {
@@ -161,39 +178,21 @@ footer {
 .playing-entry {
 }
 
-.marquee {
-    box-sizing: border-box;
-    margin: 0 auto;
-    overflow: hidden;
-    width: 200px;
-    white-space: nowrap;
-}
-
-.marquee span {
-    animation: marquee 30s linear infinite;
-    display: inline-block;
-    padding-left: 100%;
-}
-
-.marquee span:hover {
-    animation-play-state: paused;
-}
-
-@keyframes marquee {
-  0% { transform: translate(0, 0))}
-  100% { transform: translate(-100%, 0)}
-}
-
 .now-playing {
   position: absolute;
   width: 100%;
   height: 100%;
-	background: white;
   z-index: 1;
 }
 
 .now-playing .info {
 	text-align: center;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  overflow: hidden;
+  padding: 0 1em;
+  box-sizing: border-box;
 }
 
 .now-playing p {
@@ -205,13 +204,14 @@ footer {
 	margin-top: 2em;
 	margin-bottom: 2em;
 	width: 100%;
-	height: 500px;
+  height: 50vh;
+	max-height: 500px;
 	background-size: contain;
 	background-position: center;
 	background-repeat: no-repeat;
 }
 
-.now-playing .bg {
+.bg {
 	position: absolute;
 	width: 100%;
 	height: 100%;
@@ -219,12 +219,12 @@ footer {
 	overflow: hidden;
 }
 
-.now-playing .bg-artwork {
+.bg-artwork {
 	position: absolute;
-	width: 110%;
-	height: 110%;
-	top: -5%;
-	left: -5%;
+	width: 120%;
+	height: 120%;
+	top: -10%;
+	left: -10%;
 	background-size: cover;
 	background-position: center;
 	background-repeat: no-repeat;
@@ -252,6 +252,7 @@ footer {
 	text-align: left;
 	padding: 1em;
 	box-shadow: 0 0 1em rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
 }
 
 .settings.open {
@@ -262,3 +263,14 @@ footer {
 	font-weight: normal;
 	padding-right: 1em;
 }
+
+@media (max-width: 499px) {
+  .settings {
+    width: 100%;
+  }
+
+  form.search input[type="text"] {
+    width: 100px;
+  }
+}
+

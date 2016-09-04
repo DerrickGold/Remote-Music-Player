@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
   <title>Remote Music Player Web Interface</title>
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/loader.css') }}">
@@ -15,6 +15,10 @@
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </head>
 <body>
+
+  <div class="bg">
+    <div class="bg-artwork" role="background-cover-art"></div>
+  </div>
   
   <header class="cl-white">
 		<div class="mast">
@@ -73,15 +77,13 @@
   <content class="listing">
     <div class="fill-flex">
       <div role="now-playing" class="now-playing">
-				<div class="bg">
-					<div class="bg-artwork" role="background-cover-art"></div>
-				</div>
 				<div class="info">
         	<div class="artwork" 
 							 role="background-cover-art" 
 							 style="background-image: url('static/img/default_album_art.png')"/>
 					</div>
           <p id="curinfo-track" class="bold">No track is playing.</p>
+          <p id="curinfo-details"></p>
 					<p>
             <span id="curinfo-time">--:--</span> / <span id="curinfo-totaltime">--:--</span>
 					</p>
@@ -122,15 +124,18 @@
 
 	<div role="global-loader" class="loaderContainer">
 		<div class="loader">
-			<div class="loader__bar"></div>
-			<div class="loader__bar"></div>
-			<div class="loader__bar"></div>
-			<div class="loader__bar"></div>
-			<div class="loader__bar"></div>
-			<div class="loader__ball"></div>
+			<svg xmlns="http://www.w3.org/2000/svg" 
+				 width="80px" height="60px"
+				 viewBox="5 0 80 60">
+				<path id="wave" 
+						fill="none" 
+						stroke="#262626" 
+						stroke-width="4"
+						stroke-linecap="round">
+				</path>
+			</svg>
 		</div>
 	</div>
-
 	
 </body>
 </html>
