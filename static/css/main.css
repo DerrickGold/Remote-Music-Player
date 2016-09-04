@@ -1,0 +1,297 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  overflow: hidden;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+	font-family: Helvetica, Arial, sans-serif;
+	overflow: hidden;
+	position: relative;
+  background-color: black;
+  background: linear-gradient(45deg, #7d7d7c, #bbbab6);
+}
+
+header {
+  flex-shrink: 0;
+	padding: 1em;
+	position: relative;
+}
+
+header, footer {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+header button,
+footer button {
+	color: white;
+}
+
+header .mast {
+	display: flex;
+	font-size: 18px;
+	vertical-align: middle;
+}
+
+header .mast .tools {
+	padding: 0 0 0 1em;
+}
+
+header .mast .tools button {
+	font-size: 18px;
+}
+
+.fux {
+	border: none;
+	background: none;	
+	font-size: 16px;
+	transition: color 0.25s;
+}
+
+.fux:focus {
+	outline: none;
+}
+
+.fux.active {
+	color: dodgerblue;
+}
+
+button.fux {
+	cursor: pointer;
+}
+
+.fad {
+	opacity: 0.4;
+	transition: opacity 0.25s;
+}
+
+.fad:hover {
+	opacity: 1;
+}
+
+.hide {
+	display: none;
+}
+
+.expand-flex {
+	flex: 1;
+}
+
+.fill-flex {
+  height: 100%
+  -webkit-overflow-scrolling: touch;
+}
+
+.cl-white {
+	color:white;
+}
+
+.bold {
+	font-weight: bold;
+}
+
+content {
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+}
+
+content.loading > div > .now-playing,
+content.loading > div > .root-listing {
+	display: none;	
+}
+
+content.listing > div > .now-playing,
+content.listing > div > .loading {
+	display: none;
+}
+
+content.playing > div > .root-listing,
+content.playing > div > .loading {
+	display: none;
+}
+
+content.listing {
+  background: white;
+}
+
+footer {
+  flex-shrink: 0;
+  padding: 1em;
+}
+
+.controls {
+  text-align: center;
+}
+
+.controls button {
+  margin: 0 1em;
+  vertical-align: middle;
+}
+
+@media (max-width: 799px) {
+  .controls button {
+    margin: 0 5%;
+  }
+}
+
+.controls #media-btn-play i {
+  font-size: 22px;
+}
+
+.controls button i {
+  font-size: 16px;
+}
+
+.root-listing {
+	padding: 0.5em;
+}
+
+.root-listing > .directory-listing > li.folder-entry,
+.root-listing > .directory-listing > li.file-entry {
+	margin-left: 0;
+}
+
+.directory-listing {
+	list-style: none;
+	overflow: hidden;
+}
+
+.directory-listing.closed {
+	height: 0;
+}
+
+.directory-listing > li {
+	margin: 0.5em 0 0.5em 2em;
+}
+
+.directory-listing > li a {
+  text-decoration: none;
+  color: black;
+  transition: color 0.2s;
+}
+
+.directory-listing > li a:hover {
+  color: dodgerblue;
+}
+
+.directory-listing li.playing-entry > a {
+  color: dodgerblue;
+}
+
+.directory-listing li.folder-entry {
+  margin-left: 1em;
+}
+
+.directory-listing li.file-entry {
+  list-style-type: circle;
+}
+
+.now-playing {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.now-playing .info {
+	text-align: center;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  overflow: hidden;
+  padding: 0 1em;
+  box-sizing: border-box;
+}
+
+.now-playing p {
+	margin: 0.5em 0;
+	color: white;
+}
+
+.now-playing .info .artwork {
+	margin-top: 2em;
+	margin-bottom: 2em;
+	width: 100%;
+  height: 50vh;
+	max-height: 500px;
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+.bg {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	z-index: -1;
+	overflow: hidden;
+}
+
+.bg-artwork {
+	position: absolute;
+	width: 120%;
+	height: 120%;
+	top: -10%;
+	left: -10%;
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	-webkit-filter: blur(20px) brightness(0.8);
+	filter: blur(20px) brightness(0.8);
+}
+
+.loaderContainer {
+	z-index: 99;
+	display: none;
+}
+
+.loaderContainer.active {
+	display: block;
+}
+
+.settings {
+	display: none;
+	position: absolute;
+	top: 100%;
+	right: 0;
+	z-index: 98;
+	background: white;
+	color: black;
+	text-align: left;
+	padding: 1em;
+	box-shadow: 0 0 1em rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+.settings.open {
+	display: block;
+}
+
+.settings th {
+	font-weight: normal;
+	padding-right: 1em;
+}
+
+@media (max-width: 499px) {
+  .settings {
+    width: 100%;
+  }
+
+  form.search input[type="text"] {
+    width: 100px;
+  }
+}
+
