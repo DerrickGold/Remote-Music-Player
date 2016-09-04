@@ -1,198 +1,136 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Remote Music Player Web Interface</title>
-
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-theme.min.css') }}">
-    
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/index.css') }}">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/loader.css') }}">
-    
-
-    
-    <script src="{{ url_for('static', filename='js/jquery-1.12.1.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/MediaButtons.js') }}"></script>
-  </head>
-
-  <script>
-    $(document).ready(function() {
-    	function Event(name){
-    		this.name = name;
-  		this.callbacks = [];
-	}
-	Event.prototype.registerCallback = function(callback){
-  		this.callbacks.push(callback);
-	}
-
-	function Reactor(){
-  		this.events = {};
-	}
-
-	Reactor.prototype.registerEvent = function(eventName){
-  		var event = new Event(eventName);
-  		this.events[eventName] = event;
-	};
-
-	Reactor.prototype.dispatchEvent = function(eventName, eventArgs){
-  		this.events[eventName].callbacks.forEach(function(callback){
-    			callback(eventArgs);
-  		});
-	};
-
-	Reactor.prototype.addEventListener = function(eventName, callback){
-  		this.events[eventName].registerCallback(callback);
-    	};
-
-    	var reactor = new Reactor();
-
-
-    	reactor.registerEvent("loading");
-    	reactor.addEventListener("loading", function() {
-    		var loadingScreen = document.getElementsByClassName("loaderContainer")[0];
-    		console.log("LOADING EVENT");
-    		loadingScreen.style.display="block";
-    	});
-
-    	reactor.registerEvent("loading done");
-    	reactor.addEventListener("loading done", function() {
-    		var loadingScreen = document.getElementsByClassName("loaderContainer")[0];
-    		loadingScreen.style.display="none";
-    		console.log("LOADING DONE");
-    	});
-
-    
-    	var Media = new MusicLibrary(reactor, '{{ enableStream }}' === 'True');
-    	var MediaControls = new MediaButtons(reactor, Media);
-
-    });
-
-  </script>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Remote Music Player Web Interface</title>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/loader.css') }}">
+  <link rel="stylesheet" type="text/css" 
+    href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}">
+  <script src="{{ url_for('static', filename='js/MusicLibrary.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/MediaButtons.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/Reactor.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</head>
+<body>
   
-  <body>
-    
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container-fluid">
+  <header class="cl-white">
+		<div class="mast">
+			<div>
+				<i class="fa fa-hand-peace-o"></i>
+			</div>
+			<div class="expand-flex"></div>
+			<div>
+				<form class="search">
+					<button id="search-btn" class="fux">
+						<i class="fa fa-fw fa-search" aria-hidden="true"></i>
+					</button>
+					<input id="search-txt" type="text" class="fux cl-white" placeholder="Search...">
+					<button id="search-btn-clear" class="fux fad">
+						<i class="fa fa-fw fa-times" aria-hidden="true"></i>
+					</button>
+				</form>
+			</div>
+			<div class="tools">
+				<button role="open-settings" class="fux">
+					<i class="fa fa-gear" aria-hidden="true"></i>
+				</button>
+			</div>
+		</div>
+		<div role="settings" class="settings">
+			<table>
+				<tbody>
+					<tr>
+						<th>Format</th>
+						<td>
+							<select id="stream-format"></select>
+						</td>
+					</tr>
+					<tr>
+						<th>Stream Quality</th>
+						<td>
+							<select id="stream-quality">
+								<option value="-1" selected="selected">Default</option>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<th>Transcoding</th>
+						<td>
+							<select id="transcoding-option">
+								<option value="false" selected="selected">Only Unsupported Files</option>
+								<option value="true">All Files</option>
+							</select>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+  </header>
 
-	<div class="navbar-header">
-	  <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-toggler"
-		  aria-expanded="false">
-	    <span class="sr-only">Toggle navigation</span>
-	    <span class="icon-bar"></span>
-	    <span class="icon-bar"></span>
-	    <span class="icon-bar"></span>
-	  </button>
-	  <a class="navbar-brand" href="#">RMP</a>
-	</div>
-	
-	<div class="collapse navbar-collapse" id="navbar-toggler">
-	  
-	 
-	  
-	  <form class="navbar-form navbar-right">
-	    <div class="input-group">
-	      <input id="search-txt" type="text" class="form-control" placeholder="Song Title">
-	      <span class="input-group-btn">
-		<button id="search-btn" class="btn btn-default">Search</button>
-		<button id="search-btn-clear" class="btn btn-default">
-		  <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
-		</button>
-	      </span>
-	    </div>
-	  </form>
-	  
-	  <ul class="navbar-right nav navbar-nav">
-	    <li class="dropdown">
-	      <a href="#" id="SettingsDropDown" class="btn btn-secondary dropdown-toggle" type="button"
-		 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="menu">
-		<span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
-	      </a>
-	      <ul id="settings-menu" class="dropdown-menu">
-		<li class="dropdown-header">Stream Format</li>
-		<li>
-		  <select clase="form-control" id="stream-format">
-		  </select>
-		</li>
-		<li class="dropdown-header">Stream Quality</li>
-		<li>
-		  <select clase="form-control" id="stream-quality">
-		    <option value="-1" selected="selected">Default</option>
-		  </select>
-		</li>
-		<li class="dropdown-header">Transcoding</li>
-		<li>
-		  <select clase="form-control" id="transcoding-option">
-		    <option value="false" selected="selected">Only Unsupported Files</option>
-		    <option value="true">All Files</option>
-		  </select>
-		</li>
-	      </ul>
-	    </li>
-	  </ul>
-	
-	</div><!--end of navbar-collapse-->
+  <content class="listing">
+    <div class="fill-flex">
+      <div role="now-playing" class="now-playing">
+				<div class="bg">
+					<div class="bg-artwork" role="background-cover-art"></div>
+				</div>
+				<div class="info">
+        	<div class="artwork" 
+							 role="background-cover-art" 
+							 style="background-image: url('static/img/default_album_art.png')"/>
+					</div>
+          <p id="curinfo-track" class="bold">No track is playing.</p>
+					<p>
+            <span id="curinfo-time">--:--</span> / <span id="curinfo-totaltime">--:--</span>
+					</p>
+				</div>
       </div>
-    </nav>
-
-    <div class="container-fluid nowplaying">
-      <div class="screen-center">
-	<img class="cover-art img-responsive" src="static/img/default_album_art.png"/>
-	<div>
-	  <span class="curInfo" id="curinfo-track"></span>
-	</div>
-	
-	<div>
-	  <p id="curinfo-time"></p> / <p id="curinfo-totaltime"></p>
-	</div>
-      </div> <!--screen centering-->
+            
+      <div class="root-listing" role="root-listing">
+        <ul id="dirlist" class="directory-listing"></ul>
+      </div>
     </div>
-    
-    <div class="container-fluid file-listing">
-      <div class="row panel-group" role="tablist" id="dirlist" aria-multiselectable="false"></div>
-    </div>
+  </content>
 
-    <div class="media-btnbox">	  
+  <footer class="cl-white">
+    <div class="controls media-btnbox">	  
       <span class="input-group media-btns">
-	<button type="button" class="btn btn-danger navbar-btn" id="media-btn-exit">
-	  <span class="glyphicon glyphicon-modal-window"></span>
-	</button>
-	
-	<button type="button" class="btn btn-default navbar-btn" id="media-btn-prev">
-          <span class="glyphicon glyphicon-step-backward" aria-hidden="true"></span>
-	</button>
-	
-	<button type="button" class="btn btn-default navbar-btn" id="media-btn-play">
-          <span id="media-btn-play-icon" class="glyphicon glyphicon-play" aria-hidden="true"></span>
-	</button>
-	
-	<button type="button" class="btn btn-default navbar-btn" id="media-btn-next">
-          <span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span>
-	</button>
-	
-	<!--button type="button" class="btn btn-primary navbar-btn" id="media-btn-speaker">
-	    <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-	    </button-->
-	
-	<button type="button" class="btn btn-default navbar-btn" id="media-btn-shuffle">
-	  <span class="glyphicon glyphicon-random" aria-hidden="true"></span>
-	</button>
+        <button class="fux" id="media-btn-exit">
+          <i class="fa fa-fw fa-picture-o" aria-hidden="true"></i>
+        </button>
+
+        <button class="fux" id="media-btn-prev">
+          <i class="fa fa-fw fa-step-backward" aria-hidden="true"></i>
+        </button>
+
+        <button class="fux" id="media-btn-play">
+          <i id="media-btn-play-icon" class="fa fa-fw fa-play" aria-hidden="true"></i>
+        </button>
+
+        <button class="fux" id="media-btn-next">
+          <i class="fa fa-fw fa-step-forward" aria-hidden="true"></i>
+        </button>
+
+        <button class="fux" id="media-btn-shuffle">
+          <i class="fa fa-fw fa-random" aria-hidden="true"></i>
+        </button>
       </span>
     </div>
-    
-    <div class="loaderContainer">
-      <div class="loader">
-	<div class="loader__bar"></div>
-	<div class="loader__bar"></div>
-	<div class="loader__bar"></div>
-	<div class="loader__bar"></div>
-	<div class="loader__bar"></div>
-	<div class="loader__ball"></div>
+  </footer>
+
+	<div role="global-loader" class="loaderContainer">
+		<div class="loader">
+			<div class="loader__bar"></div>
+			<div class="loader__bar"></div>
+			<div class="loader__bar"></div>
+			<div class="loader__bar"></div>
+			<div class="loader__bar"></div>
+			<div class="loader__ball"></div>
+		</div>
 	</div>
-    </div>
-  </body>
+
+	
+</body>
 </html>

@@ -1,0 +1,264 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+	font-family: Helvetica, Arial, sans-serif;
+	overflow: hidden;
+	position: relative;
+}
+
+header {
+  flex-shrink: 0;
+	padding: 1em;
+	position: relative;
+}
+
+header, footer {
+	background: black;
+}
+
+header button,
+footer button {
+	color: white;
+}
+
+header .mast {
+	display: flex;
+	font-size: 18px;
+	vertical-align: middle;
+}
+
+header .mast .tools {
+	padding: 0 0 0 1em;
+}
+
+header .mast .tools button {
+	font-size: 18px;
+}
+
+.fux {
+	border: none;
+	background: none;	
+	font-size: 16px;
+	transition: color 0.25s;
+}
+
+.fux:focus {
+	outline: none;
+}
+
+.fux.active {
+	color: dodgerblue;
+}
+
+button.fux {
+	cursor: pointer;
+}
+
+.fad {
+	opacity: 0.4;
+	transition: opacity 0.25s;
+}
+
+.fad:hover {
+	opacity: 1;
+}
+
+.hide {
+	display: none;
+}
+
+.expand-flex {
+	flex: 1;
+}
+
+.fill-flex {
+  height: 100%
+}
+
+.cl-white {
+	color:white;
+}
+
+.bold {
+	font-weight: bold;
+}
+
+content {
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  position: relative;
+}
+
+content.loading > div > .now-playing,
+content.loading > div > .root-listing {
+	display: none;	
+}
+
+content.listing > div > .now-playing,
+content.listing > div > .loading {
+	display: none;
+}
+
+content.playing > div > .root-listing,
+content.playing > div > .loading {
+	display: none;
+}
+
+footer {
+  flex-shrink: 0;
+  padding: 1em;
+}
+
+.controls {
+  text-align: center;
+}
+
+.controls button {
+  margin: 0 1em;
+  vertical-align: middle;
+}
+
+.controls #media-btn-play i {
+  font-size: 22px;
+}
+
+.controls button i {
+  font-size: 16px;
+}
+
+.root-listing {
+	padding: 0.5em;
+}
+
+.root-listing > .directory-listing > li {
+	margin-left: 0;
+}
+
+.directory-listing {
+	list-style: none;
+	overflow: hidden;
+}
+
+.directory-listing.closed {
+	height: 0;
+}
+
+.directory-listing > li {
+	margin: 0.3em 0 0.3em 1em;
+}
+
+.playing-entry {
+}
+
+.marquee {
+    box-sizing: border-box;
+    margin: 0 auto;
+    overflow: hidden;
+    width: 200px;
+    white-space: nowrap;
+}
+
+.marquee span {
+    animation: marquee 30s linear infinite;
+    display: inline-block;
+    padding-left: 100%;
+}
+
+.marquee span:hover {
+    animation-play-state: paused;
+}
+
+@keyframes marquee {
+  0% { transform: translate(0, 0))}
+  100% { transform: translate(-100%, 0)}
+}
+
+.now-playing {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+	background: white;
+  z-index: 1;
+}
+
+.now-playing .info {
+	text-align: center;
+}
+
+.now-playing p {
+	margin: 0.5em 0;
+	color: white;
+}
+
+.now-playing .info .artwork {
+	margin-top: 2em;
+	margin-bottom: 2em;
+	width: 100%;
+	height: 500px;
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+.now-playing .bg {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	z-index: -1;
+	overflow: hidden;
+}
+
+.now-playing .bg-artwork {
+	position: absolute;
+	width: 110%;
+	height: 110%;
+	top: -5%;
+	left: -5%;
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	-webkit-filter: blur(20px) brightness(0.8);
+	filter: blur(20px) brightness(0.8);
+}
+
+.loaderContainer {
+	z-index: 99;
+	display: none;
+}
+
+.loaderContainer.active {
+	display: block;
+}
+
+.settings {
+	display: none;
+	position: absolute;
+	top: 100%;
+	right: 0;
+	z-index: 98;
+	background: white;
+	color: black;
+	text-align: left;
+	padding: 1em;
+	box-shadow: 0 0 1em rgba(0, 0, 0, 0.1);
+}
+
+.settings.open {
+	display: block;
+}
+
+.settings th {
+	font-weight: normal;
+	padding-right: 1em;
+}

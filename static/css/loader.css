@@ -1,15 +1,12 @@
 .loaderContainer {
-    height: 100%;
-    width: 100%;
-    margin: 0;
-    paddng: 0;
-    background-color: rgba(0,0,0,0.7);
-    position: fixed;
-
-    vertical-align: middle;
-    text-align: center;
-    left: 0;
-    top: 0;
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	background-color: rgba(0,0,0,0.7);
+	vertical-align: middle;
+	text-align: center;
+	left: 0;
+	top: 0;
 }
 
 .loader {

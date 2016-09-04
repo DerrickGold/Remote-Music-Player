@@ -18,7 +18,6 @@ MusicLibrary = function(evtSys, doStreaming) {
     this.playHist = [];
     this.navbarOffset = "";
     this.supportedFormats = null;
-
     this.init();
 }
 
@@ -27,284 +26,243 @@ MusicLibrary.prototype.getFolderCollapseId = function(directoryID) {
 }
 
 MusicLibrary.prototype.getRandomTrack = function(directory) {
+  if (!directory)
+    directory = this.mediaDir.files;
 
-    if (!directory)
-	directory = this.mediaDir.files;
+  var index = Math.floor(Math.random() * (directory.children.length));
+  var file = directory.children[index];
 
-    var index = Math.floor(Math.random() * (directory.children.length));
-    var file = directory.children[index];
+  if (file._exclude)
+    return this.getRandomTrack(directory);
+  else if (file.directory)
+    return this.getRandomTrack(file);
 
-    if (file._exclude)
-	return this.getRandomTrack(directory);
-    else if (file.directory)
-	return this.getRandomTrack(file);
-
-    return file;
+  return file;
 }    
 
 MusicLibrary.prototype.getRootDirDiv = function() {
-    return document.getElementById("dirlist");
+  return document.getElementById("dirlist");
 }
 
+MusicLibrary.prototype.showSection = function (name) {
+	var content = document.querySelector('content')
+	content.className = name
+}
 
-MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {
-    
-    var el = document.getElementsByClassName("nowplaying")[0];
-    var files = document.getElementsByClassName("file-listing")[0];
-    if (forceClose || (!preventClose && el.style.display === "block")) {
-	el.style.display = "none";
-	files.style.pointerEvents = null;
-	files.onclick = function(e) {};
-    } else {
-	files.style.pointerEvents = "none";
-	files.onclick = function(e) {
-	    e.preventDefault();
-	    e.stopPropagation();
+MusicLibrary.prototype.toggleNowPlaying = function (open) {
+	var content = document.querySelector('content')
+	if (typeof open == 'undefined') {
+		open = !content.classList.contains('playing')
 	}
-	el.style.display = "block";
-    }
+	this.showSection(open == true ? 'playing' : 'listing')	
 }
-
-
 
 MusicLibrary.prototype.getFiles = function() {
-    var thisClass = this;
-    this.evtSys.dispatchEvent("loading");
-    this.apiCall("/api/files", "GET", true, function(resp) {
-	thisClass.mediaDir = JSON.parse(resp);
-	thisClass.makeMediaLibHash(thisClass.mediaDir.files);
-	thisClass.displayFolder(thisClass.mediaDir.files, thisClass.getRootDirDiv());
-	thisClass.evtSys.dispatchEvent("loading done");
-    });
+  var thisClass = this;
+  this.evtSys.dispatchEvent("loading");
+  this.apiCall("/api/files", "GET", true, function(resp) {
+    thisClass.mediaDir = JSON.parse(resp);
+    thisClass.makeMediaLibHash(thisClass.mediaDir.files);
+    thisClass.displayFolder(thisClass.mediaDir.files, thisClass.getRootDirDiv());
+    thisClass.evtSys.dispatchEvent("loading done");
+  });
 }
 
 MusicLibrary.prototype.getTrackPos = function(doneCb) {
-    
-    //don't need to query the server if we are streaming
-    if (this.streaming)
-	return;
-
-    var thisClass = this;
-    this.apiCall("/api/commands/info", "POST", true, function(resp) {
-	var data = JSON.parse(resp);
-	thisClass.curTimeOffset = data.pos;
-	if (doneCb)
-	    doneCb(data);
-    });
+  //don't need to query the server if we are streaming
+  if (this.streaming) return;
+  var thisClass = this;
+  this.apiCall("/api/commands/info", "POST", true, function(resp) {
+    var data = JSON.parse(resp);
+    thisClass.curTimeOffset = data.pos;
+    if (doneCb) doneCb(data);
+  });
 }
 
 MusicLibrary.prototype.getPlaybackState = function() {
-    return this.playbackState;
+  return this.playbackState;
+}
+
+MusicLibrary.prototype.toggleFolder = function (container, open) {
+  var state = container.querySelector('[role="expand-state"]')
+  var body  = container.querySelector('[role="listing"]')
+  if (typeof open == 'undefined')
+    open = !body.classList.contains('closed')
+  else
+    open = !open
+  body.classList.toggle('closed', open)
+  state.classList.toggle('fa-caret-down', !open)
+  state.classList.toggle('fa-caret-right', open)
 }
 
 MusicLibrary.prototype.setFolderView = function(folderIdDiv, view) {
-
-    var folderNode = folderIdDiv.parentNode;
-    
-    var toggler = folderNode.getElementsByTagName("a")[0];
-    if (view === "open")
-	toggler.setAttribute("aria-expanded", "true");
-    else
-	toggler.setAttribute("aria-expanded", "false");
-    
-    var collapser = folderNode.getElementsByClassName("panel-collapse")[0];
-    if (view === "open") {
-	collapser.classList.add("in");
-	collapser.setAttribute("aria-expanded", "true");
-	collapser.style.height = null;
-    } else {
-	collapser.classList.remove("in");
-	collapser.setAttribute("aria-expanded", "true");
-    }
+  var folderNode = folderIdDiv.parentNode;
+  this.toggleFolder(folderIdDiv.parentNode, view == "open")
 }
 
 MusicLibrary.prototype.makeMediaLibHash = function(root) {
-    this.mediaHash[root.id] = root;
-    for(var i = 0; i < root.children.length; i++)
-	this.makeMediaLibHash(root.children[i]);
+  this.mediaHash[root.id] = root;
+  for(var i = 0; i < root.children.length; i++)
+	  this.makeMediaLibHash(root.children[i]);
 }
 
 MusicLibrary.prototype.secondsToMinutesStr = function(time) {
-    time = parseInt(time);
-    var minutes = Math.floor(time / 60);
-    var seconds = time % 60;
-
-    var result = '' + minutes + ":";
-
-    if (seconds < 10)
-	result += "0";
-
-    result += seconds;
-    return result
+  time = parseInt(time);
+  var minutes = Math.floor(time / 60);
+  var seconds = time % 60;
+  var result = '' + minutes + ":";
+  if (seconds < 10) result += "0";
+  result += seconds;
+  return result
 }
 
 MusicLibrary.prototype.apiCall = function(route, method, async, successCb, errorCb) {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-	if (xhttp.readyState == 4 && xhttp.status == 200) {
-	    if (successCb)
-		successCb(xhttp.responseText);
-	} else if (xhttp.readyState == 4) {
-	    if (errorCb)
-		errorCb(xhttp.responseText);
-	}
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+  	if (xhttp.readyState == 4 && xhttp.status == 200) {
+      if (successCb) successCb(xhttp.responseText);
+    } else if (xhttp.readyState == 4) {
+      if (errorCb) errorCb(xhttp.responseText);
     }
-
-    xhttp.open(method, route, async);
-    xhttp.send();	
+  }
+  xhttp.open(method, route, async);
+  xhttp.send();	
 }
 
 MusicLibrary.prototype.reverseTrackHashLookup = function(startNode) {
-    
-    var findStack = [];
-    var curNode = startNode;
-    
-    while(curNode.parent != ".") {
-	findStack.push(curNode.id);
-	curNode = this.mediaHash[curNode.parent]
-    }
+  var findStack = [];
+  var curNode = startNode;
+  while(curNode.parent != ".") {
     findStack.push(curNode.id);
-    return findStack;
-}
-
-MusicLibrary.prototype.closeDirectory = function(folderDiv) {
-
-    if (folderDiv.classList && folderDiv.classList.contains("folder-entry"))
-	return this.closeDirectory(folderDiv.parentNode);
-    
-    var x = folderDiv.getElementsByClassName("folder-entry");
-    for (var i = 0; i < x.length; i++) {
-	x[i].style.display="";
-	this.setFolderView(x[i].children[0], "close");
-    }	
+    curNode = this.mediaHash[curNode.parent]
+  }
+  findStack.push(curNode.id);
+  return findStack;
 }
 
 MusicLibrary.prototype.displayMakeExcludeButton = function(container) {
-	
-    var icon = document.createElement("span");
-    icon.className = "glyphicon glyphicon-ban-circle exclude-btn";
-    icon.setAttribute("aria-hidden", "true");
-
-    var thisClass = this;
-    icon.onclick = function(e) {
-	e.preventDefault();
-	var nodeID = container.getAttribute('id');	    
-	thisClass.mediaHash[nodeID]._exclude = !thisClass.mediaHash[nodeID]._exclude;
-	if (thisClass.mediaHash[nodeID]._exclude) {
-	    container.style.textDecoration = "line-through";
-	    var aElm = container.getElementsByTagName("a");
-	    aElm[0].style.pointerEvents = "none";
-	    thisClass.closeDirectory(container.parentNode);
-	} else {
-	    container.style.textDecoration = "";
-	    var aElm = container.getElementsByTagName("a");
-	    aElm[0].style.pointerEvents = "";
-	}
+  var self = this
+  var icon = document.createElement("span");
+  icon.className = "fa fa-dot-circle-o exclude-btn";
+  icon.setAttribute("aria-hidden", "true");
+  icon.onclick = function(e) {
+    e.preventDefault();
+    var nodeID = container.getAttribute('id');	    
+    var state = !self.mediaHash[nodeID]._exclude
+    self.mediaHash[nodeID]._exclude = state
+    icon.classList.toggle('fa-dot-circle-o', !state)
+    icon.classList.toggle('fa-circle-o', state)
+    if (state) {
+      container.style.textDecoration = "line-through";
+      var aElm = container.getElementsByTagName("a");
+      aElm[0].style.pointerEvents = "none";
+      self.toggleFolder(container.parentElement, false)
+    } else {
+      container.style.textDecoration = "";
+      var aElm = container.getElementsByTagName("a");
+      aElm[0].style.pointerEvents = "";
     }
-
-    return icon;
+  }
+  return icon;
 }
     
 MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth) {
-    var panelBody = null;
-    var panel = null;
-    var panelHeader = document.createElement("div");
-    
-    panelHeader.setAttribute("id", folderEntry.id);
-    panelHeader.classList.add("panel-heading");
-    panelHeader.setAttribute("role", "tab");
-    
-    var excludeBtn = this.displayMakeExcludeButton(panelHeader);
-    panelHeader.appendChild(excludeBtn);
-    
-    var icon = document.createElement("span");
-    icon.className = "glyphicon glyphicon-folder-close";
-    icon.setAttribute("aria-hidden", "true");
-    panelHeader.appendChild(icon);
-    
-    //create collapse button
-    var collapseButton = document.createElement("a");
-    collapseButton.classList.add("folder-entry-name");
-    collapseButton.setAttribute("role", "button");
-    collapseButton.setAttribute("data-toggle", "collapse");
-    collapseButton.setAttribute("href","#" + this.getFolderCollapseId(folderEntry.id));
-    if (expanded)
-	collapseButton.setAttribute("aria-expanded", "true");
-    else
-	collapseButton.setAttribute("aria-expanded", "false");
-    
-    collapseButton.setAttribute("aria-controls", this.getFolderCollapseId(folderEntry.id));
-    collapseButton.innerHTML = folderEntry.name;
-    panelHeader.appendChild(collapseButton);	
-    
-    panel = document.createElement("div");
-    panel.appendChild(panelHeader);
-    panel.classList.add("panel");
-    panel.classList.add("folder-entry");
-    panel.classList.add("panel-default");
-    
-    var bodyCollapse = document.createElement("div");
-    bodyCollapse.setAttribute("id", this.getFolderCollapseId(folderEntry.id));
-    bodyCollapse.className = "panel-collapse collapse";
-    bodyCollapse.setAttribute("role", "tabpanel");
-    
-    panelBody = document.createElement("div");
-    panelBody.className = "panel-body";
-    
-    bodyCollapse.appendChild(panelBody);
-    panel.appendChild(bodyCollapse);
-    
-    return [panel, panelBody];
+  // TODO use template...
+  var panelHeader = document.createElement("div");
+  panelHeader.setAttribute("id", folderEntry.id);
+  panelHeader.classList.add("panel-heading");
+  panelHeader.setAttribute("role", "tab");
+  
+  var excludeBtn = this.displayMakeExcludeButton(panelHeader);
+  panelHeader.appendChild(excludeBtn);
+  
+  var icon = document.createElement("span");
+  icon.className = "fa fa-fw fa-caret-right expand-state";
+  icon.setAttribute("aria-hidden", "true");
+  icon.setAttribute("role", "expand-state")
+  panelHeader.appendChild(icon);
+  
+  //create collapse button
+  var collapseButton = document.createElement("a");
+  collapseButton.classList.add("folder-entry-name");
+  collapseButton.innerHTML = folderEntry.name;
+	collapseButton.style.pointerEvents = true
+	collapseButton.style.cursor = 'pointer'
+  panelHeader.appendChild(collapseButton);	
+  
+  var panel = document.createElement("li");
+  panel.appendChild(panelHeader);
+  panel.classList.add("panel");
+  panel.classList.add("folder-entry");
+  panel.classList.add("panel-default");
+  
+  var bodyCollapse = document.createElement("div");
+  bodyCollapse.setAttribute("id", this.getFolderCollapseId(folderEntry.id));
+  bodyCollapse.className = "panel-collapse collapse";
+  bodyCollapse.setAttribute("role", "tabpanel");
+  
+  var panelBody = document.createElement("ul");
+	panelBody.setAttribute('role', 'listing');
+  panelBody.className = "directory-listing closed";
+  
+  bodyCollapse.appendChild(panelBody);
+  panel.appendChild(bodyCollapse);
+
+  var self = this
+  collapseButton.onclick = function (e) {
+    self.toggleFolder(panel)
+  }
+  
+  return [panel, panelBody];
 }
 
 MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
-    var file = document.createElement("div");
-    file.setAttribute("id", fileEntry.id);
-    
-    var icon = document.createElement("span");
-    icon.className = "glyphicon glyphicon-music";
-    icon.setAttribute("aria-hidden", "true");
-    file.appendChild(icon);
+	var file = document.createElement("li");
+	file.setAttribute("id", fileEntry.id);
+	
+	var text = document.createElement("a");
+	text.innerHTML = fileEntry.name;
+	text.classList.add("file-entry-name");
+	text.setAttribute("href", "#");
+	
+	file.appendChild(text);
+	file.classList.add("file-entry");
+	file.classList.add("panel-heading");
 
-    var text = document.createElement("a");
-    text.innerHTML = fileEntry.name;
-    text.classList.add("file-entry-name");
-    text.setAttribute("href", "#");
-    
-    file.appendChild(text);
-    file.classList.add("file-entry");
-    file.classList.add("panel-heading");
-
-    var thisClass = this;
-    text.onclick = function(e) {
-	e.preventDefault();
-	if (thisClass.streaming) {
-	    thisClass.audioDiv.src = '';
-	    thisClass.audioDiv.play();
+	var thisClass = this;
+	text.onclick = function(e) {
+		e.preventDefault();
+		if (thisClass.streaming) {
+				thisClass.audioDiv.src = '';
+				thisClass.audioDiv.play();
+		}
+		thisClass.playSong(fileEntry, 0);	
 	}
-	thisClass.playSong(fileEntry, 0);	
-    }
-    
-    return file;
+	
+	return file;
 }
 
 MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
-
-    var thisClass = this;
-    if (!depth) depth = 0;
-    folder.children.forEach(function(f) {
-	if (f.directory) {
-	    var things = thisClass.displayMakeFolder(f, false, depth);
-	    parentDiv.appendChild(things[0]);
-	    thisClass.displayFolder(f, things[1], depth + 1);
-	} else {
-	    var thing = thisClass.displayMakeFile(f, depth)
-	    parentDiv.appendChild(thing);
-	}
-    });
+	var thisClass = this;
+	if (!depth) depth = 0;
+	folder.children.sort(function (a, b) {	
+		if (a.directory && !b.directory) return -1
+		if (!a.directory && b.directory) return 1
+		if (a.name < b.name) return -1
+		if (a.name > b.name) return 1
+		return 0		
+	})
+	folder.children.forEach(function(f) {
+		if (f.directory) {
+			var things = thisClass.displayMakeFolder(f, false, depth);
+			parentDiv.appendChild(things[0]);
+			thisClass.displayFolder(f, things[1], depth + 1);
+		} else {
+			var thing = thisClass.displayMakeFile(f, depth)
+			parentDiv.appendChild(thing);
+		}
+	});
 }
-
-
 
 MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
 
@@ -366,7 +324,7 @@ MusicLibrary.prototype.showSearch = function(keyword) {
     if (keyword.length <= 0)
 	return;
 
-    this.toggleNowPlaying(false, true);
+    this.toggleNowPlaying(false);
     this.evtSys.dispatchEvent("loading");
     
     this.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
@@ -669,48 +627,45 @@ MusicLibrary.prototype.prevSong = function() {
 
 
 MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
-    var thisClass = this;
-    this.apiCall("/api/files/"+ this.curTrackInfo.id + "/data", "GET", true, function(resp) {
-	var data = JSON.parse(resp);
-	var infoStr = '';
-	
-	if (data.artist.length)
-	    infoStr = data.artist + " -- ";
-	
-	if (!data.title.length)
-	    data.title = thisClass.curTrackInfo.name;
-	
-	infoStr += data.title;
-	
-	if (data.album.length)
-	    infoStr += " (" + data.album + ")";
-	
-	document.getElementById("curinfo-track").innerHTML = infoStr;
-	document.title = infoStr;
-	
-	var len = thisClass.secondsToMinutesStr(data["length"]);
-	document.getElementById("curinfo-totaltime").innerHTML = len;
-	if (doneCb)
-	    doneCb(data);
-    });
+	var thisClass = this;
+	this.apiCall("/api/files/"+ this.curTrackInfo.id + "/data", "GET", true, function(resp) {
+		var data = JSON.parse(resp);
+		var infoStr = '';
+		
+		if (data.artist.length)
+				infoStr = data.artist + " &mdash; ";
+		
+		if (!data.title.length)
+				data.title = thisClass.curTrackInfo.name;
+		
+		infoStr += data.title;
+		
+		if (data.album.length)
+				infoStr += " (" + data.album + ")";
+		
+		document.getElementById("curinfo-track").innerHTML = infoStr;
+		document.title = infoStr;
+		
+		var len = thisClass.secondsToMinutesStr(data["length"]);
+		document.getElementById("curinfo-totaltime").innerHTML = len;
+		if (doneCb)
+				doneCb(data);
+	});
 
-
-    this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
-	var data = JSON.parse(resp);
-	console.log(data);
-	var covers = document.getElementsByClassName('cover-art');
-	for (var i = 0; i < covers.length; i++) {
-
-	    if (!data.code)
-		covers[i].setAttribute("src", data.path + "?" + Math.floor(Math.random() * 1000000) + 1);
-	    else
-		covers[i].setAttribute("src", "static/img/default_album_art.png");
-	}
-    });
-
+  this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
+		var data = JSON.parse(resp);
+		var covers = document.querySelectorAll('[role="background-cover-art"]');
+		var path = "static/img/default_album_art.png"
+		if (!data.code) path = data.path + "?" + Math.floor(Math.random() * 1000000) + 1
+		var img = new Image()
+		img.src = path
+		img.onload = function () {
+			for (var i = 0; i < covers.length; i++) {
+				covers[i].style.backgroundImage = 'url("' + path + '")';
+			}
+		}
+	});
 }
-
-
 
 MusicLibrary.prototype.updateQualitySelect = function(val) {
 
@@ -732,62 +687,60 @@ MusicLibrary.prototype.updateQualitySelect = function(val) {
     
 
 MusicLibrary.prototype.init = function() {
-    this.getFiles();
-    
-    this.audioDiv = document.createElement("AUDIO");
-    this.audioDiv.setAttribute("preload", "auto");
-    
-    var curTimeDiv = document.getElementById("curinfo-time");
-    var thisClass = this;
-    this.audioDiv.ontimeupdate = function(e) {
-	thisClass.curTimeOffset = this.currentTime;
-	curTimeDiv.innerHTML = thisClass.secondsToMinutesStr(thisClass.curTimeOffset);
-    }
-    
-    this.audioDiv.onended = function() {
-	console.log("AUDIO ENDED");
-	if (thisClass.streaming && thisClass.audioDiv.src.length > 0)
-	    thisClass.nextSong();
-    }
-    
-    document.body.appendChild(this.audioDiv);
-    
-    
-    var style = window.getComputedStyle(document.body);
-    this.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
-    
-    var curInfo = document.getElementById("curinfo-track");
-    if (curInfo) {
-	curInfo.addEventListener("click", function() {
-	    thisClass.openFileDisplayToTrack(thisClass.curTrackInfo);
-	});
-    }
-    
-    this.evtSys.registerEvent('media state change');
-    
-    document.getElementById('settings-menu').addEventListener('click', function(e) {
-	e.stopPropagation();
-    });
-    
-    this.apiCall('/api/commands/formats', 'GET', true, function(resp) {
-	thisClass.supportedFormats = JSON.parse(resp);
-	console.log(thisClass.supportedFormats);
+	this.getFiles();
 	
-	var formats = document.getElementById('stream-format');
-	thisClass.supportedFormats["format"].forEach(function(fmt) {
-	    
-	    var option = document.createElement("option");
-	    option.value = fmt;
-	    option.text = fmt;
-	    formats.appendChild(option);
-	    
-	});
-	formats.selectedIndex = 0;
-	thisClass.updateQualitySelect(thisClass.supportedFormats["format"][0]);
+	this.audioDiv = document.createElement("AUDIO");
+	this.audioDiv.setAttribute("preload", "auto");
 	
-	formats.onchange = function(e) {
-	    thisClass.updateQualitySelect(e.target.value);
+	var curTimeDiv = document.getElementById("curinfo-time");
+	var thisClass = this;
+	this.audioDiv.ontimeupdate = function(e) {
+		thisClass.curTimeOffset = this.currentTime;
+		curTimeDiv.innerHTML = thisClass.secondsToMinutesStr(thisClass.curTimeOffset);
 	}
 	
-    });
+	this.audioDiv.onended = function() {
+		console.log("AUDIO ENDED");
+		if (thisClass.streaming && thisClass.audioDiv.src.length > 0)
+			thisClass.nextSong();
+	}
+	
+	document.body.appendChild(this.audioDiv);
+	
+	var style = window.getComputedStyle(document.body);
+	this.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
+	
+	var curInfo = document.getElementById("curinfo-track");
+	if (curInfo) {
+		curInfo.addEventListener("click", function() {
+				thisClass.openFileDisplayToTrack(thisClass.curTrackInfo);
+		});
+	}
+	
+	this.evtSys.registerEvent('media state change');
+		
+	this.apiCall('/api/commands/formats', 'GET', true, function(resp) {
+		thisClass.supportedFormats = JSON.parse(resp);
+		console.log(thisClass.supportedFormats);
+		
+		var formats = document.getElementById('stream-format');
+		thisClass.supportedFormats["format"].forEach(function(fmt) {
+			var option = document.createElement("option");
+			option.value = fmt;
+			option.text = fmt;
+			formats.appendChild(option);
+		});
+		formats.selectedIndex = 0;
+		thisClass.updateQualitySelect(thisClass.supportedFormats["format"][0]);
+		
+		formats.onchange = function(e) {
+				thisClass.updateQualitySelect(e.target.value);
+		}
+	});
+
+	var open = document.querySelector('[role="open-settings"]')
+	open.onclick = function (e) {
+		var el = document.querySelector('[role="settings"]')
+		el.classList.toggle('open')
+	}
 }
