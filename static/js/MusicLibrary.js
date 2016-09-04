@@ -639,13 +639,15 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
   });
 
   this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
-    var data = JSON.parse(resp);
-    var path = !data.code ? data.path + "?" + Math.floor(Math.random() * 1000000) + 1 : ""
+    var data    = JSON.parse(resp);
+    var favicon = document.querySelector('link[rel="icon"]');
+    var path    = !data.code ? data.path + "?" + Math.floor(Math.random() * 1000000) + 1 : ""
     function setArt () {
       var covers = document.querySelectorAll('[role="background-cover-art"]');
       for (var i = 0; i < covers.length; i++) {
         covers[i].style.backgroundImage = 'url("' + path + '")';
       }
+      favicon.href = path
     }
     if (path) {
       var img = new Image()
@@ -655,6 +657,7 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
       setArt();
       document.querySelector('.now-playing .info [role="background-cover-art"]')
         .style.backgroundImage = 'url("/static/img/default.jpg")'
+      favicon.href = '/static/img/default.jpg'
     }
   });
 }
