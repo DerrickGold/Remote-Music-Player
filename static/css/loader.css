@@ -1,18 +1,20 @@
-.loaderContainer {
+.loader-container {
+    display: none;
     height: 100%;
     width: 100%;
     margin: 0;
     paddng: 0;
     background-color: rgba(0,0,0,0.7);
     position: fixed;
-
     vertical-align: middle;
     text-align: center;
     left: 0;
     top: 0;
+    z-index: 2;
 }
 
 .loader {
+    display: inherit;
     position: absolute;
     width: 75px;
     height: 100px;

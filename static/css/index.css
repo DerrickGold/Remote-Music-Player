@@ -6,19 +6,13 @@ body {
     overflow: auto;
 }
 
-.folder-entry {
-    font-weight: bold;
+.folder-entry, .file-entry {
+    border: none;
     margin-left: 0;
-    text-decoration: underline;
+    padding: 0;
 }
 
-.file-entry {
-    border: 1px solid grey;
-    border-radius: 3px;
-    margin-left: 0;
-}
-
-.folder-entry-name, .file-entry-next {
+.folder-entry-name, .file-entry-name {
     padding-left: 5px;
 }
 
@@ -64,29 +58,6 @@ body {
     display: block;
 }
 
-.marquee {
-    box-sizing: border-box;
-    margin: 0 auto;
-    overflow: hidden;
-    width: 200px;
-    white-space: nowrap;
-}
-
-.marquee span {
-    animation: marquee 30s linear infinite;
-    display: inline-block;
-    padding-left: 100%;
-}
-
-.marquee span:hover {
-    animation-play-state: paused;
-}
-
-@keyframes marquee {
-    0% { transform: translate(0, 0))}
-    100% { transform: translate(-100%, 0)}
-}
-
  /*Disable boot strap collapse/expand animations*/
 .collapsing {
     transition: none;
@@ -124,4 +95,25 @@ body {
     top: 50%;
     transform: translate(0, -50%);
     width: 100%;
+}
+
+.visible {
+    display: block;
+}
+
+.hidden {
+    display: none;
+}
+
+.block-click {
+    pointer-events: none;
+}
+
+.disabled-folder {
+    text-decoration: line-through;
+    pointer-events: none;
+}
+
+.lock-scrolling {
+    overflow: hidden;
 }

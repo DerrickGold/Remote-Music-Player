@@ -5,80 +5,20 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Remote Music Player Web Interface</title>
-
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-theme.min.css') }}">
-    
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/index.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/loader.css') }}">
-    
-
-    
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/index.css') }}">
     <script src="{{ url_for('static', filename='js/jquery-1.12.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/Reactor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/MusicPlayer.js') }}"></script>
     <script src="{{ url_for('static', filename='js/MediaButtons.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   </head>
-
-  <script>
-    $(document).ready(function() {
-    	function Event(name){
-    		this.name = name;
-  		this.callbacks = [];
-	}
-	Event.prototype.registerCallback = function(callback){
-  		this.callbacks.push(callback);
-	}
-
-	function Reactor(){
-  		this.events = {};
-	}
-
-	Reactor.prototype.registerEvent = function(eventName){
-  		var event = new Event(eventName);
-  		this.events[eventName] = event;
-	};
-
-	Reactor.prototype.dispatchEvent = function(eventName, eventArgs){
-  		this.events[eventName].callbacks.forEach(function(callback){
-    			callback(eventArgs);
-  		});
-	};
-
-	Reactor.prototype.addEventListener = function(eventName, callback){
-  		this.events[eventName].registerCallback(callback);
-    	};
-
-    	var reactor = new Reactor();
-
-
-    	reactor.registerEvent("loading");
-    	reactor.addEventListener("loading", function() {
-    		var loadingScreen = document.getElementsByClassName("loaderContainer")[0];
-    		console.log("LOADING EVENT");
-    		loadingScreen.style.display="block";
-    	});
-
-    	reactor.registerEvent("loading done");
-    	reactor.addEventListener("loading done", function() {
-    		var loadingScreen = document.getElementsByClassName("loaderContainer")[0];
-    		loadingScreen.style.display="none";
-    		console.log("LOADING DONE");
-    	});
-
-    
-    	var Media = new MusicLibrary(reactor, '{{ enableStream }}' === 'True');
-    	var MediaControls = new MediaButtons(reactor, Media);
-
-    });
-
-  </script>
-  
   <body>
-    
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
-
 	<div class="navbar-header">
 	  <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-toggler"
 		  aria-expanded="false">
@@ -89,23 +29,7 @@
 	  </button>
 	  <a class="navbar-brand" href="#">RMP</a>
 	</div>
-	
 	<div class="collapse navbar-collapse" id="navbar-toggler">
-	  
-	 
-	  
-	  <form class="navbar-form navbar-right">
-	    <div class="input-group">
-	      <input id="search-txt" type="text" class="form-control" placeholder="Song Title">
-	      <span class="input-group-btn">
-		<button id="search-btn" class="btn btn-default">Search</button>
-		<button id="search-btn-clear" class="btn btn-default">
-		  <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
-		</button>
-	      </span>
-	    </div>
-	  </form>
-	  
 	  <ul class="navbar-right nav navbar-nav">
 	    <li class="dropdown">
 	      <a href="#" id="SettingsDropDown" class="btn btn-secondary dropdown-toggle" type="button"
@@ -134,57 +58,53 @@
 	      </ul>
 	    </li>
 	  </ul>
-	
+	  <form class="navbar-form navbar-right">
+	    <div class="input-group">
+	      <input id="search-txt" type="text" class="form-control" placeholder="Song Title">
+	      <span class="input-group-btn">
+		<button id="search-btn" class="btn btn-default">Search</button>
+		<button id="search-btn-clear" class="btn btn-default">
+		  <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
+		</button>
+	      </span>
+	    </div>
+	  </form>	  
 	</div><!--end of navbar-collapse-->
       </div>
     </nav>
-
-    <div class="container-fluid nowplaying">
+    <div class="container-fluid nowplaying" role="currently-playing">
       <div class="screen-center">
-	<img class="cover-art img-responsive" src="static/img/default_album_art.png"/>
-	<div>
-	  <span class="curInfo" id="curinfo-track"></span>
-	</div>
-	
-	<div>
-	  <p id="curinfo-time"></p> / <p id="curinfo-totaltime"></p>
-	</div>
+	<img class="cover-art img-responsive" src="static/img/default_album_art.png" role="album-art"/>
+	<div class="curInfo" id="curinfo-track"></div>
+	<p id="curinfo-time"></p> / <p id="curinfo-totaltime"></p>
       </div> <!--screen centering-->
     </div>
-    
-    <div class="container-fluid file-listing">
+    <div class="container-fluid file-listing" role="listroot">
       <div class="row panel-group" role="tablist" id="dirlist" aria-multiselectable="false"></div>
     </div>
-
     <div class="media-btnbox">	  
       <span class="input-group media-btns">
-	<button type="button" class="btn btn-danger navbar-btn" id="media-btn-exit">
+	<button type="button" class="btn btn-default navbar-btn" id="media-btn-exit">
 	  <span class="glyphicon glyphicon-modal-window"></span>
 	</button>
-	
 	<button type="button" class="btn btn-default navbar-btn" id="media-btn-prev">
           <span class="glyphicon glyphicon-step-backward" aria-hidden="true"></span>
 	</button>
-	
 	<button type="button" class="btn btn-default navbar-btn" id="media-btn-play">
           <span id="media-btn-play-icon" class="glyphicon glyphicon-play" aria-hidden="true"></span>
 	</button>
-	
 	<button type="button" class="btn btn-default navbar-btn" id="media-btn-next">
           <span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span>
 	</button>
-	
 	<!--button type="button" class="btn btn-primary navbar-btn" id="media-btn-speaker">
 	    <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
 	    </button-->
-	
 	<button type="button" class="btn btn-default navbar-btn" id="media-btn-shuffle">
 	  <span class="glyphicon glyphicon-random" aria-hidden="true"></span>
 	</button>
       </span>
     </div>
-    
-    <div class="loaderContainer">
+    <div role="load-screen" class="loader-container">
       <div class="loader">
 	<div class="loader__bar"></div>
 	<div class="loader__bar"></div>
