@@ -183,15 +183,13 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
   var collapseButton = document.createElement("a");
   collapseButton.classList.add("folder-entry-name");
   collapseButton.innerHTML = folderEntry.name;
-  collapseButton.style.pointerEvents = true
-  collapseButton.style.cursor = 'pointer'
+  collapseButton.style.pointerEvents = true;
+  collapseButton.style.cursor = 'pointer';
   panelHeader.appendChild(collapseButton);
 
   var panel = document.createElement("li");
   panel.appendChild(panelHeader);
-  panel.classList.add("panel");
-  panel.classList.add("folder-entry");
-  panel.classList.add("panel-default");
+  panel.classList.add("panel", "folder-entry", "panel-default");
 
   var bodyCollapse = document.createElement("div");
   bodyCollapse.setAttribute("id", this.getFolderCollapseId(folderEntry.id));
@@ -226,8 +224,7 @@ MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
   text.setAttribute("href", "#");
 
   file.appendChild(text);
-  file.classList.add("file-entry");
-  file.classList.add("panel-heading");
+  file.classList.add("file-entry", "panel-heading");
 
   text.onclick = function(e) {
     e.preventDefault();
