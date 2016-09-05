@@ -26,10 +26,10 @@ MusicLibrary.prototype.getFolderCollapseId = function(directoryID) {
 }
 
 MusicLibrary.prototype.getRandomTrack = function() {
-		var allFiles = Object.keys(this.mediaHash), index = -1;
-		while (index < 0 || this.mediaHash[allFiles[index]].directory)
-				index = Math.floor((Math.random() * allFiles.length));
-		return this.mediaHash[allFiles[index]];
+    var allFiles = Object.keys(this.mediaHash), index = -1;
+    while (index < 0 || this.mediaHash[allFiles[index]].directory)
+        index = Math.floor((Math.random() * allFiles.length));
+    return this.mediaHash[allFiles[index]];
 }    
 
 MusicLibrary.prototype.getRootDirDiv = function() {
@@ -40,13 +40,13 @@ MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {
     var overlay = document.querySelector('[role="currently-playing"]');
     var files = document.querySelector('[role="listroot"]');
     if (forceClose || (!preventClose && overlay.classList.contains("visible"))) {
-				overlay.classList.remove("visible");
-				files.classList.remove("block-click");
-				document.body.classList.remove("lock-scrolling");
+        overlay.classList.remove("visible");
+        files.classList.remove("block-click");
+        document.body.classList.remove("lock-scrolling");
     } else {
         files.classList.add("block-click");
-				overlay.classList.add("visible");
-				document.body.classList.add("lock-scrolling");
+        overlay.classList.add("visible");
+        document.body.classList.add("lock-scrolling");
     }
 }
 
@@ -224,16 +224,18 @@ MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
 MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
     var self = this;
     if (!depth) depth = 0;
-    folder.children.forEach(function(f) {
-        if (f.directory) {
-            var things = self.displayMakeFolder(f, false, depth);
-            parentDiv.appendChild(things[0]);
-            self.displayFolder(f, things[1], depth + 1);
-        } else {
-            var thing = self.displayMakeFile(f, depth)
-            parentDiv.appendChild(thing);
-        }
-    });
+    setTimeout(function() {
+        folder.children.forEach(function(f) {
+            if (f.directory) {
+                var things = self.displayMakeFolder(f, false, depth);
+                parentDiv.appendChild(things[0]);
+                self.displayFolder(f, things[1], depth + 1);
+            } else {
+                var thing = self.displayMakeFile(f, depth)
+                parentDiv.appendChild(thing);
+            }
+        });
+    }, 1);
 }
 
 MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
@@ -275,6 +277,21 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
     this.toggleNowPlaying(true);
 }
 
+MusicLibrary.prototype.chunkLibrary = function(library, cb) {
+    var perChunk = 5,
+        numChunks = parseInt(Math.ceil(library.length/perChunk));
+    for (var cchunk = 0; cchunk < numChunks; cchunk++) {
+        setTimeout(function(curChunk, numPerChunk) {
+            for (var i = 0; i < numPerChunk; i++) {
+                var index = i + (curChunk * numPerChunk);
+                if (index >= library.length) return;
+                var d = library[index];
+                if (cb) cb(d);
+            }
+        }, 1, cchunk, perChunk);
+    }   
+}
+
 MusicLibrary.prototype.showSearch = function(keyword) {
     var self = this;
     keyword = keyword.replace(/^s+|\s+$/g, '');
@@ -287,42 +304,34 @@ MusicLibrary.prototype.showSearch = function(keyword) {
             numChunks = parseInt(Math.ceil(data.results.length/perChunk));
         
         self.showFiles(false);
-        for (var cchunk = 0; cchunk < numChunks; cchunk++) {
-            setTimeout(function(curChunk, numPerChunk) {
-                for (var i = 0; i < numPerChunk; i++) {
-                    var index = i + (curChunk * numPerChunk);
-                    if (index >= data.results.length) return;
-                    var d = data.results[index];
-                    var nodes = self.reverseTrackHashLookup(self.mediaHash[d]);
-                    
-                    //make sure we aren't displaying excluded results
-                    var skipEntry = false;
-                    var checkExcluded = nodes.slice(0).reverse();
-                    while (checkExcluded.length > 0) {
-                        var id = checkExcluded.pop();
-                        if (self.mediaHash[id]._exclude) {
-                            skipEntry = true;
-                            data.results.splice(index, 1);
-                            i--;
-                            break;
-                        }
-                    }
-                    if (skipEntry) continue;
-                    var song = document.getElementById(d);
-                    song.classList.remove("hidden");
-                    while(nodes.length > 0) {
-                        var nodeID = nodes.pop();
-                        if (self.mediaHash[nodeID].parent == ".") continue;
-                        var div = document.getElementById(nodeID);
-                        if (self.mediaHash[nodeID].directory) {
-                            self.setFolderView(div, "open");
-                            div.parentNode.classList.remove("hidden");
-                        } else
-                            div.classList.remove("hidden");
-                    }
+        self.chunkLibrary(data.results, function(d) {
+            var nodes = self.reverseTrackHashLookup(self.mediaHash[d]);
+            //make sure we aren't displaying excluded results
+            var skipEntry = false;
+            var checkExcluded = nodes.slice(0).reverse();
+            while (checkExcluded.length > 0) {
+                var id = checkExcluded.pop();
+                if (self.mediaHash[id]._exclude) {
+                    skipEntry = true;
+                    data.results.splice(index, 1);
+                    i--;
+                    break;
                 }
-            }, 10, cchunk, perChunk);
-        }
+            }
+            if (skipEntry) return;
+            var song = document.getElementById(d);
+            song.classList.remove("hidden");
+            while(nodes.length > 0) {
+                var nodeID = nodes.pop();
+                if (self.mediaHash[nodeID].parent == ".") continue;
+                var div = document.getElementById(nodeID);
+                if (self.mediaHash[nodeID].directory) {
+                    self.setFolderView(div, "open");
+                    div.parentNode.classList.remove("hidden");
+                } else
+                    div.classList.remove("hidden");
+            }
+        });
         var intervalID = null;
         intervalID = setInterval(function(dataset) {
             if (document.querySelectorAll('[role="audio-file"]:not(.hidden)').length >=
@@ -343,7 +352,7 @@ MusicLibrary.prototype.showFiles = function(show) {
         else el.classList.add("hidden");
     }
     var x = document.querySelectorAll('[role="audio-file"],[role="directory"]');
-    Array.prototype.forEach.call(x, apply);
+    this.chunkLibrary(Array.prototype.slice.call(x), apply);
 }
 
 MusicLibrary.prototype.clearSearch = function(keyword) {
@@ -467,9 +476,8 @@ MusicLibrary.prototype.unpauseSong = function() {
 MusicLibrary.prototype.nextSong = function() {
     if (this.shuffle) {
         this.playSong(this.getRandomTrack(), 0);
-				return;
-		}
-
+        return;
+    }
     var nodes = this.reverseTrackHashLookup(this.curTrackInfo).reverse();
     var lastDir = this.curTrackInfo.id;
     while (nodes.length > 0) {
@@ -482,10 +490,8 @@ MusicLibrary.prototype.nextSong = function() {
         var found = false;
         var position = 0;
         for(; position < directory.children.length; position++) {
-            if (directory.children[position].id == lastDir) {
-                found = true;
-                break;
-            }
+            found = directory.children[position].id == lastDir;
+            if (found) break;
         }
         if (found) position++;
         else position = 0;
@@ -498,8 +504,7 @@ MusicLibrary.prototype.nextSong = function() {
             continue;
         }
         var nextTrack = directory.children[position];
-        while (nextTrack.directory)
-            nextTrack = nextTrack.children[0];
+        while (nextTrack.directory) nextTrack = nextTrack.children[0];
         //otherwise, play the next song
         this.playSong(nextTrack, 0);
     }
@@ -515,16 +520,16 @@ MusicLibrary.prototype.prevSong = function() {
 MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
     var self = this;
     this.apiCall("/api/files/"+ this.curTrackInfo.id + "/data", "GET", true, function(resp) {
-        var data = JSON.parse(resp);
-        var infoStr = '';
-        if (data.artist.length) infoStr = data.artist + " -- ";
-        if (!data.title.length) data.title = self.curTrackInfo.name;
-        infoStr += data.title;
-        if (data.album.length) infoStr += " (" + data.album + ")";
-        document.getElementById("curinfo-track").innerHTML = infoStr;
-        document.title = infoStr;
-        var len = self.secondsToMinutesStr(data["length"]);
-        document.getElementById("curinfo-totaltime").innerHTML = len;
+        var data = JSON.parse(resp),
+            infoStr = '',
+            title = data.title.length > 0 ? data.title : self.curTrackInfo.name;
+        
+        document.getElementById("curinfo-track").innerHTML = title;
+        document.title = title;
+        infoStr = data.artist.length > 0 ? data.artist + " -- " : '';
+        infoStr += data.album.length > 0 ? data.album : '';
+        document.getElementById("curinfo-artist").innerHTML = infoStr;
+        document.getElementById("curinfo-totaltime").innerHTML = self.secondsToMinutesStr(data["length"]);
         if (doneCb) doneCb(data);
     });
     this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
@@ -538,8 +543,7 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
 MusicLibrary.prototype.updateQualitySelect = function(val) {
     var qualityList = document.getElementById('stream-quality');
     //clear options first
-    while (qualityList.firstChild)
-        qualityList.removeChild(qualityList.firstChild);
+    while (qualityList.firstChild) qualityList.removeChild(qualityList.firstChild);
     this.supportedFormats.quality[val].forEach(function(q) {
         var option = document.createElement("option");
         option.value = q;
@@ -550,22 +554,19 @@ MusicLibrary.prototype.updateQualitySelect = function(val) {
 }
 
 MusicLibrary.prototype.init = function() {
+		var self = this;
     this.getFiles();
-    this.audioDiv = document.createElement("AUDIO");
+
+		this.audioDiv = document.createElement("AUDIO");
     this.audioDiv.setAttribute("preload", "auto");
     var curTimeDiv = document.getElementById("curinfo-time");
-    var self = this;
     this.audioDiv.ontimeupdate = function(e) {
         self.curTimeOffset = this.currentTime;
         curTimeDiv.innerHTML = self.secondsToMinutesStr(self.curTimeOffset);
     }
-    
     this.audioDiv.onended = function() {
-        console.log("AUDIO ENDED");
-        if (self.streaming && self.audioDiv.src.length > 0)
-            self.nextSong();
+        if (self.streaming && self.audioDiv.src.length > 0) self.nextSong();
     }
-    
     document.body.appendChild(this.audioDiv);
     
     var style = window.getComputedStyle(document.body);
