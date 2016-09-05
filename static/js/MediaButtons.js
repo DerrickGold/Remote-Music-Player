@@ -41,7 +41,8 @@ MediaButtons = function(evtSys, mediaLibrary) {
     }
 */
     var nowPlayingBtn = document.getElementById("media-btn-exit");
-    nowPlayingBtn.onclick = function() {
+    nowPlayingBtn.onclick = function(e) {
+	e.stopPropagation();
 	thisClass.mediaLibrary.toggleNowPlaying(false);
     }
 

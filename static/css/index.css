@@ -167,7 +167,3 @@ body {
     text-decoration: line-through;
     pointer-events: none;
 }
-
-.lock-scrolling {
-    overflow: hidden;
-}

@@ -39,15 +39,10 @@ MusicLibrary.prototype.getRootDirDiv = function() {
 MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {    
     var overlay = document.querySelector('[role="currently-playing"]');
     var files = document.querySelector('[role="listroot"]');
-    if (forceClose || (!preventClose && overlay.classList.contains("visible"))) {
+    if (forceClose || (!preventClose && overlay.classList.contains("visible")))
         overlay.classList.remove("visible");
-        files.classList.remove("block-click");
-        document.body.classList.remove("lock-scrolling");
-    } else {
-        files.classList.add("block-click");
+    else
         overlay.classList.add("visible");
-        document.body.classList.add("lock-scrolling");
-    }
 }
 
 MusicLibrary.prototype.getFiles = function() {
@@ -84,7 +79,7 @@ MusicLibrary.prototype.setFolderView = function(folderIdDiv, view) {
     collapser.setAttribute("aria-expanded", state);
     if (view === "open") {
         collapser.classList.add("in");
-        collapser.style.height = null;
+        //collapser.style.height = null;
     } else 
         collapser.classList.remove("in");
 }
@@ -599,4 +594,8 @@ MusicLibrary.prototype.init = function() {
             self.updateQualitySelect(e.target.value);
         }
     });
+
+    var nowPlaying = document.querySelector('[role="currently-playing"]');
+    nowPlaying.addEventListener("mousewheel", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
+    nowPlaying.addEventListener("DOMMouseScroll", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
 }
