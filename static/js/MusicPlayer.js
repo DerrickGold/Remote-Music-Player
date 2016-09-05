@@ -519,6 +519,7 @@ MusicLibrary.prototype.prevSong = function() {
 
 MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
     var self = this;
+    document.getElementById("curinfo-path").innerHTML = this.curTrackInfo.path;
     this.apiCall("/api/files/"+ this.curTrackInfo.id + "/data", "GET", true, function(resp) {
         var data = JSON.parse(resp),
             infoStr = '',
