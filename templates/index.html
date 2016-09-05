@@ -20,110 +20,8 @@
   <div class="bg">
     <div class="bg-artwork" role="background-cover-art"></div>
   </div>
-  
-  <header class="cl-white">
-		<div class="mast">
-			<div>
-				<i class="fa fa-hand-peace-o"></i>
-			</div>
-			<div class="expand-flex"></div>
-			<div>
-				<form class="search">
-					<button id="search-btn" class="fux">
-						<i class="fa fa-fw fa-search" aria-hidden="true"></i>
-					</button>
-					<input id="search-txt" type="text" class="fux cl-white" placeholder="Search...">
-					<button id="search-btn-clear" class="fux fad">
-						<i class="fa fa-fw fa-times" aria-hidden="true"></i>
-					</button>
-				</form>
-			</div>
-			<div class="tools">
-				<button role="open-settings" class="fux">
-					<i class="fa fa-gear" aria-hidden="true"></i>
-				</button>
-			</div>
-		</div>
-		<div role="settings" class="settings">
-			<table>
-				<tbody>
-					<tr>
-						<th>Format</th>
-						<td>
-							<select id="stream-format"></select>
-						</td>
-					</tr>
-					<tr>
-						<th>Stream Quality</th>
-						<td>
-							<select id="stream-quality">
-								<option value="-1" selected="selected">Default</option>
-							</select>
-						</td>
-					</tr>
-					<tr>
-						<th>Transcoding</th>
-						<td>
-							<select id="transcoding-option">
-								<option value="false" selected="selected">Only Unsupported Files</option>
-								<option value="true">All Files</option>
-							</select>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		</div>
-  </header>
 
-  <content class="listing">
-    <div class="fill-flex">
-      <div role="now-playing" class="now-playing">
-				<div class="info">
-        	<div class="artwork" 
-							 role="background-cover-art" 
-							 style="background-image: url('static/img/default.jpg')"/>
-					</div>
-          <p id="curinfo-track" class="bold">No track is playing.</p>
-          <p id="curinfo-details"></p>
-					<p>
-            <span id="curinfo-time"></span> &mdash; <span id="curinfo-totaltime"></span>
-					</p>
-				</div>
-      </div>
-            
-      <div class="root-listing" role="root-listing">
-        <ul id="dirlist" class="directory-listing"></ul>
-      </div>
-    </div>
-  </content>
-
-  <footer class="cl-white">
-    <div class="controls media-btnbox">	  
-      <span class="input-group media-btns">
-        <button class="fux" id="media-btn-exit">
-          <i class="fa fa-fw fa-picture-o" aria-hidden="true"></i>
-        </button>
-
-        <button class="fux" id="media-btn-prev">
-          <i class="fa fa-fw fa-step-backward" aria-hidden="true"></i>
-        </button>
-
-        <button class="fux" id="media-btn-play">
-          <i id="media-btn-play-icon" class="fa fa-fw fa-play" aria-hidden="true"></i>
-        </button>
-
-        <button class="fux" id="media-btn-next">
-          <i class="fa fa-fw fa-step-forward" aria-hidden="true"></i>
-        </button>
-
-        <button class="fux" id="media-btn-shuffle">
-          <i class="fa fa-fw fa-random" aria-hidden="true"></i>
-        </button>
-      </span>
-    </div>
-  </footer>
-
-	<div role="global-loader" class="loaderContainer">
+  <div role="global-loader" class="loaderContainer">
 		<div class="loader">
 			<svg xmlns="http://www.w3.org/2000/svg" 
 				 width="80px" height="60px"
@@ -137,6 +35,108 @@
 			</svg>
 		</div>
 	</div>
-	
+
+  <div class="fill-flex">
+    <div class="flex vertical fill-flex">
+      <div class="expand-flex">
+        <div class="fill-flex relative">
+          <div role="now-playing" class="now-playing">
+            <div class="info">
+              <div class="artwork" 
+                   role="background-cover-art" 
+                   style="background-image: url('static/img/default.jpg')"/>
+              </div>
+              <p id="curinfo-track" class="bold">No track is playing.</p>
+              <p id="curinfo-details"></p>
+              <p>
+                <span id="curinfo-time">--:--</span> / <span id="curinfo-totaltime">--:--</span>
+              </p>
+            </div>
+          </div>
+          <div role="manager" class="manager flex fill-flex vertical absolute bg-white">
+            <header class="hold-flex">
+              <div class="mast">
+                <div>
+                  <i class="fa fa-hand-peace-o"></i>
+                </div>
+                <div class="expand-flex"></div>
+                <div>
+                  <form class="search">
+                    <button id="search-btn" class="fux">
+                      <i class="fa fa-fw fa-search" aria-hidden="true"></i>
+                    </button>
+                    <input id="search-txt" type="text" class="fux" placeholder="Search...">
+                    <button id="search-btn-clear" class="fux fad">
+                      <i class="fa fa-fw fa-times" aria-hidden="true"></i>
+                    </button>
+                  </form>
+                </div>
+                <div class="tools">
+                  <button role="open-settings" class="fux">
+                    <i class="fa fa-gear" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              <div role="settings" class="settings">
+                <table>
+                  <tbody>
+                    <tr>
+                      <th>Format</th>
+                      <td>
+                        <select id="stream-format"></select>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Stream Quality</th>
+                      <td>
+                        <select id="stream-quality">
+                          <option value="-1" selected="selected">Default</option>
+                        </select>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Transcoding</th>
+                      <td>
+                        <select id="transcoding-option">
+                          <option value="false" selected="selected">Only Unsupported Files</option>
+                          <option value="true">All Files</option>
+                        </select>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </header>
+            <div class="fill-flex expand-flex y-scroll">
+              <div class="root-listing" role="root-listing">
+                <ul id="dirlist" class="directory-listing"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer class="hold-flex cl-white">
+        <div class="controls media-btnbox">	  
+          <span class="input-group media-btns">
+            <button class="fux" id="media-btn-exit">
+              <i class="fa fa-fw fa-navicon" aria-hidden="true"></i>
+            </button>
+            <button class="fux" id="media-btn-prev">
+              <i class="fa fa-fw fa-step-backward" aria-hidden="true"></i>
+            </button>
+            <button class="fux" id="media-btn-play">
+              <i id="media-btn-play-icon" class="fa fa-fw fa-play" aria-hidden="true"></i>
+            </button>
+            <button class="fux" id="media-btn-next">
+              <i class="fa fa-fw fa-step-forward" aria-hidden="true"></i>
+            </button>
+            <button class="fux" id="media-btn-shuffle">
+              <i class="fa fa-fw fa-random" aria-hidden="true"></i>
+            </button>
+          </span>
+        </div>
+      </footer>
+    </div>
+  </div>
 </body>
 </html>

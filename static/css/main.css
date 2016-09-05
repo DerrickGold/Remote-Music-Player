@@ -13,8 +13,6 @@ html, body {
 }
 
 body {
-  display: flex;
-  flex-direction: column;
 	font-family: Helvetica, Arial, sans-serif;
 	overflow: hidden;
 	position: relative;
@@ -23,16 +21,10 @@ body {
 }
 
 header {
-  flex-shrink: 0;
 	padding: 1em;
 	position: relative;
 }
 
-header, footer {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-header button,
 footer button {
 	color: white;
 }
@@ -63,7 +55,7 @@ header .mast .tools button {
 }
 
 .fux.active {
-	color: dodgerblue;
+	color: #1eff7a;
 }
 
 button.fux {
@@ -83,12 +75,37 @@ button.fux {
 	display: none;
 }
 
+.flex {
+  display: flex;
+}
+
 .expand-flex {
 	flex: 1;
 }
 
+.hold-flex {
+  flex-shrink: 0;
+}
+
 .fill-flex {
-  height: 100%
+  height: 100%;
+  width: 100%;
+}
+
+.flex.vertical {
+  flex-direction: column;
+}
+
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.y-scroll {
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -96,39 +113,15 @@ button.fux {
 	color:white;
 }
 
+.bg-white {
+  background: white;
+}
+
 .bold {
 	font-weight: bold;
 }
 
-content {
-  flex: 1;
-  height: 100%;
-  overflow-y: auto;
-  position: relative;
-  -webkit-overflow-scrolling: touch;
-}
-
-content.loading > div > .now-playing,
-content.loading > div > .root-listing {
-	display: none;	
-}
-
-content.listing > div > .now-playing,
-content.listing > div > .loading {
-	display: none;
-}
-
-content.playing > div > .root-listing,
-content.playing > div > .loading {
-	display: none;
-}
-
-content.listing {
-  background: white;
-}
-
 footer {
-  flex-shrink: 0;
   padding: 1em;
 }
 
@@ -148,11 +141,22 @@ footer {
 }
 
 .controls #media-btn-play i {
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .controls button i {
-  font-size: 16px;
+  font-size: 20px;
+}
+
+.manager {
+  z-index: 2;
+  transition: transform 0.25s, opacity 0.25s;
+}
+
+.manager.inactive {
+  transform: scale3d(0.9, 0.9, 0.9);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .root-listing {
@@ -174,7 +178,13 @@ footer {
 }
 
 .directory-listing > li {
-	margin: 0.5em 0 0.5em 2em;
+	padding: 0.5em 0;
+  border-bottom: solid 1px rgba(0, 0, 0, 0.1);
+}
+
+.directory-listing > li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .directory-listing > li a {
@@ -196,7 +206,6 @@ footer {
 }
 
 .directory-listing li.file-entry {
-  list-style-type: circle;
 }
 
 .now-playing {
@@ -222,8 +231,8 @@ footer {
 }
 
 .now-playing .info .artwork {
-	margin-top: 2em;
-	margin-bottom: 2em;
+	margin-top: 5em;
+	margin-bottom: 3em;
 	width: 100%;
   height: 50vh;
 	max-height: 500px;
@@ -263,10 +272,9 @@ footer {
 }
 
 .settings {
-	display: none;
 	position: absolute;
-	top: 100%;
-	right: 0;
+	top: 110%;
+	right: 1%;
 	z-index: 98;
 	background: white;
 	color: black;
@@ -274,10 +282,16 @@ footer {
 	padding: 1em;
 	box-shadow: 0 0 1em rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
+  transition: transform 0.25s, opacity 0.25s;
+  transform: scale3d(0.9, 0.9, 0.9);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .settings.open {
-	display: block;
+  pointer-events: all;
+  opacity: 1;
+  transform: none;
 }
 
 .settings th {
@@ -288,6 +302,8 @@ footer {
 @media (max-width: 499px) {
   .settings {
     width: 100%;
+    top: 100%;
+    right: 0;
   }
 
   form.search input[type="text"] {

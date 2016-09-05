@@ -44,17 +44,14 @@ MusicLibrary.prototype.getRootDirDiv = function() {
   return document.getElementById("dirlist");
 }
 
-MusicLibrary.prototype.showSection = function (name) {
-  var content = document.querySelector('content')
-  content.className = name
-}
-
 MusicLibrary.prototype.toggleNowPlaying = function (open) {
-  var content = document.querySelector('content')
+  var el = document.querySelector('[role="manager"]')
+  var cls = 'inactive'
   if (typeof open == 'undefined') {
-    open = !content.classList.contains('playing')
+    el.classList.toggle(cls)
+    return
   }
-  this.showSection(open == true ? 'playing' : 'listing')  
+  el.classList.toggle(cls, open)
 }
 
 MusicLibrary.prototype.getFiles = function() {
@@ -220,9 +217,11 @@ MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
   var self = this;
   var file = document.createElement("li");
   file.setAttribute("id", fileEntry.id);
-
+  
+  var name = fileEntry.name;
   var text = document.createElement("a");
-  text.innerHTML = fileEntry.name;
+  text.innerHTML = name.substr(0, name.lastIndexOf('.'));
+  text.title = name;
   text.classList.add("file-entry-name");
   text.setAttribute("href", "#");
 
