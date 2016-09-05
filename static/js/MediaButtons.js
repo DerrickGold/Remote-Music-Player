@@ -58,17 +58,8 @@ MediaButtons = function(evtSys, mediaLibrary) {
     var shuffleBtn = document.getElementById("media-btn-shuffle");
     shuffleBtn.onclick = function() {
 	thisClass.mediaLibrary.shuffle = !thisClass.mediaLibrary.shuffle;
-
-	if (thisClass.mediaLibrary.shuffle) {
-	    shuffleBtn.classList.remove('btn-default');
-	    shuffleBtn.classList.add('btn-success');
-	} else {
-	    shuffleBtn.classList.remove('btn-success');
-	    shuffleBtn.classList.add('btn-default');
-	}
+	shuffleBtn.classList.toggle("active");
     }
-    
-
     var searchBtn = document.getElementById("search-btn");
     searchBtn.onclick = function(e) {
 	e.preventDefault();
