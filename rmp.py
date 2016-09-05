@@ -62,10 +62,13 @@ def dircmp(a, b):
         return -1
     elif not a['directory'] and b['directory']:
         return 1
-    elif a['name'] > b['name']:
+    elif a['name'].lower() < b['name'].lower():
+        return -1
+    elif a['name'].lower() > b['name'].lower():
         return 1
 
-    return a['name'].lower() < b['name'].lower()
+    return 0
+            
 
 
             
