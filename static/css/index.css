@@ -32,8 +32,7 @@ body {
     display: inline-block;
 }
 
-.media-btnbox {
-    align: center;
+.input-strip {
     background-color: #222;
     background-image: -webkit-linear-gradient(top,#3c3c3c 0,#222 100%);
     background-image: -o-linear-gradient(top,#3c3c3c 0,#222 100%);
@@ -44,7 +43,6 @@ body {
     border-color: #080808;
     border-radius: 3px;
     border-width: 0 0 1px;
-    bottom: 0;
     color: #9d9d9d;
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff3c3c3c', endColorstr='#ff222222', GradientType=0);
     filter: progid:DXImageTransform.Microsoft.gradient(enabled=false);
@@ -53,9 +51,21 @@ body {
     margin-right: auto;
     position: fixed;
     right: 0;
-    text-align: center;
-
     z-index: 1030;
+}
+
+.settings-strip {
+    top: -1px;
+}
+
+.settings-btn > [type="button"] {
+    color: #9d9d9d;
+}
+
+.media-btn-strip {
+    align: center;
+    bottom: -1px;
+    text-align: center;
 }
 
 .media-btns {
@@ -92,6 +102,13 @@ body {
     width: 100%;
     height: auto;
     max-width: 500px;
+}
+
+.settings-btn, .search-box {
+    display: inline-block;
+    float: right;
+    margin: 8px 8px 8px 0;
+    padding: 0;
 }
 
 .default-art {

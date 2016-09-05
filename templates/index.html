@@ -17,60 +17,45 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   </head>
   <body>
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container-fluid">
-	<div class="navbar-header">
-	  <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-toggler"
-		  aria-expanded="false">
-	    <span class="sr-only">Toggle navigation</span>
-	    <span class="icon-bar"></span>
-	    <span class="icon-bar"></span>
-	    <span class="icon-bar"></span>
-	  </button>
-	  <div class="navbar-text">RMP</div>
-	</div>
-	<div class="collapse navbar-collapse" id="navbar-toggler">
-	  <ul class="navbar-right nav navbar-nav">
-	    <li class="dropdown">
-	      <a href="#" id="SettingsDropDown" class="btn btn-secondary dropdown-toggle" type="button"
-		 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="menu">
-		<span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
-	      </a>
-	      <ul id="settings-menu" class="dropdown-menu">
-		<li class="dropdown-header">Stream Format</li>
-		<li>
-		  <select clase="form-control" id="stream-format">
-		  </select>
-		</li>
-		<li class="dropdown-header">Stream Quality</li>
-		<li>
-		  <select clase="form-control" id="stream-quality">
-		    <option value="-1" selected="selected">Default</option>
-		  </select>
-		</li>
-		<li class="dropdown-header">Transcoding</li>
-		<li>
-		  <select clase="form-control" id="transcoding-option">
-		    <option value="false" selected="selected">Only Unsupported Files</option>
-		    <option value="true">All Files</option>
-		  </select>
-		</li>
-	      </ul>
-	    </li>
-	  </ul>
-	  <form class="navbar-form navbar-right">
-	    <div class="input-group">
-	      <input id="search-txt" type="text" class="form-control" placeholder="Song Title">
-	      <span class="input-group-btn">
-		<button id="search-btn" class="btn btn-default">Search</button>
-		<button id="search-btn-clear" class="btn btn-default">
-		  <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
-		</button>
-	      </span>
-	    </div>
-	  </form>	  
-	</div><!--end of navbar-collapse-->
+    <!--nav class="navbar navbar-inverse navbar-fixed-top"-->
+    <nav class="input-strip settings-strip">
+      <div class="dropdown settings-btn">
+	<a href="#" id="settings-dropdown" class="btn btn-secondary dropdown-toggle" type="button"
+	   data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="menu">
+	  <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
+	</a>
+	<ul id="settings-menu" class="dropdown-menu dropdown-menu-right">
+	  <li class="dropdown-header">Stream Format</li>
+	  <li>
+	    <select clase="form-control" id="stream-format">
+	    </select>
+	  </li>
+	  <li class="dropdown-header">Stream Quality</li>
+	  <li>
+	    <select clase="form-control" id="stream-quality">
+	      <option value="-1" selected="selected">Default</option>
+	    </select>
+	  </li>
+	  <li class="dropdown-header">Transcoding</li>
+	  <li>
+	    <select clase="form-control" id="transcoding-option">
+	      <option value="false" selected="selected">Only Unsupported Files</option>
+	      <option value="true">All Files</option>
+	    </select>
+	  </li>
+	</ul>
       </div>
+      <form class="navbar-form search-box">
+	<div class="input-group">
+	  <input id="search-txt" type="text" class="form-control" placeholder="Song Title">
+	  <span class="input-group-btn">
+	    <button id="search-btn" class="btn btn-default">Search</button>
+	    <button id="search-btn-clear" class="btn btn-default">
+	      <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
+	    </button>
+	  </span>
+	</div>
+      </form>	  
     </nav>
     <div class="container-fluid nowplaying" role="currently-playing">
       <div class="screen-center">
@@ -83,7 +68,7 @@
     <div class="container-fluid file-listing" role="listroot">
       <div class="row panel-group" role="tablist" id="dirlist" aria-multiselectable="false"></div>
     </div>
-    <div class="media-btnbox">	  
+    <div class="input-strip media-btn-strip">	  
       <span class="input-group media-btns">
 	<button type="button" class="btn btn-default navbar-btn" id="media-btn-exit">
 	  <span class="glyphicon glyphicon-modal-window"></span>
