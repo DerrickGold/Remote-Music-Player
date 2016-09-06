@@ -71,7 +71,7 @@ MusicLibrary.prototype.getPlaybackState = function() {
 }
 
 MusicLibrary.prototype.setFolderView = function(folderIdDiv, view) {
-    var folderNode = folderIdDiv.parentNode;
+    var folderNode = folderIdDiv;
     var toggler = folderNode.querySelector('[role="button"]');
     var collapser = folderNode.querySelector('[role="tabpanel"]');
     var state = view === 'open' ? "true": "false";
@@ -129,18 +129,17 @@ MusicLibrary.prototype.closeDirectory = function(folderDiv) {
     var x = folderDiv.querySelectorAll('[role="directory"]');
     for (var i = 0; i < x.length; i++) {
         x[i].classList.remove("hidden");
-        this.setFolderView(x[i].children[0], "close");
+        this.setFolderView(x[i], "close");
     } 
 }
 
-MusicLibrary.prototype.displayMakeExcludeButton = function(container) {
+MusicLibrary.prototype.displayMakeExcludeButton = function(nodeID, container) {
     var self = this;
     var icon = document.createElement("span");
     icon.className = "glyphicon glyphicon-ban-circle exclude-btn";
     icon.setAttribute("aria-hidden", "true");
     icon.onclick = function(e) {
         e.preventDefault();
-        var nodeID = container.getAttribute('id');
         var aElm = container.querySelector('[role="button"]');
         self.mediaHash[nodeID]._exclude = !self.mediaHash[nodeID]._exclude;
         if (self.mediaHash[nodeID]._exclude) {
@@ -156,13 +155,11 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
     var panelBody = null;
     var panel = null;
     var panelHeader = document.createElement("div");
-    panelHeader.setAttribute("id", folderEntry.id);
     panelHeader.classList.add("folder-heading");
     panelHeader.setAttribute("role", "tab");
-
-    var excludeBtn = this.displayMakeExcludeButton(panelHeader);
+    var excludeBtn = this.displayMakeExcludeButton(folderEntry.id, panelHeader);
     panelHeader.appendChild(excludeBtn);
-
+    
     var icon = document.createElement("span");
     icon.className = "glyphicon glyphicon-folder-close";
     icon.setAttribute("aria-hidden", "true");
@@ -181,6 +178,8 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
     panel.appendChild(panelHeader);
     panel.classList.add("folder-entry");
     panel.setAttribute("role", "directory");
+    panel.setAttribute("id", folderEntry.id);
+    
     
     var bodyCollapse = document.createElement("div");
     bodyCollapse.setAttribute("id", this.getFolderCollapseId(folderEntry.id));
@@ -272,19 +271,24 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
     this.toggleNowPlaying(true);
 }
 
-MusicLibrary.prototype.chunkLibrary = function(library, cb) {
-    var perChunk = 5,
-        numChunks = parseInt(Math.ceil(library.length/perChunk));
-    for (var cchunk = 0; cchunk < numChunks; cchunk++) {
-        setTimeout(function(curChunk, numPerChunk) {
-            for (var i = 0; i < numPerChunk; i++) {
-                var index = i + (curChunk * numPerChunk);
-                if (index >= library.length) return;
-                var d = library[index];
-                if (cb) cb(d);
-            }
-        }, 1, cchunk, perChunk);
-    }   
+MusicLibrary.prototype.chunking = function(library, cb, donecb) {
+    var perFrame = 200, idx = 0, lib = library, fps = 60;
+    function doChunk(data) {
+	setTimeout(function() {
+	    if (idx >= lib.length) {
+		if (donecb) donecb();
+		return;
+	    }
+	    for (var x = 0; x < perFrame; x++) {
+		if (idx + x >= lib.length) break;
+		var entry = lib[idx + x];
+		if (cb) cb(entry);
+	    }
+	    idx += perFrame;
+	    window.requestAnimationFrame(doChunk);
+	}, 1000/fps);
+    }
+    window.requestAnimationFrame(doChunk);
 }
 
 MusicLibrary.prototype.showSearch = function(keyword) {
@@ -295,59 +299,57 @@ MusicLibrary.prototype.showSearch = function(keyword) {
     this.toggleNowPlaying(false, true);
     this.evtSys.dispatchEvent("loading");
     this.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
-        var data = JSON.parse(resp), perChunk = 5,
-            numChunks = parseInt(Math.ceil(data.results.length/perChunk));
-        
-        self.showFiles(false);
-        self.chunkLibrary(data.results, function(d) {
-            var nodes = self.reverseTrackHashLookup(self.mediaHash[d]);
-            //make sure we aren't displaying excluded results
-            var skipEntry = false;
-            var checkExcluded = nodes.slice(0).reverse();
-            while (checkExcluded.length > 0) {
-                var id = checkExcluded.pop();
-                if (self.mediaHash[id]._exclude) {
-                    skipEntry = true;
-                    data.results.splice(index, 1);
-                    i--;
-                    break;
-                }
-            }
-            if (skipEntry) return;
-            var song = document.getElementById(d);
-            song.classList.remove("hidden");
-            while(nodes.length > 0) {
-                var nodeID = nodes.pop();
-                if (self.mediaHash[nodeID].parent == ".") continue;
-                var div = document.getElementById(nodeID);
-                if (self.mediaHash[nodeID].directory) {
-                    self.setFolderView(div, "open");
-                    div.parentNode.classList.remove("hidden");
-                } else
-                    div.classList.remove("hidden");
-            }
-        });
-        var intervalID = null;
-        intervalID = setInterval(function(dataset) {
-            if (document.querySelectorAll('[role="audio-file"]:not(.hidden)').length >=
-                dataset.length)
-            {
-                self.evtSys.dispatchEvent("loading done");
-                clearInterval(intervalID);
-            }
-        }, 1000, data.results);
+        var data = JSON.parse(resp);
+	var everything = document.querySelectorAll('[role="audio-file"],[role="directory"]');
+	self.chunking(everything, function(d) {
+	    var id = d.getAttribute('id');
+	    if (id in data) {
+		console.log("found: " + id);
+		if (d.classList.contains("hidden")) d.classList.remove("hidden");
+		if (d.getAttribute('role') === 'directory') return;
+		else {
+		    var nodes = self.reverseTrackHashLookup(self.mediaHash[id]);
+		    var skipEntry = false;
+		    var checkExcluded = nodes.slice(0).reverse();
+		    while (checkExcluded.length > 0) {
+			var id = checkExcluded.pop();
+			if (self.mediaHash[id]._exclude) {
+			    skipEntry = true;
+			    delete data[id];
+			    break;
+			}
+		    }
+		    if (skipEntry) return;
+		    while(nodes.length > 0) {
+			var nodeID = nodes.pop();
+			if (self.mediaHash[nodeID].parent == ".") continue;
+			data[nodeID] = 1;
+			var div = document.getElementById(nodeID);
+			if (self.mediaHash[nodeID].directory) {
+			    self.setFolderView(div, "open");
+			    div.classList.remove("hidden");
+			} else
+			    div.classList.remove("hidden");
+		    }
+		}
+		
+	    } else if (!d.classList.contains("hidden"))
+		d.classList.add("hidden");
+	}, function() {
+	    self.evtSys.dispatchEvent("loading done");
+	});	
     }, function(resp) {
         self.evtSys.dispatchEvent("loading done");
     }); 
 }
 
-MusicLibrary.prototype.showFiles = function(show) {
+MusicLibrary.prototype.showFiles = function(show, donecb) {
     var apply = function(el) {
         if (show) el.classList.remove("hidden");
         else el.classList.add("hidden");
     }
     var x = document.querySelectorAll('[role="audio-file"],[role="directory"]');
-    this.chunkLibrary(Array.prototype.slice.call(x), apply);
+    this.chunking(Array.prototype.slice.call(x), apply, donecb);
 }
 
 MusicLibrary.prototype.clearSearch = function(keyword) {

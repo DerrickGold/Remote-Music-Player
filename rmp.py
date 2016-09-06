@@ -287,11 +287,12 @@ class MusicList:
     def search_media(self, key):
 
         key = key.lower()
-        response = {"results": []}
+        response = {}
 
         for k, value in self.mapping.items():
             if not value['directory'] and key in value['name'].lower():
-                response['results'].append(k)
+                response['{}'.format(value['id'])] = 1
+                #response['results'].append(k)
 
         return response
 
