@@ -56,6 +56,50 @@ def make_file(path, name, directory=False, parent=None):
     return {'path': path, 'name': name, 'directory': directory, 'id': str(uuid.uuid4()), 'children': [], 'parent': parent}
 
 
+
+def dircmp(a, b):
+    if a['directory'] and not b['directory']:
+        return -1
+    elif not a['directory'] and b['directory']:
+        return 1
+    elif a['name'].lower() < b['name'].lower():
+        return -1
+    elif a['name'].lower() > b['name'].lower():
+        return 1
+
+    return 0
+            
+
+
+            
+def cmp_to_key(comparator):
+    'Convert a cmp= function into a key= function'
+    class K(object):
+        def __init__(self, obj, *args):
+            self.obj = obj
+            
+        def __lt__(self, other):
+            return comparator(self.obj, other.obj) < 0
+
+        def __gt__(self, other):
+            return comparator(self.obj, other.obj) > 0
+
+        def __eq__(self, other):
+            return comparator(self.obj, other.obj) == 0
+        
+        def __le__(self, other):
+            return comparator(self.obj, other.obj) <= 0
+
+        def __ge__(self, other):
+            return comparator(self.obj, other.obj) >= 0
+
+        def __ne__(self, other):
+            return comparator(self.obj, other.obj) != 0
+
+    return K
+    
+
+
 def scan_directory(path, name='.', parent='.'):
     fileMapping = {}
     node = make_file(path, name, True, parent)
@@ -77,7 +121,8 @@ def scan_directory(path, name='.', parent='.'):
                 node['children'].append(childNodes)
                 fileMapping.update(childFiles)
 
-        node['children'] = sorted(node['children'], key=lambda k: k['name'])
+        #node['children'] = sorted(node['children'], key=lambda k: k['name'])
+        node['children'] = sorted(node['children'], key=cmp_to_key(dircmp))
         
     return node, fileMapping
 
