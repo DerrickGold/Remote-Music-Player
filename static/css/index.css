@@ -73,6 +73,7 @@ body {
     color: #9d9d9d;
 }
 
+
 .media-btn-strip {
     align: center;
     bottom: -1px;
@@ -83,18 +84,29 @@ body {
     display: block;
 }
 
-.media-btns > button {
+.media-btns > button, .input-group-btn > button {
     background-color: rgba(0,0,0,0);
     border: none;
     color: #9d9d9d;
-    height: 32px;
     text-align: center;
+}
+
+.media-btns > button {
+    height: 32px;
     width: 48px;
 }
 
 .media-btns > button.active {
     color: lime;
 }
+
+.search-box [type="text"] {
+    background-color: rgba(0,0,0,0);
+    border: none;
+    color: #9d9d9d;
+    border-bottom: 1px solid #9d9d9d;
+}
+
 
  /*Disable boot strap collapse/expand animations*/
 .collapsing {
