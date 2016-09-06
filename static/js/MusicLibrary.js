@@ -238,25 +238,20 @@ MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
 }
 
 MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
-  var thisClass = this;
   if (!depth) depth = 0;
-  folder.children.sort(function (a, b) {  
-    if (a.directory && !b.directory) return -1
-    if (!a.directory && b.directory) return 1
-    if (a.name < b.name) return -1
-    if (a.name > b.name) return 1
-    return 0    
-  })
+  var self = this;
+  var frag = document.createDocumentFragment();
   folder.children.forEach(function(f) {
     if (f.directory) {
-      var things = thisClass.displayMakeFolder(f, false, depth);
-      parentDiv.appendChild(things[0]);
-      thisClass.displayFolder(f, things[1], depth + 1);
+      var things = self.displayMakeFolder(f, false, depth);
+      frag.appendChild(things[0]);
+      self.displayFolder(f, things[1], depth + 1);
     } else {
-      var thing = thisClass.displayMakeFile(f, depth)
-      parentDiv.appendChild(thing);
+      var thing = self.displayMakeFile(f, depth)
+      frag.appendChild(thing);
     }
   });
+  parentDiv.appendChild(frag)
 }
 
 MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
@@ -312,103 +307,98 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
 }
 
 MusicLibrary.prototype.showSearch = function(keyword) {
+  var thisClass = this;
+  keyword = keyword.replace(/^s+|\s+$/g, '');
+  keyword = keyword.replace(' ', '%20');
+  if (keyword.length <= 0) return;
 
-    var thisClass = this;
-    keyword = keyword.replace(/^s+|\s+$/g, '');
-    keyword = keyword.replace(' ', '%20');
-    if (keyword.length <= 0)
-  return;
-
-    this.toggleNowPlaying(false);
-    this.evtSys.dispatchEvent("loading");
+  this.toggleNowPlaying(false);
+  this.evtSys.dispatchEvent("loading");
+  this.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
+    var data = JSON.parse(resp);
     
-    this.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
-  var data = JSON.parse(resp);
-  
-  //make everything hidden, then only show search results
-  var x = document.getElementsByClassName("file-entry");
-  for (var i = 0; i < x.length; i++)
-      x[i].style.display = "none";
-  
-  x = document.getElementsByClassName("folder-entry");
-  for (var i = 0; i < x.length; i++)
-      x[i].style.display = "none";
-  
-  
-  var perChunk = 5;
-  var numChunks = parseInt(Math.ceil(data.results.length/perChunk));
-  for (var cchunk = 0; cchunk < numChunks; cchunk++) {
-      
-      setTimeout(function(curChunk, numPerChunk) {
-    for (var i = 0; i < numPerChunk; i++) {
-        
-        var index = i + (curChunk * numPerChunk);
-        if (index >= data.results.length)
-      return;
-        
-        var d = data.results[index];
-        var nodes = thisClass.reverseTrackHashLookup(thisClass.mediaHash[d]);
-        
-        //make sure we aren't displaying excluded results
-        var skipEntry = false;
-        var checkExcluded = nodes.slice(0).reverse();
-        while (checkExcluded.length > 0) {
-      var id = checkExcluded.pop();
-      if (thisClass.mediaHash[id]._exclude) {
-          skipEntry = true;
-          data.results.splice(index, 1);
-          i--;
-          break;
-      }
-        }
-        
-        if (skipEntry)
-      continue;
-        
-        var song = document.getElementById(d);
-        song.style.display = "block";
-        
-        while(nodes.length > 0) {
-      var nodeID = nodes.pop();
-      if (thisClass.mediaHash[nodeID].parent == ".")
-          continue;
-      
-      var div = document.getElementById(nodeID);
-      if (thisClass.mediaHash[nodeID].directory) {
-          thisClass.setFolderView(div, "open");
-          div.parentNode.style.display = "block";
-      } else
-          div.style.display = "block";
-        }
-    }
-      }, 10, cchunk, perChunk);
-  }
-  
-  var intervalID = null;
-  intervalID = setInterval(function(dataset) {
-      if (document.querySelectorAll('.file-entry[style="display: block;"]').length >=
-    dataset.length)
-      {
-    thisClass.evtSys.dispatchEvent("loading done");
-    clearInterval(intervalID);
-      }
-  }, 1000, data.results);
-  
-  
-  
-    }, function(resp) {
-  thisClass.evtSys.dispatchEvent("loading done");
-    }); 
-}
-
-MusicLibrary.prototype.clearSearch = function(keyword) {
+    //make everything hidden, then only show search results
     var x = document.getElementsByClassName("file-entry");
     for (var i = 0; i < x.length; i++)
-  x[i].style.display="";
+      x[i].classList.add('search-hide');
+      //x[i].style.display = "none";
     
     x = document.getElementsByClassName("folder-entry");
     for (var i = 0; i < x.length; i++)
-  x[i].style.display ="";
+      x[i].classList.add('search-hide');
+      //x[i].style.display = "none";
+    
+    var perChunk = 5;
+    var numChunks = parseInt(Math.ceil(data.results.length/perChunk));
+    for (var cchunk = 0; cchunk < numChunks; cchunk++) {
+      setTimeout(function(curChunk, numPerChunk) {
+        for (var i = 0; i < numPerChunk; i++) {
+          var index = i + (curChunk * numPerChunk);
+          if (index >= data.results.length)
+            return;
+          
+          var d = data.results[index];
+          var nodes = thisClass.reverseTrackHashLookup(thisClass.mediaHash[d]);
+          //make sure we aren't displaying excluded results
+          var skipEntry = false;
+          var checkExcluded = nodes.slice(0).reverse();
+          while (checkExcluded.length > 0) {
+            var id = checkExcluded.pop();
+            if (thisClass.mediaHash[id]._exclude) {
+              skipEntry = true;
+              data.results.splice(index, 1);
+              i--;
+              break;
+            }
+          }
+          
+          if (skipEntry)
+            continue;
+          
+          var song = document.getElementById(d);
+          //song.style.display = "block";
+          song.classList.remove('search-hide');
+          
+          while(nodes.length > 0) {
+            var nodeID = nodes.pop();
+            if (thisClass.mediaHash[nodeID].parent == ".") continue;
+            var div = document.getElementById(nodeID);
+            if (thisClass.mediaHash[nodeID].directory) {
+              thisClass.setFolderView(div, "open");
+              //div.parentNode.style.display = "block";
+              div.parentNode.classList.remove('search-hide');
+            } else {
+              //div.style.display = "block";
+              div.classList.remove('search-hide');
+            }
+          }
+        }
+      }, 10, cchunk, perChunk);
+    }
+    
+    var intervalID = null;
+    intervalID = setInterval(function(dataset) {
+      if (document.querySelectorAll('.file-entry:not(.search-hide)').length >= dataset.length) {
+      //if (document.querySelectorAll('.file-entry[style="display: block;"]').length >= dataset.length) {
+        thisClass.evtSys.dispatchEvent("loading done");
+        clearInterval(intervalID);
+      }
+    }, 1000, data.results);
+  }, function(resp) {
+    thisClass.evtSys.dispatchEvent("loading done");
+  }); 
+}
+
+MusicLibrary.prototype.clearSearch = function(keyword) {
+  var x = document.getElementsByClassName("file-entry");
+  for (var i = 0; i < x.length; i++)
+    //x[i].style.display="";
+    x[i].classList.remove('search-hide')
+    
+  x = document.getElementsByClassName("folder-entry");
+  for (var i = 0; i < x.length; i++)
+    //x[i].style.display ="";
+    x[i].classList.remove('search-hide')
 }
 
 MusicLibrary.prototype.swapStreamingToServer = function() {

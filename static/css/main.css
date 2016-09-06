@@ -205,7 +205,8 @@ footer {
   margin-left: 1em;
 }
 
-.directory-listing li.file-entry {
+.directory-listing li.search-hide {
+  display: none;
 }
 
 .now-playing {
