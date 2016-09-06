@@ -1,13 +1,11 @@
 MediaButtons = function(evtSys, mediaLibrary) {
-
-    var thisClass = this;
+    var self = this;
     this.mediaLibrary = mediaLibrary;
     this.currentState = null;
     this.evtSys = evtSys;
     
     var updatePlayPauseBtn = function(newState) {
-	thisClass.currentState = newState;
-	
+	self.currentState = newState;
 	var icon = document.getElementById("media-btn-play-icon");
 	if (newState == PlayBackStates["PAUSED"] || newState == PlayBackStates["STOPPED"]) {
 	    icon.classList.remove('glyphicon-pause');
@@ -16,49 +14,48 @@ MediaButtons = function(evtSys, mediaLibrary) {
 	    icon.classList.remove('glyphicon-play');
 	    icon.classList.add('glyphicon-pause');
 	}
-
     }
     
     var playPauseBtn = document.getElementById("media-btn-play");
     playPauseBtn.onclick = function() {
 
-	if (!thisClass.mediaLibrary.curTrackInfo) {
-	    var track = thisClass.mediaLibrary.getRandomTrack();
-	    thisClass.mediaLibrary.playSong(track, 0);
+	if (!self.mediaLibrary.curTrackInfo) {
+	    var track = self.mediaLibrary.getRandomTrack();
+	    self.mediaLibrary.playSong(track, 0);
 	    return;
 	}
 	
-	if (thisClass.currentState == PlayBackStates["PAUSED"] ||
-	    thisClass.currentState == PlayBackStates["STOPPED"])
-	    thisClass.mediaLibrary.unpauseSong();
+	if (self.currentState == PlayBackStates["PAUSED"] ||
+	    self.currentState == PlayBackStates["STOPPED"])
+	    self.mediaLibrary.unpauseSong();
 	else
-	    thisClass.mediaLibrary.pauseSong();	
+	    self.mediaLibrary.pauseSong();	
     }
 
 /*    var speakerBtn = document.getElementById("media-btn-speaker");
     speakerBtn.onclick = function() {
-	thisClass.mediaLibrary.swapOutput();
+	self.mediaLibrary.swapOutput();
     }
 */
     var nowPlayingBtn = document.getElementById("media-btn-exit");
     nowPlayingBtn.onclick = function(e) {
 	e.stopPropagation();
-	thisClass.mediaLibrary.toggleNowPlaying(false);
+	self.mediaLibrary.toggleNowPlaying(false);
     }
 
     var nextBtn = document.getElementById("media-btn-next");
     nextBtn.onclick = function() {
-	thisClass.mediaLibrary.nextSong();
+	self.mediaLibrary.nextSong();
     }
 
     var prevBtn = document.getElementById("media-btn-prev");
     prevBtn.onclick = function() {
-	thisClass.mediaLibrary.prevSong();
+	self.mediaLibrary.prevSong();
     }
 
     var shuffleBtn = document.getElementById("media-btn-shuffle");
     shuffleBtn.onclick = function() {
-	thisClass.mediaLibrary.shuffle = !thisClass.mediaLibrary.shuffle;
+	self.mediaLibrary.shuffle = !self.mediaLibrary.shuffle;
 	shuffleBtn.classList.toggle("active");
     }
     var searchBtn = document.getElementById("search-btn");
@@ -66,9 +63,9 @@ MediaButtons = function(evtSys, mediaLibrary) {
 	e.preventDefault();
 	var searchKey = document.getElementById("search-txt").value;
 	if (searchKey.length > 0)
-	    thisClass.mediaLibrary.showSearch(searchKey);
+	    self.mediaLibrary.showSearch(searchKey);
 	else
-	    thisClass.mediaLibrary.clearSearch();
+	    self.mediaLibrary.clearSearch();
     }
 
     var clearSearchBtn = document.getElementById("search-btn-clear");
@@ -76,8 +73,18 @@ MediaButtons = function(evtSys, mediaLibrary) {
 	e.preventDefault();
 	var searchBox = document.getElementById("search-txt");
 	searchBox.value = "";
-	thisClass.mediaLibrary.clearSearch();
+	self.mediaLibrary.clearSearch();
     }
-    
     this.evtSys.addEventListener('media state change', updatePlayPauseBtn);
+
+    //add keyboard bindings
+    document.addEventListener("keypress", function(e) {
+	switch (e.key) {
+	case ' ': playPauseBtn.click(); break;
+	case 'b': nextBtn.click(); break;
+	case 'z': prevBtn.click(); break;
+	case 's': shuffleBtn.click(); break;
+	default: break;
+	}
+    });
 }
