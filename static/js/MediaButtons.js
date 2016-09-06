@@ -78,7 +78,7 @@ MediaButtons = function(evtSys, mediaLibrary) {
     this.evtSys.addEventListener('media state change', updatePlayPauseBtn);
 
     //add keyboard bindings
-    document.addEventListener("keypress", function(e) {
+    document.body.addEventListener("keypress", function(e) {
 	switch (e.key) {
 	case ' ': playPauseBtn.click(); break;
 	case 'b': nextBtn.click(); break;
