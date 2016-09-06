@@ -139,7 +139,7 @@ MusicLibrary.prototype.reverseTrackHashLookup = function(startNode) {
 
 MusicLibrary.prototype.displayMakeExcludeButton = function(container) {
   var self = this
-  var icon = document.createElement("span");
+  var icon = document.createElement("i");
   icon.className = "fa fa-fw fa-check-square-o exclude-btn";
   icon.setAttribute("aria-hidden", "true");
   icon.onclick = function(e) {
@@ -165,19 +165,18 @@ MusicLibrary.prototype.displayMakeExcludeButton = function(container) {
 
 MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth) {
   // TODO use template...
-  var panelHeader = document.createElement("div");
-  panelHeader.setAttribute("id", folderEntry.id);
-  panelHeader.classList.add("panel-heading");
-  panelHeader.setAttribute("role", "tab");
+  var header = document.createElement("p");
+  header.setAttribute("id", folderEntry.id);
+  header.setAttribute("role", "tab");
 
-  var excludeBtn = this.displayMakeExcludeButton(panelHeader);
-  panelHeader.appendChild(excludeBtn);
+  var excludeBtn = this.displayMakeExcludeButton(header);
+  header.appendChild(excludeBtn);
 
-  var icon = document.createElement("span");
+  var icon = document.createElement("i");
   icon.className = "fa fa-fw fa-caret-right expand-state";
   icon.setAttribute("aria-hidden", "true");
   icon.setAttribute("role", "expand-state")
-  panelHeader.appendChild(icon);
+  header.appendChild(icon);
 
   //create collapse button
   var collapseButton = document.createElement("a");
@@ -185,36 +184,32 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
   collapseButton.innerHTML = folderEntry.name;
   collapseButton.style.pointerEvents = true;
   collapseButton.style.cursor = 'pointer';
-  panelHeader.appendChild(collapseButton);
+  header.appendChild(collapseButton);
 
   var panel = document.createElement("li");
-  panel.appendChild(panelHeader);
-  panel.classList.add("panel", "folder-entry", "panel-default");
+  panel.classList.add("folder-entry");
+  panel.appendChild(header);
 
-  var bodyCollapse = document.createElement("div");
-  bodyCollapse.setAttribute("id", this.getFolderCollapseId(folderEntry.id));
-  bodyCollapse.className = "panel-collapse collapse";
-  bodyCollapse.setAttribute("role", "tabpanel");
+  var body = document.createElement("ul");
+  body.setAttribute("id", this.getFolderCollapseId(folderEntry.id));
+  body.setAttribute('role', 'listing');
+  body.className = "directory-listing closed";
 
-  var panelBody = document.createElement("ul");
-  panelBody.setAttribute('role', 'listing');
-  panelBody.className = "directory-listing closed";
-
-  bodyCollapse.appendChild(panelBody);
-  panel.appendChild(bodyCollapse);
+  panel.appendChild(body);
 
   var self = this
   collapseButton.onclick = function (e) {
     self.toggleFolder(panel)
   }
 
-  return [panel, panelBody];
+  return [panel, body];
 }
 
 MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
   var self = this;
   var file = document.createElement("li");
   file.setAttribute("id", fileEntry.id);
+  file.classList.add("file-entry");
   
   var name = fileEntry.name;
   var text = document.createElement("a");
@@ -222,9 +217,7 @@ MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
   text.title = name;
   text.classList.add("file-entry-name");
   text.setAttribute("href", "#");
-
   file.appendChild(text);
-  file.classList.add("file-entry", "panel-heading");
 
   text.onclick = function(e) {
     e.preventDefault();
@@ -255,8 +248,8 @@ MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
 }
 
 MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
-
     //first check if item is not already in viewport before scrolling
+    if (!track) return
     var trackDiv = document.getElementById(track.id);
     var inView = false;
     if (trackDiv) {
