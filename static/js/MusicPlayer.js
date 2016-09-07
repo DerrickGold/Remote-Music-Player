@@ -79,8 +79,8 @@ MusicLibrary.prototype.setFolderView = function(folderIdDiv, view) {
   collapser.setAttribute("aria-expanded", state);
   if (view === "open") {
     collapser.classList.add("in");
-    //collapser.style.height = null;
-  } else
+    collapser.style.height = null;
+  } else 
     collapser.classList.remove("in");
 }
 

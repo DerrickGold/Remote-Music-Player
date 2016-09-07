@@ -28,7 +28,8 @@ GLOBAL_SETTINGS = {
     'max-transcodes': 4,
     'stream-format': 'mp3',
 #    'ffmpeg-flags': ["ffmpeg", "-y", "-hide_banner", "-loglevel", "panic"]
-    'ffmpeg-flags': ["ffmpeg", "-y"]
+    'ffmpeg-flags': ["ffmpeg", "-y"],
+    'stream-chunk': 1024 * 512
 }
 
 AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac", ".aiff"]
@@ -477,8 +478,7 @@ def serving(filename):
             doneTranscode = False;
             
             while True:
-                #chunk = file.read(1024 * 512)
-                chunk = file.read()
+                chunk = file.read(GLOBAL_SETTINGS["stream-chunk"])
                 if len(chunk) > 0:
                     yield chunk
                     
@@ -498,13 +498,11 @@ def serving(filename):
         def generate():
             file = open(newFile, 'rb')
             while True:
-                chunk = file.read()
+                chunk = file.read(GLOBAL_SETTINGS["stream-chunk"])
                 if chunk:
                     yield chunk
                 else:
                     break
-
-                time.sleep(1)
             file.close()
 
         sendtype=AUDIO_MIMETYPES['{}'.format(ext[1].replace('.',''))]
