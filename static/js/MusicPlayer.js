@@ -233,6 +233,7 @@ MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
 }
 
 MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
+		if (track === undefined) track = this.curTrackInfo;
     //first check if item is not already in viewport before scrolling
     var trackDiv = document.getElementById(track.id);
     var inView = false;
@@ -245,48 +246,42 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
         var trackFolder = document.getElementById(this.getFolderCollapseId(track.parent));
         if (trackFolder) inView = (inView && trackFolder.classList.contains("in"));
     }
-    var nodes = this.reverseTrackHashLookup(track);
+    var nodes = this.reverseTrackHashLookup(track).reverse();
     var lastDiv = null;
-    while(nodes.length > 0) {
-        var id = nodes.pop();
-        if (this.mediaHash[id].parent == ".") continue;
-        if (this.mediaHash[id].directory) {
+		var self = this, lastDiv = null;
+		this.chunking(nodes, function(curNode) {
+        var id = curNode;
+        if (self.mediaHash[id].parent == ".") return;
+        if (self.mediaHash[id].directory) {
             lastDiv = document.getElementById(id);
-            if (!lastDiv) continue;
-            this.setFolderView(lastDiv, "open");
+            if (!lastDiv) return;
+            self.setFolderView(lastDiv, "open");
         } else 
             lastDiv = document.getElementById(id);
-    }
-
-    var self = this;
-    (function(oldDiv, isInView) {
-        if (!isInView) {
-            setTimeout(function() {
-                oldDiv.scrollIntoView(true);
-                window.scrollBy(0, -self.navbarOffset);
-            }, 500);
-        }
-    }(lastDiv, inView));
-    lastDiv.classList.add('playing-entry');
-    this.toggleNowPlaying(true);
+		}, function() {
+				if (inView || !lastDiv) return;
+				lastDiv.scrollIntoView(true);
+				window.scrollBy(0, -self.navbarOffset);
+				lastDiv.classList.add('playing-entry');
+		});
 }
 
 MusicLibrary.prototype.chunking = function(library, cb, donecb) {
     var perFrame = 500, idx = 0, lib = library, fps = 60;
     function doChunk(data) {
-  setTimeout(function() {
-      if (idx >= lib.length) {
-    if (donecb) donecb();
-    return;
-      }
-      for (var x = 0; x < perFrame; x++) {
-    if (idx + x >= lib.length) break;
-    var entry = lib[idx + x];
-    if (cb) cb(entry);
-      }
-      idx += perFrame;
-      window.requestAnimationFrame(doChunk);
-  }, 1000/fps);
+				setTimeout(function() {
+						if (idx >= lib.length) {
+								if (donecb) donecb();
+								return;
+						}
+						for (var x = 0; x < perFrame; x++) {
+								if (idx + x >= lib.length) break;
+								var entry = lib[idx + x];
+								if (cb) cb(entry);
+						}
+						idx += perFrame;
+						window.requestAnimationFrame(doChunk);
+				}, 1000/fps);
     }
     window.requestAnimationFrame(doChunk);
 }
@@ -402,7 +397,7 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
         lastPlayed.classList.remove('playing-entry');
     }
     this.curTrackInfo = songEntry;
-    this.openFileDisplayToTrack(songEntry);
+    //this.openFileDisplayToTrack(songEntry);
     var self = this;
     if (!this.streaming) {
         var url = "/api/files/" + songEntry.id + "/play";

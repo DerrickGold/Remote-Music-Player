@@ -84,6 +84,8 @@ MediaButtons = function(evtSys, mediaLibrary) {
 	case 'b': nextBtn.click(); break;
 	case 'z': prevBtn.click(); break;
 	case 's': shuffleBtn.click(); break;
+	case 'i': nowPlayingBtn.click(); break;
+	case 'f': self.mediaLibrary.openFileDisplayToTrack(); break;
 	default: break;
 	}
     });
