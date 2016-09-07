@@ -564,12 +564,12 @@ MusicLibrary.prototype.init = function() {
 
   var style = window.getComputedStyle(document.body);
   this.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
-  var curInfo = document.getElementById("curinfo-track");
-  if (curInfo) {
-    curInfo.addEventListener("click", function() {
-      self.openFileDisplayToTrack(self.curTrackInfo);
-    });
-  }
+  var curInfo = document.getElementById("openfile-loc-btn");
+  curInfo.addEventListener("click", function(e) {
+		e.preventDefault();
+    self.openFileDisplayToTrack(self.curTrackInfo);
+		self.toggleNowPlaying(false, true);
+  });
 
   this.evtSys.registerEvent('media state change');
   document.getElementById('settings-menu').addEventListener('click', function(e) {

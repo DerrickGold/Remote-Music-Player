@@ -126,6 +126,11 @@ body {
     z-index: 1;
 }
 
+.nowplaying [role="button"] {
+		display: block;
+		color: #9d9d9d;
+}
+
 .file-listing {
     overflow-y: scroll;
     padding-bottom: 65px;
