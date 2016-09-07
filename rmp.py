@@ -502,6 +502,8 @@ def serving(filename):
                     yield chunk
                 else:
                     break
+
+                time.sleep(1)
             file.close()
 
         sendtype=AUDIO_MIMETYPES['{}'.format(ext[1].replace('.',''))]
