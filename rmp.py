@@ -33,7 +33,7 @@ GLOBAL_SETTINGS = {
 }
 
 AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac", ".aiff"]
-TRANSCODE_FROM = [".aac", ".wav", ".flac", ".m4a", ".aiff"]
+TRANSCODE_FROM = ["aac", "wav", "flac", "m4a", "aiff"]
 STREAM_FORMAT = ["mp3", "wav", "ogg"]
 STREAM_QUALITY = {
     'mp3': ["32k", "48k", "64k", "96k", "128k", "144k", "160k", "192k", "224k", "256k", "320k"],
@@ -249,17 +249,9 @@ class MusicList:
         return parent['children'][index]
 
 
-    def get_audio_mtadata(self, identifier):
-
-        response = {'artist': '', 'album': '', 'title': '', 'genre': ''}        
-        
-        file = self.get_file(identifier)
-
-        if file is None:
-            return response
-
-        print("Getting metadata")
-        path = os.path.join(file['path'], file['name'])
+    def get_file_metadata(self, path):
+        response = {'artist': '', 'album': '', 'title': '', 'genre': ''}
+        logging.debug("Getting metadata")
         args = list(GLOBAL_SETTINGS['ffmpeg-flags'])
         args.extend(['-i', path, '-f', 'ffmetadata', '-'])
 
@@ -282,9 +274,19 @@ class MusicList:
         output = process.communicate()
 
         response['length'] = output[0].decode().strip()
+        response['size'] = os.path.getsize(path)
         return response
 
-    
+    def get_audio_metadata(self, identifier):
+        response = {'artist': '', 'album': '', 'title': '', 'genre': ''}
+        file = self.get_file(identifier)
+        if file is None:
+            return response
+
+        path = os.path.join(file['path'], file['name'])
+        return self.get_file_metadata(path)
+
+
     def search_media(self, key):
 
         key = key.lower()
@@ -299,24 +301,24 @@ class MusicList:
 
     def is_transcoding(self, id):
         return self.transcodeProcess[id].poll()
-        
 
-    def transcode_audio(self, path, quality=None, fmt=None):
-        
+
+    def transcode_audio(self, path, quality=None, fmt=None, offset=None):
+
         if fmt is None:
             fmt = GLOBAL_SETTINGS['stream-format']
-        
+
         if quality is None or quality.lower() not in STREAM_QUALITY['{}'.format(fmt)]:
             selections = STREAM_QUALITY["{}".format(GLOBAL_SETTINGS['stream-format'])]
             quality = selections[len(selections)//2]
-        
-        
+
+
         self.transcodeID = (self.transcodeID + 1) % GLOBAL_SETTINGS['max-transcodes']
         proc = self.transcodeProcess[self.transcodeID]
-        
-        if  proc is not None and proc.poll():
+
+        if proc is not None and proc.poll():
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-        
+
         ext = os.path.splitext(path)
         outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "transcoded{}.audio".format(self.transcodeID))
 
@@ -327,24 +329,28 @@ class MusicList:
         args[args.index("{quality}")] = quality
         args[args.index("{outfile}")] = outfile
 
-        print(args)
+        if offset:
+            args.insert(0, '-ss')
+            args.insert(1, str(offset))
+
+        logging.debug(args)
         self.transcodeProcess[self.transcodeID] = subprocess.Popen(args)
         return (outfile, self.transcodeProcess[self.transcodeID])
 
     def extract_album_art(self, filepath):
-        
+
         args = list(GLOBAL_SETTINGS['ffmpeg-flags'])
 
         outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "curcover.jpg")
         args.extend(['-i', filepath, '-an', '-vcodec', 'copy', outfile])
 
-        print(args)
+        logging.debug(args)
         coverProc = subprocess.Popen(args)
         res = coverProc.communicate()
         return outfile, coverProc.returncode
-    
 
-    
+
+
 '''
 Program Entry
 '''
@@ -373,7 +379,7 @@ def get_info():
 def get_quality():
     response = {
         'format': STREAM_FORMAT,
-        'quality': STREAM_QUALITY 
+        'quality': STREAM_QUALITY
     }
     return jsonify(**response)
 
@@ -425,13 +431,13 @@ def play(identifier):
     if not file:
         return '', 400
 
-    
+
     play_file(file, offset)
     return '', 200
 
 @app.route('/api/files/<string:identifier>/data')
 def metadata(identifier):
-    data = GLOBAL_SETTINGS['MusicListClass'].get_audio_mtadata(identifier)
+    data = GLOBAL_SETTINGS['MusicListClass'].get_audio_metadata(identifier)
     return jsonify(**data)
 
 
@@ -439,7 +445,7 @@ def metadata(identifier):
 @app.route('/<path:filename>')
 def serving(filename):
 
-    print("SERVING")
+    logging.info("Serving file")
     destType = request.args.get('format')
     if destType is not None:
         destType = destType.lower()
@@ -447,56 +453,57 @@ def serving(filename):
             destType = GLOBAL_SETTINGS['stream-format']
     else:
         destType = GLOBAL_SETTINGS['stream-format']
-            
 
-            
+
+
     #allow user to force transcode all audio regardless if its already supported or not
     doTranscode = request.args.get('transcode')
     if doTranscode is not None:
         doTranscode = (doTranscode.lower() == 'true')
     else:
         doTranscode = False
-        
+
     #allow user to adjust quality of streaming
     quality = request.args.get('quality')
 
-    print("TRANSCODE OPTION: {}".format(doTranscode))
-    print("QUALITY OPTION: {}".format(quality))
-    
+    logging.info("TRANSCODE OPTION: {}".format(doTranscode))
+    logging.info("QUALITY OPTION: {}".format(quality))
+
     newFile = filename
-    ext = os.path.splitext(filename)
-
-
-    if ext[1] in TRANSCODE_FROM or doTranscode:
-        newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(filename, quality, destType)
+    ext = os.path.splitext(filename)[1].lower()[1:]
+    if ext in TRANSCODE_FROM or doTranscode:
+        newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(filename, quality, destType, offset=request.args.get('offset'))
         #give ffmpeg some time to start transcoding
         time.sleep(1)
-                
+
         @stream_with_context
         def generate(inFile, ffmpegProc):
             file = open(inFile, 'rb')
             doneTranscode = False;
-            
+
             while True:
                 chunk = file.read(GLOBAL_SETTINGS["stream-chunk"])
                 if len(chunk) > 0:
                     yield chunk
-                    
+
                 #if no bytes were read, check if transcoding is still happening
                 doneTranscode = ffmpegProc.poll() is not None
                 if len(chunk) == 0 and doneTranscode:
                     break
 
                 time.sleep(1)
-                
+
             file.close()
-            
+
         return Response(stream_with_context(generate(newFile, proc)), mimetype=AUDIO_MIMETYPES['{}'.format(destType)])
-    
+
     #no transcoding, just streaming if audio is already in a streamable format
-    elif ext[1].replace('.','') in STREAM_FORMAT:
+    elif ext in STREAM_FORMAT:
+        data = GLOBAL_SETTINGS['MusicListClass'].get_file_metadata(newFile)
         def generate():
             file = open(newFile, 'rb')
+            offset = float(request.args.get('offset') or 0)
+            file.seek(int(offset / float(data['length']) * data['size']), 0)
             while True:
                 chunk = file.read(GLOBAL_SETTINGS["stream-chunk"])
                 if chunk:
@@ -505,12 +512,12 @@ def serving(filename):
                     break
             file.close()
 
-        sendtype=AUDIO_MIMETYPES['{}'.format(ext[1].replace('.',''))]
+        sendtype=AUDIO_MIMETYPES['{}'.format(ext)]
         return Response(stream_with_context(generate()), mimetype=sendtype)
 
     #for whatever isn't an audio file
     return send_file(newFile)
-    
+
 
 
 @app.route('/')
@@ -534,10 +541,10 @@ def args():
         if idx + 1 < len(sys.argv):
             GLOBAL_SETTINGS['server-port'] = sys.argv[idx + 1]
         else:
-            print("Missing port value!")
+            logging.error("Missing port value!")
             exit(1)
     except:
-        print("Using default port: {}".format(GLOBAL_SETTINGS['server-port']))
+        logging.info("Using default port: {}".format(GLOBAL_SETTINGS['server-port']))
 
     GLOBAL_SETTINGS['music-dir'] = sys.argv[-1]
 
