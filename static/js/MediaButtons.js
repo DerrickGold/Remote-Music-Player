@@ -5,15 +5,15 @@ MediaButtons = function(evtSys, mediaLibrary) {
   this.evtSys = evtSys;
 
   var updatePlayPauseBtn = function(newState) {
-  self.currentState = newState;
-  var icon = document.getElementById("media-btn-play-icon");
-  if (newState == PlayBackStates["PAUSED"] || newState == PlayBackStates["STOPPED"]) {
-    icon.classList.remove('glyphicon-pause');
-    icon.classList.add('glyphicon-play');
-  } else {
-    icon.classList.remove('glyphicon-play');
-    icon.classList.add('glyphicon-pause');
-  }
+    self.currentState = newState;
+    var icon = document.getElementById("media-btn-play-icon");
+    if (newState == PlayBackStates["PAUSED"] || newState == PlayBackStates["STOPPED"]) {
+      icon.classList.remove('glyphicon-pause');
+      icon.classList.add('glyphicon-play');
+    } else {
+      icon.classList.remove('glyphicon-play');
+      icon.classList.add('glyphicon-pause');
+    }
   }
 
   var playPauseBtn = document.getElementById("media-btn-play");

@@ -30,13 +30,13 @@ MusicLibrary.prototype.getRandomTrack = function() {
   while (index < 0 || this.mediaHash[allFiles[index]].directory)
     index = Math.floor((Math.random() * allFiles.length));
   return this.mediaHash[allFiles[index]];
-}    
+}
 
 MusicLibrary.prototype.getRootDirDiv = function() {
   return document.getElementById("dirlist");
 }
 
-MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {    
+MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {
   var overlay = document.querySelector('[role="currently-playing"]');
   var files = document.querySelector('[role="listroot"]');
   if (forceClose || (!preventClose && overlay.classList.contains("visible")))
@@ -80,7 +80,7 @@ MusicLibrary.prototype.setFolderView = function(folderIdDiv, view) {
   if (view === "open") {
     collapser.classList.add("in");
     //collapser.style.height = null;
-  } else 
+  } else
     collapser.classList.remove("in");
 }
 
@@ -109,7 +109,7 @@ MusicLibrary.prototype.apiCall = function(route, method, async, successCb, error
       if (errorCb) errorCb(xhttp.responseText);
   }
   xhttp.open(method, route, async);
-  xhttp.send(); 
+  xhttp.send();
 }
 
 MusicLibrary.prototype.reverseTrackHashLookup = function(startNode) {
@@ -130,7 +130,7 @@ MusicLibrary.prototype.closeDirectory = function(folderDiv) {
   for (var i = 0; i < x.length; i++) {
     x[i].classList.remove("hidden");
     this.setFolderView(x[i], "close");
-  } 
+  }
 }
 
 MusicLibrary.prototype.displayMakeExcludeButton = function(nodeID, container) {
@@ -159,7 +159,7 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
   panelHeader.setAttribute("role", "tab");
   var excludeBtn = this.displayMakeExcludeButton(folderEntry.id, panelHeader);
   panelHeader.appendChild(excludeBtn);
-  
+
   var icon = document.createElement("span");
   icon.className = "glyphicon glyphicon-folder-close";
   icon.setAttribute("aria-hidden", "true");
@@ -173,14 +173,14 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
   collapseButton.setAttribute("aria-expanded", expanded == true ? "true" : "false");
   collapseButton.setAttribute("aria-controls", this.getFolderCollapseId(folderEntry.id));
   collapseButton.innerHTML = folderEntry.name;
-  panelHeader.appendChild(collapseButton);  
+  panelHeader.appendChild(collapseButton);
   panel = document.createElement("div");
   panel.appendChild(panelHeader);
   panel.classList.add("folder-entry");
   panel.setAttribute("role", "directory");
   panel.setAttribute("id", folderEntry.id);
-  
-  
+
+
   var bodyCollapse = document.createElement("div");
   bodyCollapse.setAttribute("id", this.getFolderCollapseId(folderEntry.id));
   bodyCollapse.className = "panel-collapse collapse";
@@ -189,7 +189,7 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
   panelBody.className = "folder-body";
   bodyCollapse.appendChild(panelBody);
   panel.appendChild(bodyCollapse);
-  
+
   return [panel, panelBody];
 }
 
@@ -210,7 +210,7 @@ MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
   var self = this;
   text.onclick = function(e) {
     e.preventDefault();
-    self.playSong(fileEntry, 0); 
+    self.playSong(fileEntry, 0);
   }
   return file;
 }
@@ -256,7 +256,7 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
       lastDiv = document.getElementById(id);
       if (!lastDiv) return;
       self.setFolderView(lastDiv, "open");
-    } else 
+    } else
       lastDiv = document.getElementById(id);
     }, function() {
         if (inView || !lastDiv) return;
@@ -269,19 +269,19 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
 MusicLibrary.prototype.chunking = function(library, cb, donecb) {
   var perFrame = 500, idx = 0, lib = library, fps = 60;
   function doChunk(data) {
-        setTimeout(function() {
-            if (idx >= lib.length) {
-                if (donecb) donecb();
-                return;
-            }
-            for (var x = 0; x < perFrame; x++) {
-                if (idx + x >= lib.length) break;
-                var entry = lib[idx + x];
-                if (cb) cb(entry);
-            }
-            idx += perFrame;
-            window.requestAnimationFrame(doChunk);
-        }, 1000/fps);
+    setTimeout(function() {
+      if (idx >= lib.length) {
+        if (donecb) donecb();
+        return;
+      }
+      for (var x = 0; x < perFrame; x++) {
+        if (idx + x >= lib.length) break;
+        var entry = lib[idx + x];
+        if (cb) cb(entry);
+      }
+      idx += perFrame;
+      window.requestAnimationFrame(doChunk);
+    }, 1000/fps);
   }
   window.requestAnimationFrame(doChunk);
 }
@@ -295,47 +295,47 @@ MusicLibrary.prototype.showSearch = function(keyword) {
   this.evtSys.dispatchEvent("loading");
   this.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
     var data = JSON.parse(resp);
-  var everything = document.querySelectorAll('[role="audio-file"],[role="directory"]');
-  self.chunking(everything, function(d) {
-    var id = d.getAttribute('id');
-    if (id in data) {
-  console.log("found: " + id);
-  if (d.classList.contains("hidden")) d.classList.remove("hidden");
-  if (d.getAttribute('role') === 'directory') return;
-  else {
-    var nodes = self.reverseTrackHashLookup(self.mediaHash[id]);
-    var skipEntry = false;
-    var checkExcluded = nodes.slice(0).reverse();
-    while (checkExcluded.length > 0) {
-    var id = checkExcluded.pop();
-    if (self.mediaHash[id]._exclude) {
-      skipEntry = true;
-      delete data[id];
-      break;
-    }
-    }
-    if (skipEntry) return;
-    while(nodes.length > 0) {
-    var nodeID = nodes.pop();
-    if (self.mediaHash[nodeID].parent == ".") continue;
-    data[nodeID] = 1;
-    var div = document.getElementById(nodeID);
-    if (self.mediaHash[nodeID].directory) {
-      self.setFolderView(div, "open");
-      div.classList.remove("hidden");
-    } else
-      div.classList.remove("hidden");
-    }
-  }
-  
-    } else if (!d.classList.contains("hidden"))
-  d.classList.add("hidden");
-  }, function() {
-    self.evtSys.dispatchEvent("loading done");
-  }); 
+    var everything = document.querySelectorAll('[role="audio-file"],[role="directory"]');
+    self.chunking(everything, function(d) {
+      var id = d.getAttribute('id');
+      if (id in data) {
+        console.log("found: " + id);
+        if (d.classList.contains("hidden")) d.classList.remove("hidden");
+        if (d.getAttribute('role') === 'directory') return;
+        else {
+          var nodes = self.reverseTrackHashLookup(self.mediaHash[id]);
+          var skipEntry = false;
+          var checkExcluded = nodes.slice(0).reverse();
+          while (checkExcluded.length > 0) {
+          var id = checkExcluded.pop();
+          if (self.mediaHash[id]._exclude) {
+            skipEntry = true;
+            delete data[id];
+            break;
+          }
+          }
+          if (skipEntry) return;
+          while(nodes.length > 0) {
+            var nodeID = nodes.pop();
+            if (self.mediaHash[nodeID].parent == ".") continue;
+            data[nodeID] = 1;
+            var div = document.getElementById(nodeID);
+            if (self.mediaHash[nodeID].directory) {
+              self.setFolderView(div, "open");
+              div.classList.remove("hidden");
+            } else {
+              div.classList.remove("hidden");
+            }
+          }
+        }
+      } else if (!d.classList.contains("hidden"))
+        d.classList.add("hidden");
+    }, function() {
+      self.evtSys.dispatchEvent("loading done");
+    });
   }, function(resp) {
     self.evtSys.dispatchEvent("loading done");
-  }); 
+  });
 }
 
 MusicLibrary.prototype.showFiles = function(show, donecb) {
@@ -420,13 +420,13 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
       var transcode = transcodeOptions.options[transcodeOptions.selectedIndex].value;
       var srcURL = trackData.path + "/" + trackData.name + "?format="+ fmt +
         "&quality=" + quality + "&transcode=" + transcode;
-      
+
       self.audioDiv.src = encodeURI(srcURL);
       self.audioDiv.play();
       var seekHandler = function(audio) {
         self.audioDiv.removeEventListener('canplay', seekHandler);
         if (offset > 0) audio.target.currentTime = offset;
-        self.evtSys.dispatchEvent("loading done");       
+        self.evtSys.dispatchEvent("loading done");
       }
       self.audioDiv.addEventListener("canplay",seekHandler);
       self.playbackState = PlayBackStates["PLAYING"];
@@ -489,7 +489,7 @@ MusicLibrary.prototype.nextSong = function() {
     else position = 0;
     while (position < directory.children.length && directory.children[position]._exclude)
       position++;
-    
+
     //if we hit the end of the folder, continue up the next level
     if (position >= directory.children.length) {
       lastDir = directory.id;
@@ -516,7 +516,7 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
     var data = JSON.parse(resp),
       infoStr = '',
       title = data.title.length > 0 ? data.title : self.curTrackInfo.name;
-    
+
     document.getElementById("curinfo-track").innerHTML = title;
     document.title = title;
     infoStr = data.artist.length > 0 ? data.artist + " -- " : '';
@@ -561,7 +561,7 @@ MusicLibrary.prototype.init = function() {
     if (self.streaming && self.audioDiv.src.length > 0) self.nextSong();
   }
   document.body.appendChild(this.audioDiv);
-  
+
   var style = window.getComputedStyle(document.body);
   this.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
   var curInfo = document.getElementById("curinfo-track");
@@ -570,12 +570,12 @@ MusicLibrary.prototype.init = function() {
       self.openFileDisplayToTrack(self.curTrackInfo);
     });
   }
-  
+
   this.evtSys.registerEvent('media state change');
   document.getElementById('settings-menu').addEventListener('click', function(e) {
     e.stopPropagation();
   });
-  
+
   this.apiCall('/api/commands/formats', 'GET', true, function(resp) {
     self.supportedFormats = JSON.parse(resp);
     var formats = document.getElementById('stream-format');
@@ -592,10 +592,10 @@ MusicLibrary.prototype.init = function() {
     }
   });
 
-    document.querySelector('[role="album-art"]').onclick = function() {
-        document.getElementById("curinfo-path").classList.toggle("hidden");
-    }
-    
+  document.querySelector('[role="album-art"]').onclick = function() {
+    document.getElementById("curinfo-path").classList.toggle("hidden");
+  }
+
   var nowPlaying = document.querySelector('[role="currently-playing"]');
   nowPlaying.addEventListener("mousewheel", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
   nowPlaying.addEventListener("DOMMouseScroll", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
