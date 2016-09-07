@@ -262,7 +262,6 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
         if (inView || !lastDiv) return;
         lastDiv.scrollIntoView(true);
         window.scrollBy(0, -self.navbarOffset);
-        lastDiv.classList.add('playing-entry');
     });
 }
 
@@ -397,6 +396,8 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
     lastPlayed.classList.remove('playing-entry');
   }
   this.curTrackInfo = songEntry;
+	var nowplaying = document.getElementById(this.curTrackInfo.id);
+	nowplaying.classList.add('playing-entry');
   //this.openFileDisplayToTrack(songEntry);
   var self = this;
   if (!this.streaming) {
@@ -472,9 +473,11 @@ MusicLibrary.prototype.nextSong = function() {
   }
   var nodes = this.reverseTrackHashLookup(this.curTrackInfo).reverse();
   var lastDir = this.curTrackInfo.id;
+	console.log("NEXT TRACK FINDING");
   while (nodes.length > 0) {
     var popped = nodes.pop();
     var directory = this.mediaHash[popped];
+		console.log(directory);
     //if we popped off the current track, ignore it for now
     if (!directory.directory) continue;
     //look for the last directory or file visited to get position in directory
@@ -482,8 +485,10 @@ MusicLibrary.prototype.nextSong = function() {
     var found = false;
     var position = 0;
     for(; position < directory.children.length; position++) {
-      found = directory.children[position].id == lastDir;
-      if (found) break;
+      if (directory.children[position].id == lastDir) {
+				found = true;
+				break;
+			}
     }
     if (found) position++;
     else position = 0;
@@ -499,6 +504,7 @@ MusicLibrary.prototype.nextSong = function() {
     while (nextTrack.directory) nextTrack = nextTrack.children[0];
     //otherwise, play the next song
     this.playSong(nextTrack, 0);
+		break;
   }
 }
 
