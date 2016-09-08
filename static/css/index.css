@@ -157,6 +157,23 @@ body {
     max-width: 36px;
 }
 
+.scrub-box {
+    width: 100%;
+    border: 1px solid #9d9d9d;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.scrub-slider {
+    position: relative;
+    left: 0;
+    width: 16px;
+    height: 8px;
+    background-color: #9d9d9d;
+		transform: translate(-50%, 0);
+}
+
 .default-art {
     background-image: url('../img/default_album_art.png');
 }

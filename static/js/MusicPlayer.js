@@ -14,6 +14,9 @@ MusicLibrary = function(evtSys, doStreaming) {
   this.evtSys = evtSys;
   this.curTrackInfo = null;
   this.curTimeOffset = 0;
+  this.seekTimeTo = 0;
+  this.curTrackLen = 0;
+  this.isScrubbing = false;
   this.shuffle = false;
   this.playHist = [];
   this.navbarOffset = "";
@@ -389,6 +392,8 @@ MusicLibrary.prototype.stopSong = function() {
 }
 
 MusicLibrary.prototype.playSong = function(songEntry, offset) {
+  this.curTrackLen = 0;
+  this.seekTimeTo = -1;
   this.evtSys.dispatchEvent("loading");
   if (this.curTrackInfo) {
     this.playHist.push(this.curTrackInfo);
@@ -406,7 +411,9 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
     this.apiCall(url, "GET", true, function(resp) {
       self.playbackState = PlayBackStates["PLAYING"];
       self.evtSys.dispatchEvent('media state change', self.playbackState);
-      self.updateTrackInfo();
+      self.updateTrackInfo(function(d) {
+        self.curTrackLen = d['length'];
+      });
       self.evtSys.dispatchEvent("loading done");
     });
   } else {
@@ -432,7 +439,9 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
       self.audioDiv.addEventListener("canplay",seekHandler);
       self.playbackState = PlayBackStates["PLAYING"];
       self.evtSys.dispatchEvent('media state change', self.playbackState);
-      self.updateTrackInfo();
+      self.updateTrackInfo(function(d) {
+        self.curTrackLen = d['length'];
+      });
     });
   }
 }
@@ -552,6 +561,13 @@ MusicLibrary.prototype.updateQualitySelect = function(val) {
   qualityList.selectedIndex = this.supportedFormats.quality[val].length - 1;
 }
 
+MusicLibrary.prototype.mouseDivOffset = function(el, mouseevent) {
+  var style = window.getComputedStyle(el);
+  var width = style.getPropertyValue('width');
+  var height = style.getPropertyValue('height');
+  return [mouseevent.layerX - el.offsetLeft, width, mouseevent.layerY - el.offsetTop, height];
+}
+
 MusicLibrary.prototype.init = function() {
   var self = this;
   this.getFiles();
@@ -559,7 +575,16 @@ MusicLibrary.prototype.init = function() {
   this.audioDiv = document.createElement("AUDIO");
   this.audioDiv.setAttribute("preload", "auto");
   var curTimeDiv = document.getElementById("curinfo-time");
+  var scrubber = document.getElementById("scrubber");  
   this.audioDiv.ontimeupdate = function(e) {
+    if (!self.isScrubbing) {
+      if (self.curTrackLen > 0) scrubber.style.left = (self.curTimeOffset * 100 / self.curTrackLen) + '%';
+      else scrubber.style.left = 0;
+      if (self.seekTimeTo >= 0) {
+        this.currentTime = self.seekTimeTo;
+        self.seekTimeTo = -1;
+      }
+    }    
     self.curTimeOffset = this.currentTime;
     curTimeDiv.innerHTML = self.secondsToMinutesStr(self.curTimeOffset);
   }
@@ -568,11 +593,34 @@ MusicLibrary.prototype.init = function() {
   }
   document.body.appendChild(this.audioDiv);
 
+  var scrubbox = document.getElementById("scrub-box");
+  scrubbox.onmousedown = function(e) {
+    self.isScrubbing = true;
+  }
+  scrubbox.onmouseup = function(e) {
+    if (!self.isScrubbing) return;
+    self.isScrubbing = false;
+    console.log(self.seekTimeTo);
+  }
+
+  scrubbox.onmousemove = function(e) {
+    if (!self.isScrubbing) return;
+    var offsets = self.mouseDivOffset(this, e);
+    if (offsets[0] < 0) return;
+    var xoffset = parseFloat((parseInt(offsets[0]) * 100)/parseInt(offsets[1])).toFixed(0);
+    console.log(xoffset);
+    scrubber.style.left = xoffset + "%";
+    self.seekTimeTo = (parseInt(offsets[0]))/parseInt(offsets[1]) * self.curTrackLen;
+  }
+
+
+  
+  
   var style = window.getComputedStyle(document.body);
   this.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
   var curInfo = document.getElementById("openfile-loc-btn");
   curInfo.addEventListener("click", function(e) {
-		e.preventDefault();
+    e.preventDefault();
     self.openFileDisplayToTrack(self.curTrackInfo);
 		self.toggleNowPlaying(false, true);
   });

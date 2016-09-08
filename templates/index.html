@@ -20,89 +20,92 @@
     <!--nav class="navbar navbar-inverse navbar-fixed-top"-->
     <nav class="input-strip settings-strip">
       <div class="dropdown settings-btn">
-				<a href="#" id="settings-dropdown" class="btn btn-secondary dropdown-toggle" type="button"
-					 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="menu">
-					<span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
-				</a>
-				<ul id="settings-menu" class="dropdown-menu dropdown-menu-right">
-					<li class="dropdown-header">Stream Format</li>
-					<li>
-						<select clase="form-control" id="stream-format">
-						</select>
-					</li>
-					<li class="dropdown-header">Stream Quality</li>
-					<li>
-						<select clase="form-control" id="stream-quality">
-							<option value="-1" selected="selected">Default</option>
-						</select>
-					</li>
-					<li class="dropdown-header">Transcoding</li>
-					<li>
-						<select clase="form-control" id="transcoding-option">
-							<option value="false" selected="selected">Only Unsupported Files</option>
-							<option value="true">All Files</option>
-						</select>
-					</li>
-				</ul>
+        <a href="#" id="settings-dropdown" class="btn btn-secondary dropdown-toggle" type="button"
+           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="menu">
+          <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
+        </a>
+        <ul id="settings-menu" class="dropdown-menu dropdown-menu-right">
+          <li class="dropdown-header">Stream Format</li>
+          <li>
+            <select clase="form-control" id="stream-format">
+            </select>
+          </li>
+          <li class="dropdown-header">Stream Quality</li>
+          <li>
+            <select clase="form-control" id="stream-quality">
+              <option value="-1" selected="selected">Default</option>
+            </select>
+          </li>
+          <li class="dropdown-header">Transcoding</li>
+          <li>
+            <select clase="form-control" id="transcoding-option">
+              <option value="false" selected="selected">Only Unsupported Files</option>
+              <option value="true">All Files</option>
+            </select>
+          </li>
+        </ul>
       </div>
       <form class="col-xs-10 navbar-form search-box">
-				<div class="input-group">
-					<input id="search-txt" type="text" class="form-control" placeholder="Song Title...">
-					<span class="input-group-btn">
-						<button id="search-btn" class="btn">
-							<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-						</button>
-						<button id="search-btn-clear" class="btn">
-							<span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
-						</button>
-					</span>
-				</div>
-      </form>	  
+        <div class="input-group">
+          <input id="search-txt" type="text" class="form-control" placeholder="Song Title...">
+          <span class="input-group-btn">
+            <button id="search-btn" class="btn">
+              <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+            </button>
+            <button id="search-btn-clear" class="btn">
+              <span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
+            </button>
+          </span>
+        </div>
+      </form>   
     </nav>
     <div class="container-fluid nowplaying" role="currently-playing">
       <div class="screen-center">
-				<div id="curinfo-path" class="hidden"></div>
-				<img class="cover-art img-responsive" src="static/img/default_album_art.png" role="album-art"/>
-				<div id="curinfo-track"></div>
-				<div class="curInfo" id="curinfo-artist"></div>
-				<p id="curinfo-time"></p> / <p id="curinfo-totaltime"></p>
-				<a id="openfile-loc-btn" href="#" role="button">Show File Location</a>
+        <div id="curinfo-path" class="hidden"></div>
+        <img class="cover-art img-responsive" src="static/img/default_album_art.png" role="album-art"/>
+        <div id="curinfo-track"></div>
+        <div class="curInfo" id="curinfo-artist"></div>        
+        <div id="scrub-box" class="scrub-box">
+          <div id="scrubber" class="scrub-slider"></div>
+        </div>
+        <p id="curinfo-time"></p> / <p id="curinfo-totaltime"></p>
+        <a id="openfile-loc-btn" href="#" role="button">Show File Location</a>
       </div> <!--screen centering-->
     </div>
     <div class="container-fluid file-listing" role="listroot">
       <div class="row panel-group" role="tablist" id="dirlist" aria-multiselectable="false"></div>
     </div>
-    <div class="input-strip media-btn-strip">	  
+    <div class="input-strip media-btn-strip">   
       <span class="input-group media-btns">
-				<button type="button" class="navbar-btn" id="media-btn-exit">
-					<span class="glyphicon glyphicon-modal-window"></span>
-				</button>
-				<button type="button" class="navbar-btn" id="media-btn-prev">
+        <button type="button" class="navbar-btn" id="media-btn-exit">
+          <span class="glyphicon glyphicon-modal-window"></span>
+        </button>
+        <button type="button" class="navbar-btn" id="media-btn-prev">
           <span class="glyphicon glyphicon-step-backward" aria-hidden="true"></span>
-				</button>
-				<button type="button" class="navbar-btn" id="media-btn-play">
+        </button>
+        <button type="button" class="navbar-btn" id="media-btn-play">
           <span id="media-btn-play-icon" class="glyphicon glyphicon-play" aria-hidden="true"></span>
-				</button>
-				<button type="button" class="navbar-btn" id="media-btn-next">
+        </button>
+        <button type="button" class="navbar-btn" id="media-btn-next">
           <span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span>
-				</button>
-				<!--button type="button" class="btn btn-primary navbar-btn" id="media-btn-speaker">
-						<span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
-	    </button-->
-	<button type="button" class="navbar-btn" id="media-btn-shuffle">
-	  <span class="glyphicon glyphicon-random" aria-hidden="true"></span>
-	</button>
+        </button>
+        <!--button type="button" class="btn btn-primary navbar-btn" id="media-btn-speaker">
+            <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+      </button-->
+  <button type="button" class="navbar-btn" id="media-btn-shuffle">
+    <span class="glyphicon glyphicon-random" aria-hidden="true"></span>
+  </button>
       </span>
     </div>
     <div role="load-screen" class="loader-container">
       <div class="loader">
-	<div class="loader__bar"></div>
-	<div class="loader__bar"></div>
-	<div class="loader__bar"></div>
-	<div class="loader__bar"></div>
-	<div class="loader__bar"></div>
-	<div class="loader__ball"></div>
-	</div>
+  <div class="loader__bar"></div>
+  <div class="loader__bar"></div>
+  <div class="loader__bar"></div>
+  <div class="loader__bar"></div>
+  <div class="loader__bar"></div>
+  <div class="loader__ball"></div>
+  </div>
     </div>
   </body>
 </html>
