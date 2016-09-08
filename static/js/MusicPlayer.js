@@ -21,6 +21,8 @@ MusicLibrary = function(evtSys, doStreaming) {
   this.playHist = [];
   this.navbarOffset = "";
   this.supportedFormats = null;
+  this.curTimeDiv = null;
+  this.scrubSlider = null;
   this.init();
 }
 
@@ -116,8 +118,8 @@ MusicLibrary.prototype.apiCall = function(route, method, async, successCb, error
 }
 
 MusicLibrary.prototype.reverseTrackHashLookup = function(startNode) {
-  var findStack = [];
-  var curNode = startNode;
+  var findStack = [], curNode = startNode;
+  if (!curNode) return [];
   while(curNode.parent != ".") {
     findStack.push(curNode.id);
     curNode = this.mediaHash[curNode.parent]
@@ -301,7 +303,6 @@ MusicLibrary.prototype.showSearch = function(keyword) {
     self.chunking(everything, function(d) {
       var id = d.getAttribute('id');
       if (id in data) {
-        console.log("found: " + id);
         if (d.classList.contains("hidden")) d.classList.remove("hidden");
         if (d.getAttribute('role') === 'directory') return;
         else {
@@ -482,11 +483,9 @@ MusicLibrary.prototype.nextSong = function() {
   }
   var nodes = this.reverseTrackHashLookup(this.curTrackInfo).reverse();
   var lastDir = this.curTrackInfo.id;
-	console.log("NEXT TRACK FINDING");
   while (nodes.length > 0) {
     var popped = nodes.pop();
     var directory = this.mediaHash[popped];
-		console.log(directory);
     //if we popped off the current track, ignore it for now
     if (!directory.directory) continue;
     //look for the last directory or file visited to get position in directory
@@ -562,10 +561,34 @@ MusicLibrary.prototype.updateQualitySelect = function(val) {
 }
 
 MusicLibrary.prototype.mouseDivOffset = function(el, mouseevent) {
-  var style = window.getComputedStyle(el);
-  var width = style.getPropertyValue('width');
-  var height = style.getPropertyValue('height');
-  return [mouseevent.layerX - el.offsetLeft, width, mouseevent.layerY - el.offsetTop, height];
+  var style = window.getComputedStyle(el),
+      width = style.getPropertyValue('width'),
+      height = style.getPropertyValue('height'),
+      box = el.getBoundingClientRect(),
+      scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop,
+      scrollLeft = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft,
+  	  clientTop = document.documentElement.clientTop || document.body.clientTop || 0,
+      clientLeft = document.documentElement.clientLeft || document.body.clientLeft || 0,
+      divYLoc = box.top + scrollTop - clientTop,
+      divXLoc = box.left + scrollLeft - clientLeft;
+  return [mouseevent.clientX - divXLoc, width, mouseevent.clientY - divYLoc, height];
+}
+
+MusicLibrary.prototype.scrubStart = function() {
+  this.isScrubbing = true;
+}
+
+MusicLibrary.prototype.scrubEnd = function() {
+  this.isScrubbing = false;
+}
+
+MusicLibrary.prototype.scrub = function(scrubbox, mouseevent) {
+  var offsets = this.mouseDivOffset(scrubbox, mouseevent);
+  if (offsets[0] < 0) return;
+  var xoffset = parseFloat((parseInt(offsets[0]) * 100)/parseInt(offsets[1])).toFixed(0);
+  this.scrubSlider.style.left = xoffset + "%";
+  this.seekTimeTo = (parseInt(offsets[0]))/parseInt(offsets[1]) * this.curTrackLen;
+  this.curTimeDiv.innerHTML = this.secondsToMinutesStr(this.seekTimeTo);
 }
 
 MusicLibrary.prototype.init = function() {
@@ -574,47 +597,24 @@ MusicLibrary.prototype.init = function() {
 
   this.audioDiv = document.createElement("AUDIO");
   this.audioDiv.setAttribute("preload", "auto");
-  var curTimeDiv = document.getElementById("curinfo-time");
-  var scrubber = document.getElementById("scrubber");  
+  this.curTimeDiv = document.getElementById("curinfo-time");
+  this.scrubSlider = document.getElementById("scrubber");  
   this.audioDiv.ontimeupdate = function(e) {
     if (!self.isScrubbing) {
-      if (self.curTrackLen > 0) scrubber.style.left = (self.curTimeOffset * 100 / self.curTrackLen) + '%';
-      else scrubber.style.left = 0;
+      if (self.curTrackLen > 0) self.scrubSlider.style.left = (self.curTimeOffset * 100 / self.curTrackLen) + '%';
+      else self.scrubSlider.style.left = 0;
       if (self.seekTimeTo >= 0) {
         this.currentTime = self.seekTimeTo;
         self.seekTimeTo = -1;
       }
+      self.curTimeDiv.innerHTML = self.secondsToMinutesStr(this.currentTime);
     }    
     self.curTimeOffset = this.currentTime;
-    curTimeDiv.innerHTML = self.secondsToMinutesStr(self.curTimeOffset);
   }
   this.audioDiv.onended = function() {
     if (self.streaming && self.audioDiv.src.length > 0) self.nextSong();
   }
   document.body.appendChild(this.audioDiv);
-
-  var scrubbox = document.getElementById("scrub-box");
-  scrubbox.onmousedown = function(e) {
-    self.isScrubbing = true;
-  }
-  scrubbox.onmouseup = function(e) {
-    if (!self.isScrubbing) return;
-    self.isScrubbing = false;
-    console.log(self.seekTimeTo);
-  }
-
-  scrubbox.onmousemove = function(e) {
-    if (!self.isScrubbing) return;
-    var offsets = self.mouseDivOffset(this, e);
-    if (offsets[0] < 0) return;
-    var xoffset = parseFloat((parseInt(offsets[0]) * 100)/parseInt(offsets[1])).toFixed(0);
-    console.log(xoffset);
-    scrubber.style.left = xoffset + "%";
-    self.seekTimeTo = (parseInt(offsets[0]))/parseInt(offsets[1]) * self.curTrackLen;
-  }
-
-
-  
   
   var style = window.getComputedStyle(document.body);
   this.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
@@ -653,5 +653,5 @@ MusicLibrary.prototype.init = function() {
   var nowPlaying = document.querySelector('[role="currently-playing"]');
   nowPlaying.addEventListener("mousewheel", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
   nowPlaying.addEventListener("DOMMouseScroll", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
-    document.getElementById("search-txt").addEventListener("keypress", function(e) { e.stopPropagation(); });
+  document.getElementById("search-txt").addEventListener("keypress", function(e) { e.stopPropagation(); });
 }

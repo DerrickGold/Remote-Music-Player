@@ -163,15 +163,19 @@ body {
     max-width: 500px;
     margin-left: auto;
     margin-right: auto;
+		height: 2px;
+		margin-top: 8px;
+		margin-bottom: 8px;
 }
 
 .scrub-slider {
     position: relative;
     left: 0;
     width: 16px;
-    height: 8px;
+    height: 16px;
     background-color: #9d9d9d;
-		transform: translate(-50%, 0);
+		transform: translate(-50%, -50%);
+		border-radius: 16px;
 }
 
 .default-art {

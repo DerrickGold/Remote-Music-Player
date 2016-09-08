@@ -77,6 +77,24 @@ MediaButtons = function(evtSys, mediaLibrary) {
   }
   this.evtSys.addEventListener('media state change', updatePlayPauseBtn);
 
+  var scrubbox = document.getElementById("scrub-box");
+  scrubbox.onmousedown = function(e) {
+    //self.isScrubbing = true;
+		self.mediaLibrary.scrubStart();
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  document.addEventListener("mouseup", function(e) {
+		self.mediaLibrary.scrubEnd();
+  });
+  document.addEventListener("mousemove", function(e) {           
+    if (!self.mediaLibrary.isScrubbing) return;
+    e.preventDefault();
+    e.stopPropagation();
+    self.mediaLibrary.scrub(scrubbox, e);
+  });
+  scrubbox.onclick = function(e) { self.mediaLibrary.scrub(scrubbox, e); }
+	
   //add keyboard bindings
   document.body.addEventListener("keypress", function(e) {
     switch (e.key) {
