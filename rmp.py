@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from flask import Flask, request, jsonify, redirect, url_for, render_template, send_file, Response, stream_with_context
+from werkzeug.datastructures import Headers
 import os
 import sys
 import subprocess
@@ -127,6 +128,34 @@ def scan_directory(path, name='.', parent='.'):
         
     return node, fileMapping
 
+def guessTranscodedSize(codec, quality, metadata):
+    #currently assumes all audio will end up as stereo output
+    quality = re.findall('\d+', quality)[0]
+
+    if codec == "wav":
+        #frequncy * bitdepth (16 bits = 2 bytes) * num of channels (2 = stereo) * length (seconds)
+        metadata['size'] = int(quality) * 4 * int(float(metadata['length']))
+    elif codec == "mp3":
+        #bitrate (kilobits) * 8 to convert to kilobytes * length (seconds)
+        metadata['size'] = int(quality) * 128 * int(float(metadata['length']))
+
+    print(metadata)
+    
+def makeRangeHeader(metadata):
+    begin = 0
+    end = metadata['size']
+    headers = Headers()
+    if request.headers.has_key("Range"):
+        headers.add('Accept-Ranges', 'bytes');
+        ranges = re.findall(r"\d+", request.headers["Range"])
+        begin  = int( ranges[0] )
+        if len(ranges)>1:
+            end = int( ranges[1] )
+        headers.add('Content-Range','bytes %s-%s/%s' % (str(begin),str(end),str(end-begin)) )
+
+    headers.add('Content-Length',str((end-begin)+1))
+    return headers
+    
 
 class MPlayer:
 
@@ -440,8 +469,6 @@ def metadata(identifier):
     data = GLOBAL_SETTINGS['MusicListClass'].get_audio_metadata(identifier)
     return jsonify(**data)
 
-
-
 @app.route('/<path:filename>')
 def serving(filename):
 
@@ -472,15 +499,16 @@ def serving(filename):
     newFile = filename
     ext = os.path.splitext(filename)[1].lower()[1:]
     if ext in TRANSCODE_FROM or doTranscode:
+        data = GLOBAL_SETTINGS['MusicListClass'].get_file_metadata(newFile)
+        guessTranscodedSize(destType, quality, data)
+        headers = makeRangeHeader(data)
         newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(filename, quality, destType, offset=request.args.get('offset'))
         #give ffmpeg some time to start transcoding
         time.sleep(1)
-
         @stream_with_context
         def generate(inFile, ffmpegProc):
             file = open(inFile, 'rb')
             doneTranscode = False;
-
             while True:
                 chunk = file.read(GLOBAL_SETTINGS["stream-chunk"])
                 if len(chunk) > 0:
@@ -490,20 +518,19 @@ def serving(filename):
                 doneTranscode = ffmpegProc.poll() is not None
                 if len(chunk) == 0 and doneTranscode:
                     break
-
-                time.sleep(1)
+                elif not doneTranscode:
+                    time.sleep(1)
 
             file.close()
 
-        return Response(stream_with_context(generate(newFile, proc)), mimetype=AUDIO_MIMETYPES['{}'.format(destType)])
+        return Response(stream_with_context(generate(newFile, proc)), mimetype=AUDIO_MIMETYPES['{}'.format(destType)], headers=headers)
 
     #no transcoding, just streaming if audio is already in a streamable format
     elif ext in STREAM_FORMAT:
         data = GLOBAL_SETTINGS['MusicListClass'].get_file_metadata(newFile)
+        headers = makeRangeHeader(data)
         def generate():
             file = open(newFile, 'rb')
-            offset = float(request.args.get('offset') or 0)
-            file.seek(int(offset / float(data['length']) * data['size']), 0)
             while True:
                 chunk = file.read(GLOBAL_SETTINGS["stream-chunk"])
                 if chunk:
@@ -513,7 +540,7 @@ def serving(filename):
             file.close()
 
         sendtype=AUDIO_MIMETYPES['{}'.format(ext)]
-        return Response(stream_with_context(generate()), mimetype=sendtype)
+        return Response(stream_with_context(generate()), mimetype=sendtype, headers=headers)
 
     #for whatever isn't an audio file
     return send_file(newFile)
