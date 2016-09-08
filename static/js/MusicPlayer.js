@@ -614,6 +614,8 @@ MusicLibrary.prototype.init = function() {
   this.audioDiv.onended = function() {
     if (self.streaming && self.audioDiv.src.length > 0) self.nextSong();
   }
+  this.audioDiv.onseeking = function() { self.evtSys.dispatchEvent("loading"); }
+  this.audioDiv.onseeked = function() { self.evtSys.dispatchEvent("loading done"); }
   document.body.appendChild(this.audioDiv);
   
   var style = window.getComputedStyle(document.body);
