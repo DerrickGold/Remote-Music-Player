@@ -19,24 +19,24 @@ MediaButtons = function(evtSys, mediaLibrary) {
   var playPauseBtn = document.getElementById("media-btn-play");
   playPauseBtn.onclick = function() {
 
-  if (!self.mediaLibrary.curTrackInfo) {
-    var track = self.mediaLibrary.getRandomTrack();
-    self.mediaLibrary.playSong(track, 0);
-    return;
+		if (!self.mediaLibrary.curTrackInfo) {
+			var track = self.mediaLibrary.getRandomTrack();
+			self.mediaLibrary.playSong(track, 0);
+			return;
+		}
+
+		if (self.currentState == PlayBackStates["PAUSED"] ||
+				self.currentState == PlayBackStates["STOPPED"])
+			self.mediaLibrary.unpauseSong();
+		else
+			self.mediaLibrary.pauseSong();
   }
 
-  if (self.currentState == PlayBackStates["PAUSED"] ||
-    self.currentState == PlayBackStates["STOPPED"])
-    self.mediaLibrary.unpauseSong();
-  else
-    self.mediaLibrary.pauseSong();
-  }
-
-/*  var speakerBtn = document.getElementById("media-btn-speaker");
-  speakerBtn.onclick = function() {
-  self.mediaLibrary.swapOutput();
-  }
-*/
+	/*  var speakerBtn = document.getElementById("media-btn-speaker");
+			speakerBtn.onclick = function() {
+			self.mediaLibrary.swapOutput();
+			}
+	*/
   var nowPlayingBtn = document.getElementById("media-btn-exit");
   nowPlayingBtn.onclick = function(e) {
     e.stopPropagation();
@@ -44,7 +44,7 @@ MediaButtons = function(evtSys, mediaLibrary) {
   }
 
   var nextBtn = document.getElementById("media-btn-next");
-    nextBtn.onclick = function() {
+  nextBtn.onclick = function() {
     self.mediaLibrary.nextSong();
   }
 
@@ -54,7 +54,7 @@ MediaButtons = function(evtSys, mediaLibrary) {
   }
 
   var shuffleBtn = document.getElementById("media-btn-shuffle");
-    shuffleBtn.onclick = function() {
+  shuffleBtn.onclick = function() {
     self.mediaLibrary.shuffle = !self.mediaLibrary.shuffle;
     shuffleBtn.classList.toggle("active");
   }

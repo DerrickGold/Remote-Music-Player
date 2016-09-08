@@ -238,23 +238,23 @@ MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
 }
 
 MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
-    if (track === undefined) track = this.curTrackInfo;
+  if (track === undefined) track = this.curTrackInfo;
   //first check if item is not already in viewport before scrolling
   var trackDiv = document.getElementById(track.id);
   var inView = false;
   if (trackDiv) {
     var trackDivBox = trackDiv.getBoundingClientRect();
     inView = (trackDivBox.top >= 0 && trackDivBox.left >= 0 &&
-          trackDivBox.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-          trackDivBox.right <= (window.innerWidth || document.documentElement.clientWidth));
+              trackDivBox.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+              trackDivBox.right <= (window.innerWidth || document.documentElement.clientWidth));
     //check if folder is open too
     var trackFolder = document.getElementById(this.getFolderCollapseId(track.parent));
     if (trackFolder) inView = (inView && trackFolder.classList.contains("in"));
   }
   var nodes = this.reverseTrackHashLookup(track).reverse();
   var lastDiv = null;
-    var self = this, lastDiv = null;
-    this.chunking(nodes, function(curNode) {
+  var self = this, lastDiv = null;
+  this.chunking(nodes, function(curNode) {
     var id = curNode;
     if (self.mediaHash[id].parent == ".") return;
     if (self.mediaHash[id].directory) {
@@ -263,11 +263,11 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
       self.setFolderView(lastDiv, "open");
     } else
       lastDiv = document.getElementById(id);
-    }, function() {
-        if (inView || !lastDiv) return;
-        lastDiv.scrollIntoView(true);
-        window.scrollBy(0, -self.navbarOffset);
-    });
+  }, function() {
+    if (inView || !lastDiv) return;
+    lastDiv.scrollIntoView(true);
+    window.scrollBy(0, -self.navbarOffset);
+  });
 }
 
 MusicLibrary.prototype.chunking = function(library, cb, donecb) {
@@ -310,12 +310,12 @@ MusicLibrary.prototype.showSearch = function(keyword) {
           var skipEntry = false;
           var checkExcluded = nodes.slice(0).reverse();
           while (checkExcluded.length > 0) {
-          var id = checkExcluded.pop();
-          if (self.mediaHash[id]._exclude) {
-            skipEntry = true;
-            delete data[id];
-            break;
-          }
+            var id = checkExcluded.pop();
+            if (self.mediaHash[id]._exclude) {
+              skipEntry = true;
+              delete data[id];
+              break;
+            }
           }
           if (skipEntry) return;
           while(nodes.length > 0) {
@@ -402,8 +402,8 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
     lastPlayed.classList.remove('playing-entry');
   }
   this.curTrackInfo = songEntry;
-	var nowplaying = document.getElementById(this.curTrackInfo.id);
-	nowplaying.classList.add('playing-entry');
+  var nowplaying = document.getElementById(this.curTrackInfo.id);
+  nowplaying.classList.add('playing-entry');
   //this.openFileDisplayToTrack(songEntry);
   var self = this;
   if (!this.streaming) {
@@ -428,7 +428,7 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
       var transcodeOptions = document.getElementById("transcoding-option");
       var transcode = transcodeOptions.options[transcodeOptions.selectedIndex].value;
       var srcURL = trackData.path + "/" + trackData.name + "?format="+ fmt +
-        "&quality=" + quality + "&transcode=" + transcode;
+          "&quality=" + quality + "&transcode=" + transcode;
 
       self.audioDiv.src = encodeURI(srcURL);
       self.audioDiv.play();
@@ -494,9 +494,9 @@ MusicLibrary.prototype.nextSong = function() {
     var position = 0;
     for(; position < directory.children.length; position++) {
       if (directory.children[position].id == lastDir) {
-				found = true;
-				break;
-			}
+        found = true;
+        break;
+      }
     }
     if (found) position++;
     else position = 0;
@@ -512,7 +512,7 @@ MusicLibrary.prototype.nextSong = function() {
     while (nextTrack.directory) nextTrack = nextTrack.children[0];
     //otherwise, play the next song
     this.playSong(nextTrack, 0);
-		break;
+    break;
   }
 }
 
@@ -528,8 +528,8 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
   document.getElementById("curinfo-path").innerHTML = this.curTrackInfo.path;
   this.apiCall("/api/files/"+ this.curTrackInfo.id + "/data", "GET", true, function(resp) {
     var data = JSON.parse(resp),
-      infoStr = '',
-      title = data.title.length > 0 ? data.title : self.curTrackInfo.name;
+        infoStr = '',
+        title = data.title.length > 0 ? data.title : self.curTrackInfo.name;
 
     document.getElementById("curinfo-track").innerHTML = title;
     document.title = title;
@@ -567,7 +567,7 @@ MusicLibrary.prototype.mouseDivOffset = function(el, mouseevent) {
       box = el.getBoundingClientRect(),
       scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop,
       scrollLeft = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft,
-  	  clientTop = document.documentElement.clientTop || document.body.clientTop || 0,
+      clientTop = document.documentElement.clientTop || document.body.clientTop || 0,
       clientLeft = document.documentElement.clientLeft || document.body.clientLeft || 0,
       divYLoc = box.top + scrollTop - clientTop,
       divXLoc = box.left + scrollLeft - clientLeft;
@@ -624,7 +624,7 @@ MusicLibrary.prototype.init = function() {
   curInfo.addEventListener("click", function(e) {
     e.preventDefault();
     self.openFileDisplayToTrack(self.curTrackInfo);
-		self.toggleNowPlaying(false, true);
+    self.toggleNowPlaying(false, true);
   });
 
   this.evtSys.registerEvent('media state change');
