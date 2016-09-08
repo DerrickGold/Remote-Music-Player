@@ -19,24 +19,24 @@ MediaButtons = function(evtSys, mediaLibrary) {
   var playPauseBtn = document.getElementById("media-btn-play");
   playPauseBtn.onclick = function() {
 
-		if (!self.mediaLibrary.curTrackInfo) {
-			var track = self.mediaLibrary.getRandomTrack();
-			self.mediaLibrary.playSong(track, 0);
-			return;
-		}
+    if (!self.mediaLibrary.curTrackInfo) {
+      var track = self.mediaLibrary.getRandomTrack();
+      self.mediaLibrary.playSong(track, 0);
+      return;
+    }
 
-		if (self.currentState == PlayBackStates["PAUSED"] ||
-				self.currentState == PlayBackStates["STOPPED"])
-			self.mediaLibrary.unpauseSong();
-		else
-			self.mediaLibrary.pauseSong();
+    if (self.currentState == PlayBackStates["PAUSED"] ||
+        self.currentState == PlayBackStates["STOPPED"])
+      self.mediaLibrary.unpauseSong();
+    else
+      self.mediaLibrary.pauseSong();
   }
 
-	/*  var speakerBtn = document.getElementById("media-btn-speaker");
-			speakerBtn.onclick = function() {
-			self.mediaLibrary.swapOutput();
-			}
-	*/
+  /*  var speakerBtn = document.getElementById("media-btn-speaker");
+      speakerBtn.onclick = function() {
+      self.mediaLibrary.swapOutput();
+      }
+  */
   var nowPlayingBtn = document.getElementById("media-btn-exit");
   nowPlayingBtn.onclick = function(e) {
     e.stopPropagation();
@@ -80,12 +80,12 @@ MediaButtons = function(evtSys, mediaLibrary) {
   var scrubbox = document.getElementById("scrub-box");
   scrubbox.onmousedown = function(e) {
     //self.isScrubbing = true;
-		self.mediaLibrary.scrubStart();
+    self.mediaLibrary.scrubStart();
     e.preventDefault();
     e.stopPropagation();
   }
   document.addEventListener("mouseup", function(e) {
-		self.mediaLibrary.scrubEnd();
+    self.mediaLibrary.scrubEnd();
   });
   document.addEventListener("mousemove", function(e) {           
     if (!self.mediaLibrary.isScrubbing) return;
@@ -94,7 +94,7 @@ MediaButtons = function(evtSys, mediaLibrary) {
     self.mediaLibrary.scrub(scrubbox, e);
   });
   scrubbox.onclick = function(e) { self.mediaLibrary.scrub(scrubbox, e); }
-	
+  
   //add keyboard bindings
   document.body.addEventListener("keypress", function(e) {
     switch (e.key) {
