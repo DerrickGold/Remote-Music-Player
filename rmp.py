@@ -35,7 +35,8 @@ GLOBAL_SETTINGS = {
 
 AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac", ".aiff"]
 TRANSCODE_FROM = ["aac", "wav", "flac", "m4a", "aiff"]
-STREAM_FORMAT = ["mp3", "wav", "ogg"]
+#STREAM_FORMAT = ["mp3", "wav", "ogg"]
+STREAM_FORMAT = ["mp3", "wav"]
 STREAM_QUALITY = {
     'mp3': ["32k", "48k", "64k", "96k", "128k", "144k", "160k", "192k", "224k", "256k", "320k"],
     'wav': ["11025", "22050", "44100", "48000", "96000"],
