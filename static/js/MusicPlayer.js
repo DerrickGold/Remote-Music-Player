@@ -33,7 +33,7 @@ MusicLibrary.prototype.getFolderCollapseId = function(directoryID) {
 MusicLibrary.prototype.getRandomTrack = function() {
   var allFiles = Object.keys(this.mediaHash), index = -1;
   while (index < 0 || this.mediaHash[allFiles[index]].directory)
-    index = Math.floor((Math.random() * allFiles.length));
+    index = Math.floor((Math.random() * 17435609119)) % allFiles.length;
   return this.mediaHash[allFiles[index]];
 }
 
