@@ -28,7 +28,7 @@ GLOBAL_SETTINGS = {
     'MusicListClass': None,
     'max-transcodes': 4,
     'stream-format': 'mp3',
-#    'ffmpeg-flags': ["ffmpeg", "-y", "-hide_banner", "-loglevel", "panic"]
+    #    'ffmpeg-flags': ["ffmpeg", "-y", "-hide_banner", "-loglevel", "panic"]
     'ffmpeg-flags': ["ffmpeg", "-y"],
     'stream-chunk': 1024 * 512
 }
@@ -43,9 +43,9 @@ STREAM_QUALITY = {
     'ogg': ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 }
 TRANSCODE_CMD = {
-    'mp3':["-i", "{infile}", "-vn", "-ar", "44100", "-ac" , "2", "-ab", "{quality}", "-f", "mp3", "{outfile}"],
-    'wav':["-i", "{infile}", "-vn", "-acodec", "pcm_s16le", "-ar", "{quality}", "-f", "wav", "{outfile}"],
-    'ogg':["-i", "{infile}", "-vn", "-c:a", "libvorbis", "-q:a", "{quality}", "-f", "ogg", "{outfile}"]
+    'mp3': ["-i", "{infile}", "-vn", "-ar", "44100", "-ac", "2", "-ab", "{quality}", "-f", "mp3", "{outfile}"],
+    'wav': ["-i", "{infile}", "-vn", "-acodec", "pcm_s16le", "-ar", "{quality}", "-f", "wav", "{outfile}"],
+    'ogg': ["-i", "{infile}", "-vn", "-c:a", "libvorbis", "-q:a", "{quality}", "-f", "ogg", "{outfile}"]
 }
 AUDIO_MIMETYPES = {
     'mp3': 'audio/mpeg',
@@ -54,10 +54,8 @@ AUDIO_MIMETYPES = {
 }
 
 
-
 def make_file(path, name, directory=False, parent=None):
     return {'path': path, 'name': name, 'directory': directory, 'id': str(uuid.uuid4()), 'children': [], 'parent': parent}
-
 
 
 def dircmp(a, b):
@@ -71,16 +69,15 @@ def dircmp(a, b):
         return 1
 
     return 0
-            
 
 
-            
 def cmp_to_key(comparator):
     'Convert a cmp= function into a key= function'
     class K(object):
+
         def __init__(self, obj, *args):
             self.obj = obj
-            
+
         def __lt__(self, other):
             return comparator(self.obj, other.obj) < 0
 
@@ -89,7 +86,7 @@ def cmp_to_key(comparator):
 
         def __eq__(self, other):
             return comparator(self.obj, other.obj) == 0
-        
+
         def __le__(self, other):
             return comparator(self.obj, other.obj) <= 0
 
@@ -100,19 +97,18 @@ def cmp_to_key(comparator):
             return comparator(self.obj, other.obj) != 0
 
     return K
-    
 
 
 def scan_directory(path, name='.', parent='.'):
     fileMapping = {}
     node = make_file(path, name, True, parent)
     fileMapping[str(node['id'])] = node
-    
+
     for root, dirs, files in os.walk(os.path.normpath(os.path.join(path, name))):
         newDirs = list(dirs)
         del(dirs[:])
         for file in files:
-            ext =  os.path.splitext(file)
+            ext = os.path.splitext(file)
             if file[0] != '.' and ext[1] in AUDIO_EXT:
                 newFile = make_file(root, file, False, node['id'])
                 node['children'].append(newFile)
@@ -126,37 +122,41 @@ def scan_directory(path, name='.', parent='.'):
 
         #node['children'] = sorted(node['children'], key=lambda k: k['name'])
         node['children'] = sorted(node['children'], key=cmp_to_key(dircmp))
-        
+
     return node, fileMapping
 
+
 def guessTranscodedSize(codec, quality, metadata):
-    #currently assumes all audio will end up as stereo output
+    # currently assumes all audio will end up as stereo output
     quality = re.findall('\d+', quality)[0]
 
     if codec == "wav":
-        #frequncy * bitdepth (16 bits = 2 bytes) * num of channels (2 = stereo) * length (seconds)
+        # frequncy * bitdepth (16 bits = 2 bytes) * num of channels (2 =
+        # stereo) * length (seconds)
         metadata['size'] = int(quality) * 4 * int(float(metadata['length']))
     elif codec == "mp3":
-        #bitrate (kilobits) * 8 to convert to kilobytes * length (seconds)
+        # bitrate (kilobits) * 8 to convert to kilobytes * length (seconds)
         metadata['size'] = int(quality) * 128 * int(float(metadata['length']))
 
     print(metadata)
-    
+
+
 def makeRangeHeader(metadata):
     begin = 0
     end = metadata['size']
     headers = Headers()
     if request.headers.has_key("Range"):
-        headers.add('Accept-Ranges', 'bytes');
+        headers.add('Accept-Ranges', 'bytes')
         ranges = re.findall(r"\d+", request.headers["Range"])
-        begin  = int( ranges[0] )
-        if len(ranges)>1:
-            end = int( ranges[1] )
-        headers.add('Content-Range','bytes %s-%s/%s' % (str(begin),str(end),str(end-begin)) )
+        begin = int(ranges[0])
+        if len(ranges) > 1:
+            end = int(ranges[1])
+        headers.add('Content-Range', 'bytes %s-%s/%s' %
+                    (str(begin), str(end), str(end - begin)))
 
-    headers.add('Content-Length',str((end-begin)+1))
+    headers.add('Content-Length', str((end - begin) + 1))
     return headers
-    
+
 
 class MPlayer:
 
@@ -168,14 +168,15 @@ class MPlayer:
             os.mkfifo(self.fifofile)
 
     def send_cmd(self, command, file=None):
-        if file is None: file = self.fifofile
+        if file is None:
+            file = self.fifofile
 
         with open(file, 'w') as fp:
             fp.write(str(command) + '\n')
 
-
     def mplayer_params(self, track, seek):
-        defaults = ['mplayer', '-slave', '-input', 'file={}'.format(self.fifofile),'-ss', seek, track]
+        defaults = ['mplayer', '-slave', '-input',
+                    'file={}'.format(self.fifofile), '-ss', seek, track]
 
         if not GLOBAL_SETTINGS['debug-out']:
             defaults.extend(['-really-quiet'])
@@ -188,10 +189,8 @@ class MPlayer:
             regex = '^{}'.format(respHeader)
             m = re.search(regex, l)
             if m:
-                return l.replace(respHeader+'=', '').strip().replace("'", '')
+                return l.replace(respHeader + '=', '').strip().replace("'", '')
 
-            
-            
     def kill(self):
         if not self.is_running():
             return
@@ -201,23 +200,23 @@ class MPlayer:
         self.process = None
 
     def is_running(self):
-        if self.process is None: return False
-        return self.process.poll() ==  None
+        if self.process is None:
+            return False
+        return self.process.poll() == None
 
     def mute(self):
         self.send_cmd('mute')
 
     def play(self, filepath, seek=0):
         self.kill()
-        self.process = subprocess.Popen(self.mplayer_params(filepath,seek), stdout=subprocess.PIPE, universal_newlines=True)
-        
+        self.process = subprocess.Popen(self.mplayer_params(
+            filepath, seek), stdout=subprocess.PIPE, universal_newlines=True)
 
     def pause(self):
         self.send_cmd('pause')
 
     def stop(self):
         self.kill()
-
 
     def get_info(self, info):
 
@@ -227,19 +226,14 @@ class MPlayer:
             'get_meta_title': 'ANS_META_TITLE',
             'get_meta_genre': 'ANS_META_GENRE',
             'get_time_pos': 'ANS_TIME_POSITION',
-            }
+        }
 
         self.send_cmd(info)
         return self.get_mplayer_response(tags[info])
-        
+
     def get_playing_track_info(self):
         return {'pos': self.get_info('get_time_pos')}
 
-
-
-                
-
-        
 
 class MusicList:
 
@@ -255,7 +249,6 @@ class MusicList:
     def generate_music_list(self, musicRoot, outputFile=None):
         self.files, self.mapping = scan_directory(musicRoot)
 
-
     def get_file(self, identifier):
         if not identifier in self.mapping:
             logging.debug('Track number {} does not exist'.format(identifier))
@@ -266,10 +259,11 @@ class MusicList:
         parent = self.mapping[currentFile['parent']]
         if not parent:
             return None
-        
-        index = next((i for i, file in enumerate(parent['children']) if file['id'] == currentFile['id']), None)
+
+        index = next((i for i, file in enumerate(parent['children']) if file[
+                     'id'] == currentFile['id']), None)
         return parent, index
-    
+
     def get_next_file(self, currentFile):
         if not currentFile or not currentFile['parent'] or currentFile['parent'] not in self.mapping:
             return None
@@ -278,7 +272,6 @@ class MusicList:
         index = (index + 1) % len(parent['children'])
         return parent['children'][index]
 
-
     def get_file_metadata(self, path):
         response = {'artist': '', 'album': '', 'title': '', 'genre': ''}
         logging.debug("Getting metadata")
@@ -286,7 +279,7 @@ class MusicList:
         args.extend(['-i', path, '-f', 'ffmetadata', '-'])
 
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
-        output = process.communicate();
+        output = process.communicate()
 
         data = output[0].decode().splitlines()
         data.sort()
@@ -296,9 +289,8 @@ class MusicList:
             if len(info) > 1:
                 response[info[0]] = info[1]
 
-
-        #get track length
-        args = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", \
+        # get track length
+        args = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of",
                 "default=noprint_wrappers=1:nokey=1", path]
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         output = process.communicate()
@@ -316,7 +308,6 @@ class MusicList:
         path = os.path.join(file['path'], file['name'])
         return self.get_file_metadata(path)
 
-
     def search_media(self, key):
 
         key = key.lower()
@@ -325,13 +316,12 @@ class MusicList:
         for k, value in self.mapping.items():
             if not value['directory'] and key in value['name'].lower():
                 response['{}'.format(value['id'])] = 1
-                #response['results'].append(k)
+                # response['results'].append(k)
 
         return response
 
     def is_transcoding(self, id):
         return self.transcodeProcess[id].poll()
-
 
     def transcode_audio(self, path, quality=None, fmt=None, offset=None):
 
@@ -339,23 +329,25 @@ class MusicList:
             fmt = GLOBAL_SETTINGS['stream-format']
 
         if quality is None or quality.lower() not in STREAM_QUALITY['{}'.format(fmt)]:
-            selections = STREAM_QUALITY["{}".format(GLOBAL_SETTINGS['stream-format'])]
-            quality = selections[len(selections)//2]
+            selections = STREAM_QUALITY[
+                "{}".format(GLOBAL_SETTINGS['stream-format'])]
+            quality = selections[len(selections) // 2]
 
-
-        self.transcodeID = (self.transcodeID + 1) % GLOBAL_SETTINGS['max-transcodes']
+        self.transcodeID = (self.transcodeID +
+                            1) % GLOBAL_SETTINGS['max-transcodes']
         proc = self.transcodeProcess[self.transcodeID]
 
         if proc is not None and proc.poll():
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
 
         ext = os.path.splitext(path)
-        outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "transcoded{}.audio".format(self.transcodeID))
+        outfile = os.path.join(
+            GLOBAL_SETTINGS["cache-dir"], "transcoded{}.audio".format(self.transcodeID))
 
         args = list(GLOBAL_SETTINGS['ffmpeg-flags'])
         args.extend(TRANSCODE_CMD['{}'.format(fmt)])
 
-        args[args.index("{infile}")] =  path
+        args[args.index("{infile}")] = path
         args[args.index("{quality}")] = quality
         args[args.index("{outfile}")] = outfile
 
@@ -380,14 +372,15 @@ class MusicList:
         return outfile, coverProc.returncode
 
 
-
 '''
 Program Entry
 '''
 
+
 def play_file(file, offset):
     GLOBAL_SETTINGS['MusicListClass'].currentFile = file
-    GLOBAL_SETTINGS['MPlayerClass'].play(os.path.join(file['path'], file['name']), offset)
+    GLOBAL_SETTINGS['MPlayerClass'].play(
+        os.path.join(file['path'], file['name']), offset)
 
 
 @app.route('/api/commands/pause', methods=['POST'])
@@ -395,10 +388,12 @@ def pause():
     GLOBAL_SETTINGS['MPlayerClass'].pause()
     return '', 200
 
+
 @app.route('/api/commands/stop', methods=['POST'])
 def stop():
     GLOBAL_SETTINGS['MPlayerClass'].stop()
     return '', 200
+
 
 @app.route('/api/commands/info', methods=['POST'])
 def get_info():
@@ -413,6 +408,7 @@ def get_quality():
     }
     return jsonify(**response)
 
+
 @app.route('/api/files')
 def files():
     obj = {
@@ -421,14 +417,14 @@ def files():
     }
     return jsonify(**obj)
 
+
 @app.route('/api/files/search/<string:keyword>')
 def search(keyword):
     keyword = keyword.strip()
     if len(keyword) <= 0:
         return '', 400
-    
-    return jsonify(**GLOBAL_SETTINGS["MusicListClass"].search_media(keyword))
 
+    return jsonify(**GLOBAL_SETTINGS["MusicListClass"].search_media(keyword))
 
 
 @app.route('/api/files/<string:identifier>')
@@ -444,7 +440,7 @@ def get_cover(identifier):
 
     file = GLOBAL_SETTINGS['MusicListClass'].get_file(identifier)
     filepath = os.path.join(file['path'], file['name'])
-    
+
     path, code = GLOBAL_SETTINGS['MusicListClass'].extract_album_art(filepath)
     response = {
         'code': code,
@@ -461,14 +457,15 @@ def play(identifier):
     if not file:
         return '', 400
 
-
     play_file(file, offset)
     return '', 200
+
 
 @app.route('/api/files/<string:identifier>/data')
 def metadata(identifier):
     data = GLOBAL_SETTINGS['MusicListClass'].get_audio_metadata(identifier)
     return jsonify(**data)
+
 
 @app.route('/<path:filename>')
 def serving(filename):
@@ -482,16 +479,15 @@ def serving(filename):
     else:
         destType = GLOBAL_SETTINGS['stream-format']
 
-
-
-    #allow user to force transcode all audio regardless if its already supported or not
+    # allow user to force transcode all audio regardless if its already
+    # supported or not
     doTranscode = request.args.get('transcode')
     if doTranscode is not None:
         doTranscode = (doTranscode.lower() == 'true')
     else:
         doTranscode = False
 
-    #allow user to adjust quality of streaming
+    # allow user to adjust quality of streaming
     quality = request.args.get('quality')
 
     logging.info("TRANSCODE OPTION: {}".format(doTranscode))
@@ -503,19 +499,22 @@ def serving(filename):
         data = GLOBAL_SETTINGS['MusicListClass'].get_file_metadata(newFile)
         guessTranscodedSize(destType, quality, data)
         headers = makeRangeHeader(data)
-        newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(filename, quality, destType, offset=request.args.get('offset'))
-        #give ffmpeg some time to start transcoding
+        newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(
+            filename, quality, destType, offset=request.args.get('offset'))
+        # give ffmpeg some time to start transcoding
         time.sleep(1)
+
         @stream_with_context
         def generate(inFile, ffmpegProc):
             file = open(inFile, 'rb')
-            doneTranscode = False;
+            doneTranscode = False
             while True:
                 chunk = file.read(GLOBAL_SETTINGS["stream-chunk"])
                 if len(chunk) > 0:
                     yield chunk
 
-                #if no bytes were read, check if transcoding is still happening
+                # if no bytes were read, check if transcoding is still
+                # happening
                 doneTranscode = ffmpegProc.poll() is not None
                 if len(chunk) == 0 and doneTranscode:
                     break
@@ -526,10 +525,11 @@ def serving(filename):
 
         return Response(stream_with_context(generate(newFile, proc)), mimetype=AUDIO_MIMETYPES['{}'.format(destType)], headers=headers)
 
-    #no transcoding, just streaming if audio is already in a streamable format
+    # no transcoding, just streaming if audio is already in a streamable format
     elif ext in STREAM_FORMAT:
         data = GLOBAL_SETTINGS['MusicListClass'].get_file_metadata(newFile)
         headers = makeRangeHeader(data)
+
         def generate():
             file = open(newFile, 'rb')
             while True:
@@ -540,17 +540,17 @@ def serving(filename):
                     break
             file.close()
 
-        sendtype=AUDIO_MIMETYPES['{}'.format(ext)]
+        sendtype = AUDIO_MIMETYPES['{}'.format(ext)]
         return Response(stream_with_context(generate()), mimetype=sendtype, headers=headers)
 
-    #for whatever isn't an audio file
+    # for whatever isn't an audio file
     return send_file(newFile)
-
 
 
 @app.route('/')
 def togui():
     return redirect(url_for('index'))
+
 
 @app.route('/gui')
 def index():
@@ -558,12 +558,9 @@ def index():
     return render_template('index.html', enableStream=doStream)
 
 
-
-
-
 def args():
 
-    #get port number
+    # get port number
     try:
         idx = sys.argv.index('-p')
         if idx + 1 < len(sys.argv):
@@ -572,7 +569,8 @@ def args():
             logging.error("Missing port value!")
             exit(1)
     except:
-        logging.info("Using default port: {}".format(GLOBAL_SETTINGS['server-port']))
+        logging.info("Using default port: {}".format(
+            GLOBAL_SETTINGS['server-port']))
 
     GLOBAL_SETTINGS['music-dir'] = sys.argv[-1]
 
@@ -581,14 +579,14 @@ def main():
     args()
     GLOBAL_SETTINGS['MPlayerClass'] = MPlayer()
     GLOBAL_SETTINGS['MusicListClass'] = MusicList(GLOBAL_SETTINGS['music-dir'])
-    GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
+    GLOBAL_SETTINGS[
+        'running-dir'] = os.path.dirname(os.path.realpath(__file__))
 
     try:
         os.stat(GLOBAL_SETTINGS["cache-dir"])
     except:
         os.mkdir(GLOBAL_SETTINGS["cache-dir"])
 
-                
     app.run(host='0.0.0.0', threaded=True, port=GLOBAL_SETTINGS['server-port'])
 
 if __name__ == '__main__':
