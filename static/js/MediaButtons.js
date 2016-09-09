@@ -94,11 +94,13 @@ MediaButtons = function(evtSys, mediaLibrary) {
     self.mediaLibrary.scrub(scrubbox, e);
   });
   scrubbox.onclick = function(e) { self.mediaLibrary.scrub(scrubbox, e); }
-  
   //add keyboard bindings
-  document.body.addEventListener("keypress", function(e) {
+  document.addEventListener("keypress", function(e) {
     switch (e.key) {
-    case ' ': playPauseBtn.click(); break;
+    case ' ':
+      e.preventDefault();
+      playPauseBtn.click();
+      break;
     case 'b': nextBtn.click(); break;
     case 'z': prevBtn.click(); break;
     case 's': shuffleBtn.click(); break;
