@@ -106,6 +106,7 @@ MediaButtons = function(evtSys, mediaLibrary) {
     case 's': shuffleBtn.click(); break;
     case 'i': nowPlayingBtn.click(); break;
     case 'f': self.mediaLibrary.openFileDisplayToTrack(); break;
+		case '/': document.getElementById("search-txt").focus(); break;
     default: break;
     }
   });
