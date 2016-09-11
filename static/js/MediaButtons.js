@@ -3,7 +3,6 @@ MediaButtons = function(evtSys, mediaLibrary) {
   this.mediaLibrary = mediaLibrary;
   this.currentState = null;
   this.evtSys = evtSys;
-
   var updatePlayPauseBtn = function(newState) {
     self.currentState = newState;
     var icon = document.getElementById("media-btn-play-icon");
@@ -106,8 +105,9 @@ MediaButtons = function(evtSys, mediaLibrary) {
     case 's': shuffleBtn.click(); break;
     case 'i': nowPlayingBtn.click(); break;
     case 'f': self.mediaLibrary.openFileDisplayToTrack(); break;
-		case '/': document.getElementById("search-txt").focus(); break;
+    case '/': document.getElementById("search-txt").focus(); break;
     default: break;
     }
   });
 }
+
