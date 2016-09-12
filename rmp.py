@@ -291,7 +291,7 @@ class MusicList:
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         output = process.communicate()
 
-        data = output[0].decode().splitlines()
+        data = output[0].decode('unicode-escape').splitlines()
         data.sort()
 
         for l in data:
