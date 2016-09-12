@@ -34,6 +34,7 @@ GLOBAL_SETTINGS = {
 }
 
 AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac", ".aiff"]
+COVER_EXT = [".jpg", ".png", ".bmp"]
 TRANSCODE_FROM = ["aac", "wav", "flac", "m4a", "aiff"]
 #STREAM_FORMAT = ["mp3", "wav", "ogg"]
 STREAM_FORMAT = ["mp3", "wav"]
@@ -113,12 +114,21 @@ def scan_directory(path, name='.', parent='.'):
                 newFile = make_file(root, file, False, node['id'])
                 node['children'].append(newFile)
                 fileMapping[newFile['id']] = newFile
+            elif file[0] != '.' and ext[1] in COVER_EXT:
+                if 'covers' not in node: node['covers'] = []
+                node['covers'].append(file)
 
         for d in newDirs:
             childNodes, childFiles = scan_directory(root, d, node['id'])
             if len(childFiles) > 1:
                 node['children'].append(childNodes)
                 fileMapping.update(childFiles)
+            elif 'covers' in childNodes:
+                for i, cover in enumerate(childNodes['covers']):
+                    childNodes['covers'][i] = d + '/' + cover
+                    
+                if 'covers' not in node: node['covers'] = []
+                node['covers'].extend(childNodes['covers'])
 
         #node['children'] = sorted(node['children'], key=lambda k: k['name'])
         node['children'] = sorted(node['children'], key=cmp_to_key(dircmp))
@@ -523,7 +533,8 @@ def serving(filename):
 
             file.close()
 
-        return Response(stream_with_context(generate(newFile, proc)), mimetype=AUDIO_MIMETYPES['{}'.format(destType)], headers=headers)
+        sendtype = AUDIO_MIMETYPES['{}'.format(destType)]
+        return Response(stream_with_context(generate(newFile, proc)), mimetype=sendtype, headers=headers)
 
     # no transcoding, just streaming if audio is already in a streamable format
     elif ext in STREAM_FORMAT:

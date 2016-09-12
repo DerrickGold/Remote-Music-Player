@@ -523,6 +523,12 @@ MusicLibrary.prototype.prevSong = function() {
   this.playSong(lastTrack, 0);
 }
 
+MusicLibrary.prototype.setCover = function(imgPath) {
+  var cover = document.querySelector('[role="album-art"]');
+  if (imgPath) cover.setAttribute("src", imgPath +  "?" + Math.floor(Math.random() * 10000000) + 1);
+  else cover.setAttribute("src", "static/img/default_album_art.png");
+}
+
 MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
   var self = this;
   document.getElementById("curinfo-path").innerHTML = this.curTrackInfo.path;
@@ -539,12 +545,23 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
     document.getElementById("curinfo-totaltime").innerHTML = self.secondsToMinutesStr(data["length"]);
     if (doneCb) doneCb(data);
   });
-  this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
-    var data = JSON.parse(resp);
-    var cover = document.querySelector('[role="album-art"]');
-    if (!data.code) cover.setAttribute("src", data.path + "?" + Math.floor(Math.random() * 10000000) + 1);
-    else cover.setAttribute("src", "static/img/default_album_art.png");
-  });
+  var folderParent = this.mediaHash[this.curTrackInfo.parent];
+  if ('covers' in folderParent) {
+    var useCover = null;
+    folderParent['covers'].forEach(function(c) {
+      var str = c.toLowerCase();
+      if (str.includes("front") || str.includes("cover") || str.includes("folder")) useCover = c;
+    });
+    if (!useCover) useCover = folderParent['covers'][0];
+    self.setCover(folderParent.path + '/' + folderParent.name + '/' + useCover);
+  } else {
+    this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
+      var data = JSON.parse(resp);
+      var cover = document.querySelector('[role="album-art"]');
+      if (!data.code) self.setCover(data.path);
+      else self.setCover();
+    });
+  }
 }
 
 MusicLibrary.prototype.updateQualitySelect = function(val) {
