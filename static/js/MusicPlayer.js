@@ -529,8 +529,10 @@ MusicLibrary.prototype.prevSong = function() {
 
 MusicLibrary.prototype.setCover = function(imgPath) {
   var cover = document.querySelector('[role="album-art"]');
-	imgPath = self.encodeURI(imgPath);
-  if (imgPath) cover.setAttribute("src", imgPath +  "?" + Math.floor(Math.random() * 10000000) + 1);
+  if (imgPath !== undefined) {
+		imgPath = self.encodeURI(imgPath);
+		cover.setAttribute("src", imgPath +  "?" + Math.floor(Math.random() * 10000000) + 1);
+	}
   else cover.setAttribute("src", "static/img/default_album_art.png");
 }
 
