@@ -164,7 +164,7 @@ def makeRangeHeader(metadata):
         headers.add('Content-Range', 'bytes %s-%s/%s' %
                     (str(begin), str(end), str(end - begin)))
 
-    headers.add('Content-Length', str((end - begin) + 1))
+    headers.add('Content-Length', str((end - begin)))
     return headers
 
 
