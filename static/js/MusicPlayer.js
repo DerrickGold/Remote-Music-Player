@@ -26,6 +26,10 @@ MusicLibrary = function(evtSys, doStreaming) {
   this.init();
 }
 
+MusicLibrary.prototype.encodeURI = function(uriIn) {
+	return encodeURI(uriIn).replace(/\(/g, "%28").replace(/\)/g, "%29");
+}
+
 MusicLibrary.prototype.getFolderCollapseId = function(directoryID) {
   return "collapse-" + directoryID;
 }
@@ -293,7 +297,8 @@ MusicLibrary.prototype.chunking = function(library, cb, donecb) {
 MusicLibrary.prototype.showSearch = function(keyword) {
   var self = this;
   keyword = keyword.replace(/^s+|\s+$/g, '');
-  keyword = keyword.replace(' ', '%20');
+  //keyword = keyword.replace(' ', '%20');
+	keyword = self.encodeURI(keyword)
   if (keyword.length <= 0) return;
   this.toggleNowPlaying(false, true);
   this.evtSys.dispatchEvent("loading");
@@ -427,10 +432,9 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
       var quality = streamOptions.options[streamOptions.selectedIndex].value;
       var transcodeOptions = document.getElementById("transcoding-option");
       var transcode = transcodeOptions.options[transcodeOptions.selectedIndex].value;
-      var srcURL = trackData.path + "/" + trackData.name + "?format="+ fmt +
-          "&quality=" + quality + "&transcode=" + transcode;
-
-      self.audioDiv.src = encodeURI(srcURL);
+			var srcURL = "api/files/" + trackData.id + "/stream?format=" + fmt +
+					"&quality=" + quality + "&transcode=" + transcode;
+      self.audioDiv.src = self.encodeURI(srcURL);
       self.audioDiv.play();
       var seekHandler = function(audio) {
         self.audioDiv.removeEventListener('canplay', seekHandler);
@@ -525,6 +529,7 @@ MusicLibrary.prototype.prevSong = function() {
 
 MusicLibrary.prototype.setCover = function(imgPath) {
   var cover = document.querySelector('[role="album-art"]');
+	imgPath = self.encodeURI(imgPath);
   if (imgPath) cover.setAttribute("src", imgPath +  "?" + Math.floor(Math.random() * 10000000) + 1);
   else cover.setAttribute("src", "static/img/default_album_art.png");
 }
@@ -560,7 +565,10 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
       var cover = document.querySelector('[role="album-art"]');
       if (!data.code) self.setCover(data.path);
       else self.setCover();
-    });
+    }, function() {
+			//error making cover request
+			self.setCover();
+		});
   }
 }
 

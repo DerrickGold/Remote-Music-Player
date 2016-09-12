@@ -479,8 +479,19 @@ def metadata(identifier):
 
 @app.route('/<path:filename>')
 def serving(filename):
+    # for whatever isn't an audio file
+    return send_file(filename)
 
+@app.route('/api/files/<string:identifier>/stream')
+def streamAudio(identifier):
+
+    file = GLOBAL_SETTINGS['MusicListClass'].get_file(identifier)
+    if not file:
+        return '', 400
+    
+    filename = os.path.join(file['path'], file['name'])
     logging.info("Serving file")
+    logging.info(filename)
     destType = request.args.get('format')
     if destType is not None:
         destType = destType.lower()
@@ -503,8 +514,9 @@ def serving(filename):
     logging.info("TRANSCODE OPTION: {}".format(doTranscode))
     logging.info("QUALITY OPTION: {}".format(quality))
 
-    newFile = filename
+    newFile = '{}'.format(filename)
     ext = os.path.splitext(filename)[1].lower()[1:]
+    print(newFile)
     if ext in TRANSCODE_FROM or doTranscode:
         data = GLOBAL_SETTINGS['MusicListClass'].get_file_metadata(newFile)
         guessTranscodedSize(destType, quality, data)
