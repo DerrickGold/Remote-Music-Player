@@ -45,14 +45,13 @@ MusicLibrary.prototype.getRootDirDiv = function() {
   return document.getElementById("dirlist");
 }
 
-MusicLibrary.prototype.toggleNowPlaying = function (open) {
-  var el = document.querySelector('[role="manager"]')
-  var cls = 'inactive'
-  if (typeof open == 'undefined') {
-    el.classList.toggle(cls)
-    return
-  }
-  el.classList.toggle(cls, open)
+MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {
+  var overlay = document.querySelector('[role="currently-playing"]');
+  var files = document.querySelector('[role="listroot"]');
+  if (forceClose || (!preventClose && overlay.classList.contains("visible")))
+    overlay.classList.remove("visible");
+  else
+    overlay.classList.add("visible");
 }
 
 MusicLibrary.prototype.getFiles = function() {
@@ -80,21 +79,18 @@ MusicLibrary.prototype.getPlaybackState = function() {
   return this.playbackState;
 }
 
-MusicLibrary.prototype.toggleFolder = function (container, open) {
-  var state = container.querySelector('[role="expand-state"]')
-  var body  = container.querySelector('[role="listing"]')
-  if (typeof open == 'undefined')
-    open = !body.classList.contains('closed')
-  else
-    open = !open
-  body.classList.toggle('closed', open)
-  state.classList.toggle('fa-caret-down', !open)
-  state.classList.toggle('fa-caret-right', open)
-}
-
 MusicLibrary.prototype.setFolderView = function(folderIdDiv, view) {
-  var folderNode = folderIdDiv.parentNode;
-  this.toggleFolder(folderIdDiv.parentNode, view == "open")
+  var folderNode = folderIdDiv;
+  var toggler = folderNode.querySelector('[role="button"]');
+  var collapser = folderNode.querySelector('[role="tabpanel"]');
+  var state = view === 'open' ? "true": "false";
+  toggler.setAttribute("aria-expanded", state);
+  collapser.setAttribute("aria-expanded", state);
+  if (view === "open") {
+    collapser.classList.add("in");
+    collapser.style.height = null;
+  } else 
+    collapser.classList.remove("in");
 }
 
 MusicLibrary.prototype.makeMediaLibHash = function(root) {
@@ -116,19 +112,18 @@ MusicLibrary.prototype.secondsToMinutesStr = function(time) {
 MusicLibrary.prototype.apiCall = function(route, method, async, successCb, errorCb) {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
-    if (xhttp.readyState == 4 && xhttp.status == 200) {
+    if (xhttp.readyState == 4 && xhttp.status == 200)
       if (successCb) successCb(xhttp.responseText);
-    } else if (xhttp.readyState == 4) {
+    else if (xhttp.readyState == 4)
       if (errorCb) errorCb(xhttp.responseText);
-    }
   }
   xhttp.open(method, route, async);
-  xhttp.send(); 
+  xhttp.send();
 }
 
 MusicLibrary.prototype.reverseTrackHashLookup = function(startNode) {
-  var findStack = [];
-  var curNode = startNode;
+  var findStack = [], curNode = startNode;
+  if (!curNode) return [];
   while(curNode.parent != ".") {
     findStack.push(curNode.id);
     curNode = this.mediaHash[curNode.parent]
@@ -137,79 +132,91 @@ MusicLibrary.prototype.reverseTrackHashLookup = function(startNode) {
   return findStack;
 }
 
+MusicLibrary.prototype.closeDirectory = function(folderDiv) {
+  if (folderDiv.classList && folderDiv.getAttribute('role') === "directory")
+    return this.closeDirectory(folderDiv.parentNode);
+  var x = folderDiv.querySelectorAll('[role="directory"]');
+  for (var i = 0; i < x.length; i++) {
+    x[i].classList.remove("hidden");
+    this.setFolderView(x[i], "close");
+  }
+}
+
 MusicLibrary.prototype.displayMakeExcludeButton = function(nodeID, container) {
-  var self = this
-  var icon = document.createElement("i");
-  icon.className = "fa fa-fw fa-check-square-o exclude-btn";
+  var self = this;
+  var icon = document.createElement("span");
+  icon.className = "glyphicon glyphicon-ban-circle exclude-btn";
   icon.setAttribute("aria-hidden", "true");
   icon.onclick = function(e) {
     e.preventDefault();
-    var aElm = container.getElementsByTagName("a");
-    var state = !self.mediaHash[nodeID]._exclude
-    self.mediaHash[nodeID]._exclude = state
-    icon.classList.toggle('fa-check-square-o', !state)
-    icon.classList.toggle('fa-square-o', state)
-    container.classList.toggle("disabled", state);
-    if (state) self.toggleFolder(container.parentElement, false)
+    var aElm = container.querySelector('[role="button"]');
+    self.mediaHash[nodeID]._exclude = !self.mediaHash[nodeID]._exclude;
+    if (self.mediaHash[nodeID]._exclude) {
+      aElm.classList.add("disabled-folder");
+      self.closeDirectory(container.parentNode);
+    } else
+      aElm.classList.remove("disabled-folder");
   }
   return icon;
 }
 
 MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth) {
-  // TODO use template...
-  var header = document.createElement("p");
-  header.id = folderEntry.id;
-  header.setAttribute("role", "tab");
+  var panelBody = null;
+  var panel = null;
+  var panelHeader = document.createElement("div");
+  panelHeader.classList.add("folder-heading");
+  panelHeader.setAttribute("role", "tab");
+  var excludeBtn = this.displayMakeExcludeButton(folderEntry.id, panelHeader);
+  panelHeader.appendChild(excludeBtn);
 
-  var excludeBtn = this.displayMakeExcludeButton(header);
-  header.appendChild(excludeBtn);
-
-  var icon = document.createElement("i");
-  icon.className = "fa fa-fw fa-caret-right expand-state";
+  var icon = document.createElement("span");
+  icon.className = "glyphicon glyphicon-folder-close";
   icon.setAttribute("aria-hidden", "true");
-  icon.setAttribute("role", "expand-state")
-  header.appendChild(icon);
+  panelHeader.appendChild(icon);
 
-  //create collapse button
-  var collapseButton = document.createElement("a");
+  var collapseButton = document.createElement("div");
   collapseButton.classList.add("folder-entry-name");
+  collapseButton.setAttribute("role", "button");
+  collapseButton.setAttribute("data-toggle", "collapse");
+  collapseButton.setAttribute("href","#" + this.getFolderCollapseId(folderEntry.id));
+  collapseButton.setAttribute("aria-expanded", expanded == true ? "true" : "false");
+  collapseButton.setAttribute("aria-controls", this.getFolderCollapseId(folderEntry.id));
   collapseButton.innerHTML = folderEntry.name;
-  collapseButton.style.pointerEvents = true;
-  collapseButton.style.cursor = 'pointer';
-  header.appendChild(collapseButton);
-
-  var panel = document.createElement("li");
+  panelHeader.appendChild(collapseButton);
+  panel = document.createElement("div");
+  panel.appendChild(panelHeader);
   panel.classList.add("folder-entry");
-  panel.id = folderEntry.id;
-  panel.appendChild(header);
+  panel.setAttribute("role", "directory");
+  panel.setAttribute("id", folderEntry.id);
 
-  var body = document.createElement("ul");
-  body.id = this.getFolderCollapseId(folderEntry.id);
-  body.setAttribute('role', 'listing');
-  body.className = "directory-listing closed";
 
-  panel.appendChild(body);
+  var bodyCollapse = document.createElement("div");
+  bodyCollapse.setAttribute("id", this.getFolderCollapseId(folderEntry.id));
+  bodyCollapse.className = "panel-collapse collapse";
+  bodyCollapse.setAttribute("role", "tabpanel");
+  panelBody = document.createElement("div");
+  panelBody.className = "folder-body";
+  bodyCollapse.appendChild(panelBody);
+  panel.appendChild(bodyCollapse);
 
-  var self = this
-  collapseButton.onclick = function (e) {
-    self.toggleFolder(panel)
-  }
-
-  return [panel, body];
+  return [panel, panelBody];
 }
 
 MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
-  var self = this;
-  var file = document.createElement("li");
-  file.id = fileEntry.id;
-  file.classList.add("file-entry");
-  var name = fileEntry.name;
-  var text = document.createElement("a");
-  text.innerHTML = name.substr(0, name.lastIndexOf('.'));
-  text.title = name;
+  var file = document.createElement("div");
+  file.setAttribute("id", fileEntry.id);
+  //var icon = document.createElement("span");
+  //icon.className = "glyphicon glyphicon-music";
+  //icon.setAttribute("aria-hidden", "true");
+  //file.appendChild(icon);
+  var text = document.createElement("div");
+  text.innerHTML = fileEntry.name;
   text.classList.add("file-entry-name");
-  text.setAttribute("href", "#");
+  text.setAttribute("role", "button");
   file.appendChild(text);
+  file.classList.add("file-entry", "folder-heading");
+  file.setAttribute("role", "audio-file");
+  var self = this;
   text.onclick = function(e) {
     e.preventDefault();
     self.playSong(fileEntry, 0);
@@ -218,21 +225,19 @@ MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
 }
 
 MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
-  if (!depth) depth = 0;
   var self = this;
-  var frag = document.createDocumentFragment();
+  if (!depth) depth = 0;
   setTimeout(function() {
     folder.children.forEach(function(f) {
       if (f.directory) {
         var things = self.displayMakeFolder(f, false, depth);
-        frag.appendChild(things[0]);
+        parentDiv.appendChild(things[0]);
         self.displayFolder(f, things[1], depth + 1);
       } else {
         var thing = self.displayMakeFile(f, depth)
-        frag.appendChild(thing);
+        parentDiv.appendChild(thing);
       }
     });
-    parentDiv.appendChild(frag);
   }, 1);
 }
 
@@ -291,7 +296,6 @@ MusicLibrary.prototype.chunking = function(library, cb, donecb) {
 
 MusicLibrary.prototype.showSearch = function(keyword) {
   var self = this;
-  var cls  = 'search-hide'
   keyword = keyword.replace(/^s+|\s+$/g, '');
   //keyword = keyword.replace(' ', '%20');
 	keyword = self.encodeURI(keyword)
@@ -300,15 +304,12 @@ MusicLibrary.prototype.showSearch = function(keyword) {
   this.evtSys.dispatchEvent("loading");
   this.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
     var data = JSON.parse(resp);
-    //var everything = document.querySelectorAll('[role="audio-file"],[role="directory"]');
-    var everything = document.querySelectorAll('.folder-entry,.file-entry');
+    var everything = document.querySelectorAll('[role="audio-file"],[role="directory"]');
     self.chunking(everything, function(d) {
       var id = d.getAttribute('id');
       if (id in data) {
-        d.classList.toggle(cls, false);
-        //if (d.classList.contains("hidden")) d.classList.remove("hidden");
-        //if (d.getAttribute('role') === 'directory') return;
-        if (d.classList.contains('folder-entry')) return;
+        if (d.classList.contains("hidden")) d.classList.remove("hidden");
+        if (d.getAttribute('role') === 'directory') return;
         else {
           var nodes = self.reverseTrackHashLookup(self.mediaHash[id]);
           var skipEntry = false;
@@ -329,15 +330,14 @@ MusicLibrary.prototype.showSearch = function(keyword) {
             var div = document.getElementById(nodeID);
             if (self.mediaHash[nodeID].directory) {
               self.setFolderView(div, "open");
+              div.classList.remove("hidden");
+            } else {
+              div.classList.remove("hidden");
             }
-            //div.classList.remove("hidden");
-            div.classList.remove(cls);
           }
         }
-      //} else if (!d.classList.contains("hidden"))
-      } else if (!d.classList.contains(cls))
-        //d.classList.add("hidden");
-        d.classList.add(cls);
+      } else if (!d.classList.contains("hidden"))
+        d.classList.add("hidden");
     }, function() {
       self.evtSys.dispatchEvent("loading done");
     });
@@ -348,21 +348,19 @@ MusicLibrary.prototype.showSearch = function(keyword) {
 
 MusicLibrary.prototype.showFiles = function(show, donecb) {
   var apply = function(el) {
-    el.classList.toggle('search-hide', !show)
-    //if (show) el.classList.remove("hidden");
-    //else el.classList.add("hidden");
+    if (show) el.classList.remove("hidden");
+    else el.classList.add("hidden");
   }
-  //var x = document.querySelectorAll('[role="audio-file"],[role="directory"]');
-  var x = document.querySelectorAll('.file-entry,.folder-entry');
+  var x = document.querySelectorAll('[role="audio-file"],[role="directory"]');
   this.chunking(Array.prototype.slice.call(x), apply, donecb);
 }
 
 MusicLibrary.prototype.clearSearch = function(keyword) {
-  this.showFiles(true)
+  this.showFiles(true);
 }
 
 MusicLibrary.prototype.swapStreamingToServer = function() {
-  // round value to one decimal place for mplayer
+  //round value to one decimal place for mplayer
   var timeoffset = parseFloat(this.curTimeOffset)
   timeoffset = timeoffset.toFixed(1);
   this.pauseSong();
@@ -529,45 +527,32 @@ MusicLibrary.prototype.prevSong = function() {
   this.playSong(lastTrack, 0);
 }
 
-MusicLibrary.prototype.setCover = function(imgPath, cached) {
-  var favicon = document.querySelector('link[rel="icon"]');
-  var covers  = document.querySelectorAll('[role="background-cover-art"]');
-  if (!cached) imgPath += "?" + Math.floor(Math.random() * 10000000) + 1;
-  favicon.href = path
-  for (var i = 0; i < covers.length; i++) {
-    covers[i].style.backgroundImage = 'url("' + imgPath + '")';
-  }
-  /*
+MusicLibrary.prototype.setCover = function(imgPath) {
   var cover = document.querySelector('[role="album-art"]');
   if (imgPath !== undefined) {
 		imgPath = self.encodeURI(imgPath);
 		cover.setAttribute("src", imgPath +  "?" + Math.floor(Math.random() * 10000000) + 1);
 	}
-  else cover.setAttribute("src", "static/img/default_album_art.png");*/
+  else cover.setAttribute("src", "static/img/default_album_art.png");
 }
 
 MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
   var self = this;
-  var folderParent = this.mediaHash[this.curTrackInfo.parent];
-  
+  document.getElementById("curinfo-path").innerHTML = this.curTrackInfo.path;
   this.apiCall("/api/files/"+ this.curTrackInfo.id + "/data", "GET", true, function(resp) {
-    var data = JSON.parse(resp);
-    var str  = '' 
-    
-    if (!data.title.length) data.title = self.curTrackInfo.name;
-    if (data.artist) str += data.artist
-    if (str && data.album) str += ' &mdash; ' + data.album
-    if (!str && data.album) str += data.album
-    
-    document.getElementById("curinfo-track").innerHTML = data.title;
-    document.getElementById("curinfo-details").innerHTML = str;
-    document.title = data.title;
-    
-    var len = self.secondsToMinutesStr(data["length"]);
-    document.getElementById("curinfo-totaltime").innerHTML = len;
-    if (typeof doneCb == 'function') doneCb(data);
-  });
+    var data = JSON.parse(resp),
+        infoStr = '',
+        title = data.title.length > 0 ? data.title : self.curTrackInfo.name;
 
+    document.getElementById("curinfo-track").innerHTML = title;
+    document.title = title;
+    infoStr = data.artist.length > 0 ? data.artist + " -- " : '';
+    infoStr += data.album.length > 0 ? data.album : '';
+    document.getElementById("curinfo-artist").innerHTML = infoStr;
+    document.getElementById("curinfo-totaltime").innerHTML = self.secondsToMinutesStr(data["length"]);
+    if (doneCb) doneCb(data);
+  });
+  var folderParent = this.mediaHash[this.curTrackInfo.parent];
   if ('covers' in folderParent) {
     var useCover = null;
     folderParent['covers'].forEach(function(c) {
@@ -575,32 +560,31 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
       if (str.includes("front") || str.includes("cover") || str.includes("folder")) useCover = c;
     });
     if (!useCover) useCover = folderParent['covers'][0];
-    self.setCover([folderParent.path, folderParent.name, useCover].join('/'));
-    return
-  } 
-  
-  this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
-    var data = JSON.parse(resp);
-    self.setCover(!data.code ? data.path : '/static/img/default.jpg', true);
-  }, function() {
-    //error making cover request
-    self.setCover('/static/img/default.jpg', true);
-  });
+    self.setCover(folderParent.path + '/' + folderParent.name + '/' + useCover);
+  } else {
+    this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
+      var data = JSON.parse(resp);
+      var cover = document.querySelector('[role="album-art"]');
+      if (!data.code) self.setCover(data.path);
+      else self.setCover();
+    }, function() {
+			//error making cover request
+			self.setCover();
+		});
+  }
 }
 
 MusicLibrary.prototype.updateQualitySelect = function(val) {
   var qualityList = document.getElementById('stream-quality');
-  while (qualityList.firstChild)
-    qualityList.removeChild(qualityList.firstChild);
-  var frag = document.createDocumentFragment()
+  //clear options first
+  while (qualityList.firstChild) qualityList.removeChild(qualityList.firstChild);
   this.supportedFormats.quality[val].forEach(function(q) {
     var option = document.createElement("option");
     option.value = q;
     option.text = q;
-    if (q == '192k') option.selected = true
-    frag.appendChild(option)
+    qualityList.appendChild(option);
   });
-  qualityList.appendChild(frag);
+  qualityList.selectedIndex = this.supportedFormats.quality[val].length - 1;
 }
 
 MusicLibrary.prototype.mouseDivOffset = function(el, mouseevent) {
@@ -663,14 +647,17 @@ MusicLibrary.prototype.init = function() {
   
   var style = window.getComputedStyle(document.body);
   this.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
-  /*var curInfo = document.getElementById("openfile-loc-btn");
+  var curInfo = document.getElementById("openfile-loc-btn");
   curInfo.addEventListener("click", function(e) {
     e.preventDefault();
     self.openFileDisplayToTrack(self.curTrackInfo);
     self.toggleNowPlaying(false, true);
-  });*/
+  });
 
   this.evtSys.registerEvent('media state change');
+  document.getElementById('settings-menu').addEventListener('click', function(e) {
+    e.stopPropagation();
+  });
 
   this.apiCall('/api/commands/formats', 'GET', true, function(resp) {
     self.supportedFormats = JSON.parse(resp);
@@ -687,29 +674,13 @@ MusicLibrary.prototype.init = function() {
       self.updateQualitySelect(e.target.value);
     }
   });
-  
-  // TODO re-implement
-  /*document.querySelector('[role="album-art"]').onclick = function() {
+
+  document.querySelector('[role="album-art"]').onclick = function() {
     document.getElementById("curinfo-path").classList.toggle("hidden");
-  }*/
-
-  var nowPlaying = document.querySelector('[role="now-playing"]');
-  nowPlaying.addEventListener("mousewheel", function(e) { 
-    e.preventDefault(); 
-    e.stopPropagation(); 
-  }, false);
-  nowPlaying.addEventListener("DOMMouseScroll", function(e) { 
-    e.preventDefault(); 
-    e.stopPropagation(); 
-  }, false);
-  document.getElementById("search-txt").addEventListener("keypress", function(e) { 
-    e.stopPropagation(); 
-  });
-
-  var open = document.querySelector('[role="open-settings"]')
-  open.onclick = function (e) {
-    var el = document.querySelector('[role="settings"]')
-    el.classList.toggle('open')
   }
-}
 
+  var nowPlaying = document.querySelector('[role="currently-playing"]');
+  nowPlaying.addEventListener("mousewheel", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
+  nowPlaying.addEventListener("DOMMouseScroll", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
+  document.getElementById("search-txt").addEventListener("keypress", function(e) { e.stopPropagation(); });
+}
