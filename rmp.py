@@ -46,7 +46,7 @@ STREAM_QUALITY = {
     'ogg': ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 }
 TRANSCODE_CMD = {
-    'mp3': ["-i", "{infile}", "-vn", "-ar", "44100", "-ac", "2", "-ab", "{quality}", "-f", "mp3", "{outfile}"],
+    'mp3': ["-i", "{infile}", "-vn", "-ar", "44100", "-ac", "2", "-b:a", "{quality}", "-f", "mp3", "{outfile}"],
     'wav': ["-i", "{infile}", "-vn", "-acodec", "pcm_s16le", "-ar", "{quality}", "-f", "wav", "{outfile}"],
     'ogg': ["-i", "{infile}", "-vn", "-c:a", "libvorbis", "-q:a", "{quality}", "-f", "ogg", "{outfile}"]
 }
@@ -160,7 +160,7 @@ def guessTranscodedSize(codec, quality, metadata):
         metadata['size'] = int(quality) * 4 * int(float(metadata['length']))
     elif codec == "mp3":
         # bitrate (kilobits) * 8 to convert to kilobytes * length (seconds)
-        metadata['size'] = int(quality) * 128 * int(float(metadata['length']))
+        metadata['size'] = int(int(quality) * 1000 // 8 * float(metadata['length']))
 
     print(metadata)
 
@@ -535,9 +535,6 @@ def streamAudio(identifier):
         
         newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(
             filename, quality, destType)
-        
-        curSize = os.path.getsize(newFile)
-        if data['size'] >= curSize and curSize > 0: data['size'] = curSize
         headers, offset = makeRangeHeader(data)
         # give ffmpeg some time to start transcoding
         time.sleep(1)
