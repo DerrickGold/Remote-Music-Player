@@ -18,8 +18,13 @@ body {
     padding-left: 5px;
 }
 
+.file-entry-name {
+		display: block;
+}
+
 .folder-entry-name:hover, .file-entry-name:hover {
-    color: #47b9de;
+  color: #47b9de;
+	cursor: pointer;														
 }
 
 .playing-entry {

@@ -71,13 +71,9 @@ MusicLibrary.prototype.getFiles = function() {
   this.evtSys.dispatchEvent("loading");
   this.apiCall("/api/files", "GET", true, function(resp) {
     self.mediaDir = JSON.parse(resp);
-    self.makeMediaLibHash(self.mediaDir.files);
-		setTimeout(function() {
-			var tempRoot = document.createDocumentFragment();
-			self.displayFolder(self.mediaDir.files, tempRoot);
-			self.getRootDirDiv().appendChild(tempRoot);
-			self.evtSys.dispatchEvent("loading done");
-		}, 1);
+    //self.makeMediaLibHash(self.mediaDir.files);
+		self.displayFolder(self.mediaDir.files, self.getRootDirDiv());
+		self.evtSys.dispatchEvent("loading done");
   });
 }
 
@@ -178,7 +174,6 @@ MusicLibrary.prototype.displayMakeExcludeButton = function(nodeID, container) {
 }
 
 MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth) {
-  var panelBody = null;
   var panel = null;
   var panelHeader = document.createElement("div");
   panelHeader.classList.add("folder-heading");
@@ -198,77 +193,53 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
   collapseButton.setAttribute("href","#" + this.getFolderCollapseId(folderEntry.id));
   collapseButton.setAttribute("aria-expanded", expanded == true ? "true" : "false");
   collapseButton.setAttribute("aria-controls", this.getFolderCollapseId(folderEntry.id));
-  collapseButton.innerHTML = folderEntry.name;
+	collapseButton.appendChild(document.createTextNode(folderEntry.name));
   panelHeader.appendChild(collapseButton);
-  panel = document.createElement("div");
-  panel.appendChild(panelHeader);
+
+	panel = document.createElement("div");
+	panel.appendChild(panelHeader);
   panel.classList.add("folder-entry");
   panel.setAttribute("role", "directory");
   panel.setAttribute("id", folderEntry.id);
 
-
   var bodyCollapse = document.createElement("div");
   bodyCollapse.setAttribute("id", this.getFolderCollapseId(folderEntry.id));
-  bodyCollapse.className = "panel-collapse collapse";
+  bodyCollapse.className = "panel-collapse collapse folder-body";
   bodyCollapse.setAttribute("role", "tabpanel");
-  panelBody = document.createElement("div");
-  panelBody.className = "folder-body";
-  bodyCollapse.appendChild(panelBody);
   panel.appendChild(bodyCollapse);
 
-  return [panel, panelBody];
+  return [panel, bodyCollapse];
 }
 
 MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
-  var file = document.createElement("div");
-  file.setAttribute("id", fileEntry.id);
-  //var icon = document.createElement("span");
-  //icon.className = "glyphicon glyphicon-music";
-  //icon.setAttribute("aria-hidden", "true");
-  //file.appendChild(icon);
   var text = document.createElement("div");
-  text.innerHTML = fileEntry.name;
-  text.classList.add("file-entry-name");
-  text.setAttribute("role", "button");
-  file.appendChild(text);
-  file.classList.add("file-entry", "folder-heading");
-  file.setAttribute("role", "audio-file");
+	text.setAttribute("id", fileEntry.id);
+	text.appendChild(document.createTextNode(fileEntry.name));
+  text.classList.add("file-entry", "folder-heading", "file-entry-name");
+  text.setAttribute("role", "button audio-file");
   var self = this;
   text.onclick = function(e) {
     e.preventDefault();
     self.playSong(fileEntry, 0);
   }
-  return file;
+  return text;
 }
 
 MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
   var self = this;
+	self.mediaHash[folder.id] = folder;
   if (!depth) depth = 0;
-
-	var tempParent = document.createDocumentFragment();
-	for (var i = 0; i < folder.children.length; i++) {
-		var f = folder.children[i];
+	this.chunking(folder.children, function(f) {
 		if (f.directory) {
       var things = self.displayMakeFolder(f, false, depth);
       parentDiv.appendChild(things[0]);
       self.displayFolder(f, things[1], depth + 1);
     } else {
+			self.mediaHash[f.id] = f;
       var thing = self.displayMakeFile(f, depth)
       parentDiv.appendChild(thing);
     }
-	}
-/*  setTimeout(function() {	
-    folder.children.forEach(function(f) {
-      if (f.directory) {
-        var things = self.displayMakeFolder(f, false, depth);
-        parentDiv.appendChild(things[0]);
-        self.displayFolder(f, things[1], depth + 1);
-      } else {
-        var thing = self.displayMakeFile(f, depth)
-        parentDiv.appendChild(thing);
-      }
-    });
-  }, 1);*/
+	});
 }
 
 MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
@@ -306,20 +277,21 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
 
 MusicLibrary.prototype.chunking = function(library, cb, donecb) {
   var perFrame = 500, idx = 0, lib = library, fps = 60;
+	var time = 1000/fps;
   function doChunk(data) {
     setTimeout(function() {
-      if (idx >= lib.length) {
+			var liblen = lib.length;
+      if (idx >= liblen) {
         if (donecb) donecb();
         return;
       }
       for (var x = 0; x < perFrame; x++) {
-        if (idx + x >= lib.length) break;
-        var entry = lib[idx + x];
-        if (cb) cb(entry);
+        if (idx + x >= liblen) break;
+        if (cb) cb(lib[idx + x]);
       }
       idx += perFrame;
       window.requestAnimationFrame(doChunk);
-    }, 1000/fps);
+    }, time);
   }
   window.requestAnimationFrame(doChunk);
 }
@@ -334,7 +306,7 @@ MusicLibrary.prototype.showSearch = function(keyword) {
   this.evtSys.dispatchEvent("loading");
   this.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
     var data = JSON.parse(resp);
-    var everything = document.querySelectorAll('[role="audio-file"],[role="directory"]');
+    var everything = document.querySelectorAll('[role*="audio-file"],[role="directory"]');
     self.chunking(everything, function(d) {
       var id = d.getAttribute('id');
       if (id in data) {
@@ -381,7 +353,7 @@ MusicLibrary.prototype.showFiles = function(show, donecb) {
     if (show) el.classList.remove("hidden");
     else el.classList.add("hidden");
   }
-  var x = document.querySelectorAll('[role="audio-file"],[role="directory"]');
+  var x = document.querySelectorAll('[role*="audio-file"],[role="directory"]');
   this.chunking(Array.prototype.slice.call(x), apply, donecb);
 }
 
