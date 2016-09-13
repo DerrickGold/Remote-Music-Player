@@ -27,7 +27,7 @@ MusicLibrary = function(evtSys, doStreaming) {
 }
 
 MusicLibrary.prototype.encodeURI = function(uriIn) {
-	return encodeURI(uriIn).replace(/\(/g, "%28").replace(/\)/g, "%29");
+  return encodeURI(uriIn).replace(/\(/g, "%28").replace(/\)/g, "%29");
 }
 
 MusicLibrary.prototype.getFolderCollapseId = function(directoryID) {
@@ -35,15 +35,15 @@ MusicLibrary.prototype.getFolderCollapseId = function(directoryID) {
 }
 
 MusicLibrary.prototype.getFilePath = function(file) {
-	var curFile = file;
-	var output = file.name;
-	while (curFile.parent != ".") {
-		var parent = this.mediaHash[curFile.parent];
-		if (parent.name === ".") break;
-		output = parent.name + '/' + output;
-		curFile = parent;
-	}
-	return this.mediaDir.root + '/' + output;
+  var curFile = file;
+  var output = file.name;
+  while (curFile.parent != ".") {
+    var parent = this.mediaHash[curFile.parent];
+    if (parent.name === ".") break;
+    output = parent.name + '/' + output;
+    curFile = parent;
+  }
+  return this.mediaDir.root + '/' + output;
 }
 
 MusicLibrary.prototype.getRandomTrack = function() {
@@ -72,8 +72,8 @@ MusicLibrary.prototype.getFiles = function() {
   this.apiCall("/api/files", "GET", true, function(resp) {
     self.mediaDir = JSON.parse(resp);
     //self.makeMediaLibHash(self.mediaDir.files);
-		self.displayFolder(self.mediaDir.files, self.getRootDirDiv());
-		self.evtSys.dispatchEvent("loading done");
+    self.displayFolder(self.mediaDir.files, self.getRootDirDiv());
+    self.evtSys.dispatchEvent("loading done");
   });
 }
 
@@ -106,10 +106,10 @@ MusicLibrary.prototype.setFolderView = function(folderIdDiv, view) {
 }
 
 MusicLibrary.prototype.makeMediaLibHash = function(root) {
-	var self = this;
+  var self = this;
   self.mediaHash[root.id] = root;
-	if (root.directory)
-		self.chunking(root.children, function(e) {self.makeMediaLibHash(e)});
+  if (root.directory)
+    self.chunking(root.children, function(e) {self.makeMediaLibHash(e)});
 }
 
 MusicLibrary.prototype.secondsToMinutesStr = function(time) {
@@ -193,11 +193,11 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
   collapseButton.setAttribute("href","#" + this.getFolderCollapseId(folderEntry.id));
   collapseButton.setAttribute("aria-expanded", expanded == true ? "true" : "false");
   collapseButton.setAttribute("aria-controls", this.getFolderCollapseId(folderEntry.id));
-	collapseButton.appendChild(document.createTextNode(folderEntry.name));
+  collapseButton.appendChild(document.createTextNode(folderEntry.name));
   panelHeader.appendChild(collapseButton);
 
-	panel = document.createElement("div");
-	panel.appendChild(panelHeader);
+  panel = document.createElement("div");
+  panel.appendChild(panelHeader);
   panel.classList.add("folder-entry");
   panel.setAttribute("role", "directory");
   panel.setAttribute("id", folderEntry.id);
@@ -213,8 +213,8 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
 
 MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
   var text = document.createElement("div");
-	text.setAttribute("id", fileEntry.id);
-	text.appendChild(document.createTextNode(fileEntry.name));
+  text.setAttribute("id", fileEntry.id);
+  text.appendChild(document.createTextNode(fileEntry.name));
   text.classList.add("file-entry", "folder-heading", "file-entry-name");
   text.setAttribute("role", "button audio-file");
   var self = this;
@@ -227,19 +227,19 @@ MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
 
 MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
   var self = this;
-	self.mediaHash[folder.id] = folder;
+  self.mediaHash[folder.id] = folder;
   if (!depth) depth = 0;
-	this.chunking(folder.children, function(f) {
-		if (f.directory) {
+  this.chunking(folder.children, function(f) {
+    if (f.directory) {
       var things = self.displayMakeFolder(f, false, depth);
       parentDiv.appendChild(things[0]);
       self.displayFolder(f, things[1], depth + 1);
     } else {
-			self.mediaHash[f.id] = f;
+      self.mediaHash[f.id] = f;
       var thing = self.displayMakeFile(f, depth)
       parentDiv.appendChild(thing);
     }
-	});
+  });
 }
 
 MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
@@ -277,10 +277,10 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
 
 MusicLibrary.prototype.chunking = function(library, cb, donecb) {
   var perFrame = 500, idx = 0, lib = library, fps = 60;
-	var time = 1000/fps;
+  var time = 1000/fps;
   function doChunk(data) {
     setTimeout(function() {
-			var liblen = lib.length;
+      var liblen = lib.length;
       if (idx >= liblen) {
         if (donecb) donecb();
         return;
@@ -300,7 +300,7 @@ MusicLibrary.prototype.showSearch = function(keyword) {
   var self = this;
   keyword = keyword.replace(/^s+|\s+$/g, '');
   //keyword = keyword.replace(' ', '%20');
-	keyword = self.encodeURI(keyword)
+  keyword = self.encodeURI(keyword)
   if (keyword.length <= 0) return;
   this.toggleNowPlaying(false, true);
   this.evtSys.dispatchEvent("loading");
@@ -434,8 +434,8 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
       var quality = streamOptions.options[streamOptions.selectedIndex].value;
       var transcodeOptions = document.getElementById("transcoding-option");
       var transcode = transcodeOptions.options[transcodeOptions.selectedIndex].value;
-			var srcURL = "api/files/" + trackData.id + "/stream?format=" + fmt +
-					"&quality=" + quality + "&transcode=" + transcode;
+      var srcURL = "api/files/" + trackData.id + "/stream?format=" + fmt +
+          "&quality=" + quality + "&transcode=" + transcode;
       self.audioDiv.src = self.encodeURI(srcURL);
       self.audioDiv.play();
       var seekHandler = function(audio) {
@@ -532,9 +532,9 @@ MusicLibrary.prototype.prevSong = function() {
 MusicLibrary.prototype.setCover = function(imgPath) {
   var cover = document.querySelector('[role="album-art"]');
   if (imgPath !== undefined) {
-		imgPath = self.encodeURI(imgPath);
-		cover.setAttribute("src", imgPath +  "?" + Math.floor(Math.random() * 10000000) + 1);
-	}
+    imgPath = self.encodeURI(imgPath);
+    cover.setAttribute("src", imgPath +  "?" + Math.floor(Math.random() * 10000000) + 1);
+  }
   else cover.setAttribute("src", "static/img/default_album_art.png");
 }
 
@@ -562,7 +562,7 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
       if (str.includes("front") || str.includes("cover") || str.includes("folder")) useCover = c;
     });
     if (!useCover) useCover = folderParent['covers'][0];
-		self.setCover(self.getFilePath(folderParent) + '/' + useCover);
+    self.setCover(self.getFilePath(folderParent) + '/' + useCover);
   } else {
     this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
       var data = JSON.parse(resp);
@@ -570,9 +570,9 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
       if (!data.code) self.setCover(data.path);
       else self.setCover();
     }, function() {
-			//error making cover request
-			self.setCover();
-		});
+      //error making cover request
+      self.setCover();
+    });
   }
 }
 
