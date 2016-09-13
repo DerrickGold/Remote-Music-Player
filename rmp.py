@@ -66,7 +66,6 @@ def make_file(path, name, directory=False, parent=None):
     }
     
     if directory:
-        entry['path'] = path
         entry['children'] = []
     
     return entry
@@ -278,11 +277,17 @@ class MusicList:
         return self.mapping[identifier]
 
     def get_file_path(self, identifier):
+        
         file = self.get_file(identifier)
         if file is None: return None
-        parent = self.get_file(file['parent'])
-        if parent is None: return None
-        return os.path.join(parent['path'], parent['name'], file['name'])
+        curFile = file
+        outpath = curFile['name']
+        while curFile['parent'] != '.':
+            parent = self.get_file(curFile['parent'])
+            outpath = os.path.join(parent['name'], outpath)
+            curFile = parent
+
+        return os.path.join(GLOBAL_SETTINGS['music-dir'], outpath)
 
     def get_file_metadata(self, path):
         response = {'artist': '', 'album': '', 'title': '', 'genre': ''}
@@ -421,6 +426,7 @@ def get_quality():
 @app.route('/api/files')
 def files():
     obj = {
+        'root' : GLOBAL_SETTINGS['music-dir'],
         'files': GLOBAL_SETTINGS['MusicListClass'].files,
         'count': len(GLOBAL_SETTINGS['MusicListClass'].mapping.keys())
     }

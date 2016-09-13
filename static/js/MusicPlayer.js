@@ -34,6 +34,18 @@ MusicLibrary.prototype.getFolderCollapseId = function(directoryID) {
   return "collapse-" + directoryID;
 }
 
+MusicLibrary.prototype.getFilePath = function(file) {
+	var curFile = file;
+	var output = file.name;
+	while (curFile.parent != ".") {
+		var parent = this.mediaHash[curFile.parent];
+		if (parent.name === ".") break;
+		output = parent.name + '/' + output;
+		curFile = parent;
+	}
+	return this.mediaDir.root + '/' + output;
+}
+
 MusicLibrary.prototype.getRandomTrack = function() {
   var allFiles = Object.keys(this.mediaHash), index = -1;
   while (index < 0 || this.mediaHash[allFiles[index]].directory)
@@ -60,8 +72,12 @@ MusicLibrary.prototype.getFiles = function() {
   this.apiCall("/api/files", "GET", true, function(resp) {
     self.mediaDir = JSON.parse(resp);
     self.makeMediaLibHash(self.mediaDir.files);
-    self.displayFolder(self.mediaDir.files, self.getRootDirDiv());
-    self.evtSys.dispatchEvent("loading done");
+		setTimeout(function() {
+			var tempRoot = document.createDocumentFragment();
+			self.displayFolder(self.mediaDir.files, tempRoot);
+			self.getRootDirDiv().appendChild(tempRoot);
+			self.evtSys.dispatchEvent("loading done");
+		}, 1);
   });
 }
 
@@ -94,11 +110,10 @@ MusicLibrary.prototype.setFolderView = function(folderIdDiv, view) {
 }
 
 MusicLibrary.prototype.makeMediaLibHash = function(root) {
-  this.mediaHash[root.id] = root;
-	if (root.directory) {
-		for(var i = 0; i < root.children.length; i++)
-			this.makeMediaLibHash(root.children[i]);
-	}
+	var self = this;
+  self.mediaHash[root.id] = root;
+	if (root.directory)
+		self.chunking(root.children, function(e) {self.makeMediaLibHash(e)});
 }
 
 MusicLibrary.prototype.secondsToMinutesStr = function(time) {
@@ -229,7 +244,20 @@ MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
 MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
   var self = this;
   if (!depth) depth = 0;
-  setTimeout(function() {
+
+	var tempParent = document.createDocumentFragment();
+	for (var i = 0; i < folder.children.length; i++) {
+		var f = folder.children[i];
+		if (f.directory) {
+      var things = self.displayMakeFolder(f, false, depth);
+      parentDiv.appendChild(things[0]);
+      self.displayFolder(f, things[1], depth + 1);
+    } else {
+      var thing = self.displayMakeFile(f, depth)
+      parentDiv.appendChild(thing);
+    }
+	}
+/*  setTimeout(function() {	
     folder.children.forEach(function(f) {
       if (f.directory) {
         var things = self.displayMakeFolder(f, false, depth);
@@ -240,7 +268,7 @@ MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
         parentDiv.appendChild(thing);
       }
     });
-  }, 1);
+  }, 1);*/
 }
 
 MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
@@ -540,7 +568,7 @@ MusicLibrary.prototype.setCover = function(imgPath) {
 
 MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
   var self = this;
-  document.getElementById("curinfo-path").innerHTML = this.curTrackInfo.path;
+  document.getElementById("curinfo-path").innerHTML = this.getFilePath(this.curTrackInfo);
   this.apiCall("/api/files/"+ this.curTrackInfo.id + "/data", "GET", true, function(resp) {
     var data = JSON.parse(resp),
         infoStr = '',
@@ -562,7 +590,7 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
       if (str.includes("front") || str.includes("cover") || str.includes("folder")) useCover = c;
     });
     if (!useCover) useCover = folderParent['covers'][0];
-    self.setCover(folderParent.path + '/' + folderParent.name + '/' + useCover);
+		self.setCover(self.getFilePath(folderParent) + '/' + useCover);
   } else {
     this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
       var data = JSON.parse(resp);
