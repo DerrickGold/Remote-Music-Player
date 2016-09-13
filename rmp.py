@@ -477,11 +477,6 @@ def metadata(identifier):
     return jsonify(**data)
 
 
-@app.route('/<path:filename>')
-def serving(filename):
-    # for whatever isn't an audio file
-    return send_file(filename)
-
 @app.route('/api/files/<string:identifier>/stream')
 def streamAudio(identifier):
 
@@ -569,6 +564,10 @@ def streamAudio(identifier):
     # for whatever isn't an audio file
     return send_file(newFile)
 
+@app.route('/<path:filename>')
+def serving(filename):
+    # for whatever isn't an audio file
+    return send_file(filename)
 
 @app.route('/')
 def togui():
