@@ -11,9 +11,11 @@ import re
 import signal
 import time
 from flask_cors import CORS, cross_origin
+from flask_compress import Compress
 
 app = Flask(__name__)
 CORS(app)
+Compress(app)
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
