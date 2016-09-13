@@ -51,10 +51,13 @@ TRANSCODE_CMD = {
     'ogg': ["-i", "{infile}", "-vn", "-c:a", "libvorbis", "-q:a", "{quality}", "-f", "ogg", "{outfile}"]
 }
 AUDIO_MIMETYPES = {
-    'mp3': 'audio/mpeg',
+    'mp3': 'audio/mp3',
     'wav': 'audio/wav',
     'ogg': 'audio/ogg'
 }
+
+TRANSCODE_CACHE = []
+
 
 def make_file(path, name, directory=False, parent=None):
     id = str(uuid.uuid4())
@@ -173,10 +176,11 @@ def makeRangeHeader(metadata):
         if len(ranges) > 1:
             end = int(ranges[1])
         headers.add('Content-Range', 'bytes %s-%s/%s' %
-                    (str(begin), str(end), str(end - begin)))
+                    (str(begin), str(end - 1), str(end)))
 
     headers.add('Content-Length', str((end - begin)))
-    return headers
+    headers.add('X-Content-Duration', metadata['length'])
+    return headers, begin
 
 
 class MPlayer:
@@ -337,8 +341,7 @@ class MusicList:
     def is_transcoding(self, id):
         return self.transcodeProcess[id].poll()
 
-    def transcode_audio(self, path, quality=None, fmt=None, offset=None):
-
+    def transcode_audio(self, path, quality=None, fmt=None):
         if fmt is None:
             fmt = GLOBAL_SETTINGS['stream-format']
 
@@ -347,6 +350,14 @@ class MusicList:
                 "{}".format(GLOBAL_SETTINGS['stream-format'])]
             quality = selections[len(selections) // 2]
 
+        #check if audio has already been previously transcoded
+        if len(TRANSCODE_CACHE) > 0:
+            for c in TRANSCODE_CACHE:
+                if c['infile'] == path:
+                    logging.debug("FOUND CACHE OBJ: ")
+                    logging.debug(c)
+                    return (c['outfile'], c['proc'])
+            
         self.transcodeID = (self.transcodeID +
                             1) % GLOBAL_SETTINGS['max-transcodes']
         proc = self.transcodeProcess[self.transcodeID]
@@ -365,12 +376,20 @@ class MusicList:
         args[args.index("{quality}")] = quality
         args[args.index("{outfile}")] = outfile
 
-        if offset:
-            args.insert(0, '-ss')
-            args.insert(1, str(offset))
-
         logging.debug(args)
         self.transcodeProcess[self.transcodeID] = subprocess.Popen(args)
+        cacheobj = {
+            'infile': path,
+            'outfile': outfile,
+            'proc': self.transcodeProcess[self.transcodeID],
+            'fmt': fmt,
+            'quality': quality
+        }
+        if len(TRANSCODE_CACHE) < GLOBAL_SETTINGS['max-transcodes']:
+            TRANSCODE_CACHE.append(cacheobj)
+        else:
+            TRANSCODE_CACHE[self.transcodeID] = cacheobj
+            
         return (outfile, self.transcodeProcess[self.transcodeID])
 
     def extract_album_art(self, filepath):
@@ -508,25 +527,24 @@ def streamAudio(identifier):
 
     # allow user to adjust quality of streaming
     quality = request.args.get('quality')
-
-    logging.info("TRANSCODE OPTION: {}".format(doTranscode))
-    logging.info("QUALITY OPTION: {}".format(quality))
-
     newFile = '{}'.format(filename)
     ext = os.path.splitext(filename)[1].lower()[1:]
-    print(newFile)
     if ext in TRANSCODE_FROM or doTranscode:
         data = GLOBAL_SETTINGS['MusicListClass'].get_file_metadata(newFile)
         guessTranscodedSize(destType, quality, data)
-        headers = makeRangeHeader(data)
+        
         newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(
-            filename, quality, destType, offset=request.args.get('offset'))
+            filename, quality, destType)
+        
+        curSize = os.path.getsize(newFile)
+        if data['size'] >= curSize and curSize > 0: data['size'] = curSize
+        headers, offset = makeRangeHeader(data)
         # give ffmpeg some time to start transcoding
         time.sleep(1)
-
         @stream_with_context
-        def generate(inFile, ffmpegProc):
+        def generate(inFile, ffmpegProc, pos):
             file = open(inFile, 'rb')
+            if pos > 0: file.seek(pos, 0)
             doneTranscode = False
             while True:
                 chunk = file.read(GLOBAL_SETTINGS["stream-chunk"])
@@ -538,21 +556,26 @@ def streamAudio(identifier):
                 doneTranscode = ffmpegProc.poll() is not None
                 if len(chunk) == 0 and doneTranscode:
                     break
-                elif not doneTranscode:
-                    time.sleep(1)
 
             file.close()
 
         sendtype = AUDIO_MIMETYPES['{}'.format(destType)]
-        return Response(stream_with_context(generate(newFile, proc)), mimetype=sendtype, headers=headers)
+        resp = Response(stream_with_context(generate(newFile, proc, offset)), mimetype=sendtype, headers=headers)
+        resp.status_code = 206
+        return resp
 
     # no transcoding, just streaming if audio is already in a streamable format
     elif ext in STREAM_FORMAT:
         data = GLOBAL_SETTINGS['MusicListClass'].get_file_metadata(newFile)
-        headers = makeRangeHeader(data)
+        headers, offset = makeRangeHeader(data)
 
-        def generate():
-            file = open(newFile, 'rb')
+        def generate(inFile, pos):
+            file = open(inFile, 'rb')
+            if pos > 0 and pos < data['size']: file.seek(pos, 0)
+            elif pos >= data['size']:
+                file.close()
+                return
+            
             while True:
                 chunk = file.read(GLOBAL_SETTINGS["stream-chunk"])
                 if chunk:
@@ -562,7 +585,9 @@ def streamAudio(identifier):
             file.close()
 
         sendtype = AUDIO_MIMETYPES['{}'.format(ext)]
-        return Response(stream_with_context(generate()), mimetype=sendtype, headers=headers)
+        resp = Response(stream_with_context(generate(newFile, offset)), mimetype=sendtype, headers=headers)
+        resp.status_code = 206
+        return resp
 
     # for whatever isn't an audio file
     return send_file(newFile)

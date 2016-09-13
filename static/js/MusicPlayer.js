@@ -616,7 +616,7 @@ MusicLibrary.prototype.scrub = function(scrubbox, mouseevent) {
   if (offsets[0] < 0) return;
   var xoffset = parseFloat((parseInt(offsets[0]) * 100)/parseInt(offsets[1])).toFixed(0);
   this.scrubSlider.style.left = xoffset + "%";
-  this.seekTimeTo = (parseInt(offsets[0]))/parseInt(offsets[1]) * this.curTrackLen;
+  this.seekTimeTo = parseFloat((parseInt(offsets[0]))/parseInt(offsets[1]) * parseFloat(this.curTrackLen));
   this.curTimeDiv.innerHTML = this.secondsToMinutesStr(this.seekTimeTo);
 }
 
@@ -625,7 +625,7 @@ MusicLibrary.prototype.init = function() {
   this.getFiles();
 
   this.audioDiv = document.createElement("AUDIO");
-  this.audioDiv.setAttribute("preload", "auto");
+  this.audioDiv.setAttribute("preload", "off");
   this.curTimeDiv = document.getElementById("curinfo-time");
   this.scrubSlider = document.getElementById("scrubber");  
   this.audioDiv.ontimeupdate = function(e) {
