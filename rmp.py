@@ -56,9 +56,20 @@ AUDIO_MIMETYPES = {
     'ogg': 'audio/ogg'
 }
 
-
 def make_file(path, name, directory=False, parent=None):
-    return {'path': path, 'name': name, 'directory': directory, 'id': str(uuid.uuid4()), 'children': [], 'parent': parent}
+    id = str(uuid.uuid4())
+    entry = {
+        'name': name,
+        'directory': directory,
+        'id': str(uuid.uuid4()),
+        'parent': parent
+    }
+    
+    if directory:
+        entry['path'] = path
+        entry['children'] = []
+    
+    return entry
 
 
 def dircmp(a, b):
@@ -132,7 +143,6 @@ def scan_directory(path, name='.', parent='.'):
                 if 'covers' not in node: node['covers'] = []
                 node['covers'].extend(childNodes['covers'])
 
-        #node['children'] = sorted(node['children'], key=lambda k: k['name'])
         node['children'] = sorted(node['children'], key=cmp_to_key(dircmp))
 
     return node, fileMapping
@@ -267,22 +277,12 @@ class MusicList:
             return None
         return self.mapping[identifier]
 
-    def get_file_index(self, currentFile):
-        parent = self.mapping[currentFile['parent']]
-        if not parent:
-            return None
-
-        index = next((i for i, file in enumerate(parent['children']) if file[
-                     'id'] == currentFile['id']), None)
-        return parent, index
-
-    def get_next_file(self, currentFile):
-        if not currentFile or not currentFile['parent'] or currentFile['parent'] not in self.mapping:
-            return None
-
-        parent, index = self.get_file_index(currentFile)
-        index = (index + 1) % len(parent['children'])
-        return parent['children'][index]
+    def get_file_path(self, identifier):
+        file = self.get_file(identifier)
+        if file is None: return None
+        parent = self.get_file(file['parent'])
+        if parent is None: return None
+        return os.path.join(parent['path'], parent['name'], file['name'])
 
     def get_file_metadata(self, path):
         response = {'artist': '', 'album': '', 'title': '', 'genre': ''}
@@ -313,11 +313,8 @@ class MusicList:
 
     def get_audio_metadata(self, identifier):
         response = {'artist': '', 'album': '', 'title': '', 'genre': ''}
-        file = self.get_file(identifier)
-        if file is None:
-            return response
-
-        path = os.path.join(file['path'], file['name'])
+        path = self.get_file_path(identifier)
+        if path is None: return response
         return self.get_file_metadata(path)
 
     def search_media(self, key):
@@ -391,8 +388,8 @@ Program Entry
 
 def play_file(file, offset):
     GLOBAL_SETTINGS['MusicListClass'].currentFile = file
-    GLOBAL_SETTINGS['MPlayerClass'].play(
-        os.path.join(file['path'], file['name']), offset)
+    path  = GLOBAL_SETTINGS['MusicListClass'].get_file_path(file['id'])
+    GLOBAL_SETTINGS['MPlayerClass'].play(path, offset)
 
 
 @app.route('/api/commands/pause', methods=['POST'])
@@ -450,9 +447,9 @@ def file(identifier):
 @app.route('/api/files/<string:identifier>/cover')
 def get_cover(identifier):
 
-    file = GLOBAL_SETTINGS['MusicListClass'].get_file(identifier)
-    filepath = os.path.join(file['path'], file['name'])
-
+    filepath = GLOBAL_SETTINGS['MusicListClass'].get_file_path(identifier)
+    if filepath is None: return '', 400
+    
     path, code = GLOBAL_SETTINGS['MusicListClass'].extract_album_art(filepath)
     response = {
         'code': code,
@@ -482,11 +479,9 @@ def metadata(identifier):
 @app.route('/api/files/<string:identifier>/stream')
 def streamAudio(identifier):
 
-    file = GLOBAL_SETTINGS['MusicListClass'].get_file(identifier)
+    filename = GLOBAL_SETTINGS['MusicListClass'].get_file_path(identifier)
     if not file:
         return '', 400
-    
-    filename = os.path.join(file['path'], file['name'])
     logging.info("Serving file")
     logging.info(filename)
     destType = request.args.get('format')

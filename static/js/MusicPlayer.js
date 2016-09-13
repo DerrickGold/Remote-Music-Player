@@ -95,8 +95,10 @@ MusicLibrary.prototype.setFolderView = function(folderIdDiv, view) {
 
 MusicLibrary.prototype.makeMediaLibHash = function(root) {
   this.mediaHash[root.id] = root;
-  for(var i = 0; i < root.children.length; i++)
-    this.makeMediaLibHash(root.children[i]);
+	if (root.directory) {
+		for(var i = 0; i < root.children.length; i++)
+			this.makeMediaLibHash(root.children[i]);
+	}
 }
 
 MusicLibrary.prototype.secondsToMinutesStr = function(time) {
