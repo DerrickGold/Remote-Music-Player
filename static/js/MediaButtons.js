@@ -24,7 +24,8 @@ MediaButtons = function(evtSys, mediaLibrary) {
       return;
     }
 
-    if (isntPlaying()) self.mediaLibrary.unpauseSong();
+    if (isntPlaying(self.mediaLibrary.getPlaybackState()))
+      self.mediaLibrary.unpauseSong();
     else self.mediaLibrary.pauseSong();
   }
 
