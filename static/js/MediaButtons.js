@@ -1,6 +1,6 @@
 function isntPlaying (state) {
-  return state == PlayBackStates["PAUSED"] ||
-         state == PlayBackStates["STOPPED"];
+  return (state == PlayBackStates["PAUSED"] ||
+          state == PlayBackStates["STOPPED"]);
 }
 
 MediaButtons = function(evtSys, mediaLibrary) {
@@ -11,9 +11,9 @@ MediaButtons = function(evtSys, mediaLibrary) {
   var updatePlayPauseBtn = function(newState) {
     self.currentState = newState;
     var icon = document.getElementById("media-btn-play-icon");
-    var notPlaying = isntPlaying(newState);
-    icon.classList.toggle('glyphicon-pause', notPlaying);
-    icon.classList.toggle('glyphicon-play', !notPlaying);
+    var playing = !isntPlaying(newState);
+    icon.classList.toggle('glyphicon-pause', playing);
+    icon.classList.toggle('glyphicon-play', !playing);
   }
 
   var playPauseBtn = document.getElementById("media-btn-play");
