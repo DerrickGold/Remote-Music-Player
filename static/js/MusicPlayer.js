@@ -91,25 +91,23 @@ MusicLibrary.prototype.getPlaybackState = function() {
   return this.playbackState;
 }
 
-MusicLibrary.prototype.setFolderView = function(folderIdDiv, view) {
-  var folderNode = folderIdDiv;
-  var toggler = folderNode.querySelector('[role="button"]');
-  var collapser = folderNode.querySelector('[role="tabpanel"]');
-  var state = view === 'open' ? "true": "false";
-  toggler.setAttribute("aria-expanded", state);
-  collapser.setAttribute("aria-expanded", state);
-  if (view === "open") {
-    collapser.classList.add("in");
-    collapser.style.height = null;
-  } else 
-    collapser.classList.remove("in");
+MusicLibrary.prototype.setFolderView = function(node, view) {
+  var toggler = node.querySelector('[role="button"]');
+  var collapser = node.querySelector('[role="tabpanel"]');
+  var state = view === 'open' ? true : false;
+  toggler.setAttribute('aria-expanded', state);
+  collapser.setAttribute('aria-expanded', state);
+  collapser.classList.toggle('in', state)
+  if (state) collapser.style.height = null;
 }
 
 MusicLibrary.prototype.makeMediaLibHash = function(root) {
   var self = this;
   self.mediaHash[root.id] = root;
-  if (root.directory)
-    self.chunking(root.children, function(e) {self.makeMediaLibHash(e)});
+  if (!root.directory) return
+  self.chunking(root.children, function(e) {
+    self.makeMediaLibHash(e)
+  });
 }
 
 MusicLibrary.prototype.secondsToMinutesStr = function(time) {
@@ -163,44 +161,40 @@ MusicLibrary.prototype.displayMakeExcludeButton = function(nodeID, container) {
   icon.onclick = function(e) {
     e.preventDefault();
     var aElm = container.querySelector('[role="button"]');
-    self.mediaHash[nodeID]._exclude = !self.mediaHash[nodeID]._exclude;
-    if (self.mediaHash[nodeID]._exclude) {
-      aElm.classList.add("disabled-folder");
-      self.closeDirectory(container.parentNode);
-    } else
-      aElm.classList.remove("disabled-folder");
+    var state = !self.mediaHash[nodeID]._exclude
+    self.mediaHash[nodeID]._exclude = state;
+    aElm.classList.toggle("disabled-folder", state);
+    if (state) self.closeDirectory(container.parentNode);
   }
   return icon;
 }
 
 MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth) {
-  var panel = null;
-  var panelHeader = document.createElement("div");
-  panelHeader.classList.add("folder-heading");
+  var panelHeader       = document.createElement("div");
+  panelHeader.className = "folder-heading";
   panelHeader.setAttribute("role", "tab");
-  var excludeBtn = this.displayMakeExcludeButton(folderEntry.id, panelHeader);
-  panelHeader.appendChild(excludeBtn);
+  panelHeader.appendChild(this.displayMakeExcludeButton(folderEntry.id, panelHeader));
 
   var icon = document.createElement("span");
   icon.className = "glyphicon glyphicon-folder-close";
   icon.setAttribute("aria-hidden", "true");
   panelHeader.appendChild(icon);
 
-  var collapseButton = document.createElement("div");
-  collapseButton.classList.add("folder-entry-name");
+  var collapseButton       = document.createElement("div");
+  collapseButton.className = "folder-entry-name";
   collapseButton.setAttribute("role", "button");
   collapseButton.setAttribute("data-toggle", "collapse");
   collapseButton.setAttribute("href","#" + this.getFolderCollapseId(folderEntry.id));
-  collapseButton.setAttribute("aria-expanded", expanded == true ? "true" : "false");
+  collapseButton.setAttribute("aria-expanded", expanded);
   collapseButton.setAttribute("aria-controls", this.getFolderCollapseId(folderEntry.id));
   collapseButton.appendChild(document.createTextNode(folderEntry.name));
   panelHeader.appendChild(collapseButton);
 
-  panel = document.createElement("div");
-  panel.appendChild(panelHeader);
-  panel.classList.add("folder-entry");
+  var panel       = document.createElement("div");
+  panel.id        = folderEntry.id;
+  panel.className = "folder-entry";
   panel.setAttribute("role", "directory");
-  panel.setAttribute("id", folderEntry.id);
+  panel.appendChild(panelHeader);
 
   var bodyCollapse = document.createElement("div");
   bodyCollapse.setAttribute("id", this.getFolderCollapseId(folderEntry.id));
@@ -212,11 +206,11 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
 }
 
 MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
-  var text = document.createElement("div");
-  text.setAttribute("id", fileEntry.id);
-  text.appendChild(document.createTextNode(fileEntry.name));
-  text.classList.add("file-entry", "folder-heading", "file-entry-name");
+  var text       = document.createElement("div");
+  text.id        = fileEntry.id;
+  text.className = "file-entry folder-heading file-entry-name";
   text.setAttribute("role", "button audio-file");
+  text.appendChild(document.createTextNode(fileEntry.name));
   var self = this;
   text.onclick = function(e) {
     e.preventDefault();
@@ -236,8 +230,7 @@ MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
       self.displayFolder(f, things[1], depth + 1);
     } else {
       self.mediaHash[f.id] = f;
-      var thing = self.displayMakeFile(f, depth)
-      parentDiv.appendChild(thing);
+      parentDiv.appendChild(self.displayMakeFile(f, depth));
     }
   });
 }
@@ -308,7 +301,7 @@ MusicLibrary.prototype.showSearch = function(keyword) {
     var data = JSON.parse(resp);
     var everything = document.querySelectorAll('[role*="audio-file"],[role="directory"]');
     self.chunking(everything, function(d) {
-      var id = d.getAttribute('id');
+      var id = d.id;
       if (id in data) {
         if (d.classList.contains("hidden")) d.classList.remove("hidden");
         if (d.getAttribute('role') === 'directory') return;
@@ -327,15 +320,12 @@ MusicLibrary.prototype.showSearch = function(keyword) {
           if (skipEntry) return;
           while(nodes.length > 0) {
             var nodeID = nodes.pop();
-            if (self.mediaHash[nodeID].parent == ".") continue;
+            var hash   = self.mediaHash[nodeID];
+            if (hash.parent == ".") continue;
             data[nodeID] = 1;
             var div = document.getElementById(nodeID);
-            if (self.mediaHash[nodeID].directory) {
-              self.setFolderView(div, "open");
-              div.classList.remove("hidden");
-            } else {
-              div.classList.remove("hidden");
-            }
+            if (hash.directory) self.setFolderView(div, "open");
+            div.classList.remove("hidden");
           }
         }
       } else if (!d.classList.contains("hidden"))
@@ -350,8 +340,7 @@ MusicLibrary.prototype.showSearch = function(keyword) {
 
 MusicLibrary.prototype.showFiles = function(show, donecb) {
   var apply = function(el) {
-    if (show) el.classList.remove("hidden");
-    else el.classList.add("hidden");
+    el.classList.toggle('hidden', !show);
   }
   var x = document.querySelectorAll('[role*="audio-file"],[role="directory"]');
   this.chunking(Array.prototype.slice.call(x), apply, donecb);
@@ -427,14 +416,14 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
   } else {
     //if we are streaming, get audio file path to add to local web player
     this.apiCall("/api/files/" + songEntry.id, "GET", true, function(resp) {
-      var trackData = JSON.parse(resp);
-      var streamFormat = document.getElementById("stream-format");
-      var fmt = streamFormat.options[streamFormat.selectedIndex].value;
-      var streamOptions = document.getElementById("stream-quality");
-      var quality = streamOptions.options[streamOptions.selectedIndex].value;
+      var trackData        = JSON.parse(resp);
+      var streamFormat     = document.getElementById("stream-format");
+      var fmt              = streamFormat.options[streamFormat.selectedIndex].value;
+      var streamOptions    = document.getElementById("stream-quality");
+      var quality          = streamOptions.options[streamOptions.selectedIndex].value;
       var transcodeOptions = document.getElementById("transcoding-option");
-      var transcode = transcodeOptions.options[transcodeOptions.selectedIndex].value;
-      var srcURL = "api/files/" + trackData.id + "/stream?format=" + fmt +
+      var transcode        = transcodeOptions.options[transcodeOptions.selectedIndex].value;
+      var srcURL           = "api/files/" + trackData.id + "/stream?format=" + fmt +
           "&quality=" + quality + "&transcode=" + transcode;
       self.audioDiv.src = self.encodeURI(srcURL);
       self.audioDiv.play();
@@ -474,12 +463,11 @@ MusicLibrary.prototype.unpauseSong = function() {
       self.playbackState = PlayBackStates["PLAYING"];
       self.evtSys.dispatchEvent('media state change', self.playbackState);
     });
+    return
   }
-  else {
-    this.audioDiv.play();
-    this.playbackState = PlayBackStates["PLAYING"];
-    this.evtSys.dispatchEvent('media state change', this.playbackState);
-  }
+  this.audioDiv.play();
+  this.playbackState = PlayBackStates["PLAYING"];
+  this.evtSys.dispatchEvent('media state change', this.playbackState);
 }
 
 MusicLibrary.prototype.nextSong = function() {
@@ -590,16 +578,16 @@ MusicLibrary.prototype.updateQualitySelect = function(val) {
 }
 
 MusicLibrary.prototype.mouseDivOffset = function(el, mouseevent) {
-  var style = window.getComputedStyle(el),
-      width = style.getPropertyValue('width'),
-      height = style.getPropertyValue('height'),
-      box = el.getBoundingClientRect(),
-      scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop,
+  var style      = window.getComputedStyle(el),
+      width      = style.getPropertyValue('width'),
+      height     = style.getPropertyValue('height'),
+      box        = el.getBoundingClientRect(),
+      scrollTop  = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop,
       scrollLeft = window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft,
-      clientTop = document.documentElement.clientTop || document.body.clientTop || 0,
+      clientTop  = document.documentElement.clientTop || document.body.clientTop || 0,
       clientLeft = document.documentElement.clientLeft || document.body.clientLeft || 0,
-      divYLoc = box.top + scrollTop - clientTop,
-      divXLoc = box.left + scrollLeft - clientLeft;
+      divYLoc    = box.top + scrollTop - clientTop,
+      divXLoc    = box.left + scrollLeft - clientLeft;
   return [mouseevent.clientX - divXLoc, width, mouseevent.clientY - divYLoc, height];
 }
 
