@@ -14,6 +14,6 @@ document.addEventListener("DOMContentLoaded", function() {
     loadingScreen.classList.remove("visible");
   });
   
-  Media = new MusicLibrary(reactor, true);
+  Media         = new MusicLibrary(reactor, true);
   MediaControls = new MediaButtons(reactor, Media);
 });

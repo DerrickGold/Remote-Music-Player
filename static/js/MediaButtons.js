@@ -1,3 +1,8 @@
+function isntPlaying (state) {
+  return state == PlayBackStates["PAUSED"] ||
+         state == PlayBackStates["STOPPED"];
+}
+
 MediaButtons = function(evtSys, mediaLibrary) {
   var self = this;
   this.mediaLibrary = mediaLibrary;
@@ -6,29 +11,21 @@ MediaButtons = function(evtSys, mediaLibrary) {
   var updatePlayPauseBtn = function(newState) {
     self.currentState = newState;
     var icon = document.getElementById("media-btn-play-icon");
-    if (newState == PlayBackStates["PAUSED"] || newState == PlayBackStates["STOPPED"]) {
-      icon.classList.remove('glyphicon-pause');
-      icon.classList.add('glyphicon-play');
-    } else {
-      icon.classList.remove('glyphicon-play');
-      icon.classList.add('glyphicon-pause');
-    }
+    var isntPlaying = isntPlaying(newState);
+    icon.classList.toggle('glyphicon-pause', isntPlaying);
+    icon.classList.toggle('glyphicon-play', !isntPlaying);
   }
 
   var playPauseBtn = document.getElementById("media-btn-play");
   playPauseBtn.onclick = function() {
-
     if (!self.mediaLibrary.curTrackInfo) {
       var track = self.mediaLibrary.getRandomTrack();
       self.mediaLibrary.playSong(track, 0);
       return;
     }
 
-    if (self.currentState == PlayBackStates["PAUSED"] ||
-        self.currentState == PlayBackStates["STOPPED"])
-      self.mediaLibrary.unpauseSong();
-    else
-      self.mediaLibrary.pauseSong();
+    if (isntPlaying()) self.mediaLibrary.unpauseSong();
+    else self.mediaLibrary.pauseSong();
   }
 
   /*  var speakerBtn = document.getElementById("media-btn-speaker");
