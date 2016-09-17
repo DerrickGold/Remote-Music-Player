@@ -1,0 +1,211 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  position: relative;
+  background: -moz-linear-gradient(249deg, #eae6dd, #ffefe2);
+  background: linear-gradient(249deg, #eae6dd, #ffefe2);
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.fit-box {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.flex {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-span {
+  flex-shrink: 0;
+}
+
+.flex-hold {
+  flex: 1;
+}
+
+.scroll-y {
+  overflow-y: auto;
+}
+
+.hide, .hidden, .collapse {
+  display: none;
+}
+
+.bool-toggle .toggle-on,
+.bool-toggle.on .toggle-off {
+  display: none; 
+}
+
+.bool-toggle.on .toggle-on {
+  display: initial; 
+}
+
+.faux {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.faded {
+  opacity: 0.5;
+}
+
+.faded:hover {
+  opacity: 1;
+}
+
+.input-helper {
+  display: inline;
+  position: relative;
+}
+
+.input-helper .helper {
+  position: absolute;
+  right: 0.5em;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.bg,
+.bg-content {
+  width: 100%;
+  height: 100%;
+}
+
+.bg-content {
+  background-position: center center;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+nav {
+  padding: 1em;
+  text-align: right;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.search-box {
+  display: inline;
+  margin-right: 1em;
+}
+
+.search-box input[type="text"] {
+  border: none;
+  padding: 0.5em 0.5em 0.6em;
+  background: white;
+}
+
+.settings-container {
+  display: inline;
+  position: relative;
+}
+
+.settings.inactive {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settings {
+  position: absolute;
+  right: 0px;
+  top: 2em;
+  padding: 1em;
+  background: white none repeat scroll 0% 0%;
+  box-shadow: 0px 0px 1em rgba(0, 0, 0, 0.1);
+}
+
+.controls-container {
+}
+
+.controls {
+  padding: 1em;
+  text-align: center;
+}
+
+.controls button {
+  font-size: 16px;
+  margin: 0 0.5em;
+  vertical-align: middle;
+}
+
+.controls button.active {
+  color: #9600ff;
+}
+
+#media-btn-play {
+  font-size: 22px;
+}
+
+.listing {
+  padding: 1em;
+  padding-right: 0;
+  background: white;
+  border: solid 1px rgba(0, 0, 0, 0.1);
+  border-left: none;
+  border-right: none;
+}
+
+.folder-heading .fa {
+  margin-right: 0.5em;
+}
+
+.folder-entry-name,
+.file-entry-name {
+  cursor: pointer;
+}
+
+.playing-entry {
+  background-color: #ecfaff;
+}
+
+.folder-body {
+  padding-left: 0.5em;
+  margin-left: 0.5em;
+  border-left: 1px black dotted;
+}
+
+.disabled-folder {
+  text-decoration: line-through;
+  pointer-events: none;
+}
+
+.now-playing {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+}
+
+.now-playing.inactive {
+  display: none;
+}
+
+.now-playing .artwork {
+  min-height: 70%;
+  padding: 2em;
+  box-sizing: border-box;
+}
+
+.scrub-box {
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.scrub-slider {
+  height: 100%;
+  width: 3px;
+  background-color: black;
+}
+

@@ -11,10 +11,9 @@ MediaButtons = function(evtSys, mediaLibrary) {
 
   var updatePlayPauseBtn = function(e) {
     self.currentState = e.playbackState;
-    var icon = document.getElementById("media-btn-play-icon");
     var playing = !isntPlaying(self.currentState);
-    icon.classList.toggle('glyphicon-pause', playing);
-    icon.classList.toggle('glyphicon-play', !playing);
+    var el = document.getElementById("media-btn-play");
+    el.classList.toggle('on', playing);
   }
 
   var playPauseBtn = document.getElementById("media-btn-play");

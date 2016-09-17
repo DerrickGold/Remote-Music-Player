@@ -74,10 +74,10 @@ MusicLibrary.prototype.getRootDirDiv = function() {
 MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {
   var overlay = document.querySelector('[role="currently-playing"]');
   var files = document.querySelector('[role="listroot"]');
-  if (forceClose || (!preventClose && overlay.classList.contains("visible")))
-    overlay.classList.remove("visible");
+  if (forceClose || (!preventClose && !overlay.classList.contains("inactive")))
+    overlay.classList.add("inactive");
   else
-    overlay.classList.add("visible");
+    overlay.classList.remove("inactive");
 }
 
 MusicLibrary.prototype.getFiles = function() {
@@ -171,7 +171,7 @@ MusicLibrary.prototype.closeDirectory = function(folderDiv) {
 MusicLibrary.prototype.displayMakeExcludeButton = function(nodeID, container) {
   var self = this;
   var icon = document.createElement("span");
-  icon.className = "glyphicon glyphicon-ban-circle exclude-btn";
+  icon.className = "fa fa-ban exclude-btn";
   icon.setAttribute("aria-hidden", "true");
   icon.onclick = function(e) {
     e.preventDefault();
@@ -191,11 +191,11 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
   panelHeader.appendChild(this.displayMakeExcludeButton(folderEntry.id, panelHeader));
 
   var icon = document.createElement("span");
-  icon.className = "glyphicon glyphicon-folder-close";
+  icon.className = "fa fa-folder-o";
   icon.setAttribute("aria-hidden", "true");
   panelHeader.appendChild(icon);
 
-  var collapseButton       = document.createElement("div");
+  var collapseButton       = document.createElement("span");
   collapseButton.className = "folder-entry-name";
   collapseButton.setAttribute("role", "button");
   collapseButton.setAttribute("data-toggle", "collapse");
@@ -537,12 +537,13 @@ MusicLibrary.prototype.prevSong = function() {
 }
 
 MusicLibrary.prototype.setCover = function(imgPath) {
+  /*
   var cover = document.querySelector('[role="album-art"]');
   if (imgPath !== undefined) {
     imgPath = self.encodeURI(imgPath);
     cover.setAttribute("src", imgPath +  "?" + Math.floor(Math.random() * 10000000) + 1);
   }
-  else cover.setAttribute("src", "static/img/default_album_art.png");
+  else cover.setAttribute("src", "static/img/default_album_art.png");*/
 }
 
 MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
@@ -632,7 +633,8 @@ MusicLibrary.prototype.init = function() {
   this.getFiles();
 
   this.audioDiv = document.createElement("AUDIO");
-  this.audioDiv.setAttribute("preload", "off");
+  this.audioDiv.preload = "off";
+
   this.curTimeDiv = document.getElementById("curinfo-time");
   this.scrubSlider = document.getElementById("scrubber");  
   this.audioDiv.ontimeupdate = function(e) {
@@ -654,8 +656,9 @@ MusicLibrary.prototype.init = function() {
   this.audioDiv.onseeked = function() { self.triggerLoadingDone(); };
   document.body.appendChild(this.audioDiv);
   
-  var style = window.getComputedStyle(document.body);
-  this.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
+  /*var style = window.getComputedStyle(document.body);
+  this.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));*/
+  
   var curInfo = document.getElementById("openfile-loc-btn");
   curInfo.addEventListener("click", function(e) {
     e.preventDefault();
@@ -683,12 +686,12 @@ MusicLibrary.prototype.init = function() {
     }
   });
 
-  document.querySelector('[role="album-art"]').onclick = function() {
+  /*document.querySelector('[role="album-art"]').onclick = function() {
     document.getElementById("curinfo-path").classList.toggle("hidden");
-  }
+  }*/
 
-  var nowPlaying = document.querySelector('[role="currently-playing"]');
-  nowPlaying.addEventListener("mousewheel", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
-  nowPlaying.addEventListener("DOMMouseScroll", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
+  //var nowPlaying = document.querySelector('[role="currently-playing"]');
+  //nowPlaying.addEventListener("mousewheel", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
+  //nowPlaying.addEventListener("DOMMouseScroll", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
   document.getElementById("search-txt").addEventListener("keypress", function(e) { e.stopPropagation(); });
 }
