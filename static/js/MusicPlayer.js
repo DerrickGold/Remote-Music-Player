@@ -26,6 +26,20 @@ MusicLibrary = function(evtSys, doStreaming) {
   this.init();
 }
 
+MusicLibrary.prototype.triggerLoading = function () {
+  this.evtSys.dispatchEvent(new Event("loading"));
+}
+
+MusicLibrary.prototype.triggerLoadingDone = function () {
+  this.evtSys.dispatchEvent(new Event("loading done"));
+}
+
+MusicLibrary.prototype.triggerNewState = function () {
+  var ev = new Event('media state change');
+  ev.playbackState = this.playbackState;
+  this.evtSys.dispatchEvent(ev);
+}
+
 MusicLibrary.prototype.encodeURI = function(uriIn) {
   return encodeURI(uriIn).replace(/\(/g, "%28").replace(/\)/g, "%29");
 }
@@ -68,12 +82,12 @@ MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {
 
 MusicLibrary.prototype.getFiles = function() {
   var self = this;
-  this.evtSys.dispatchEvent(new Event("loading"));
+  this.triggerLoading()
   this.apiCall("/api/files", "GET", true, function(resp) {
     self.mediaDir = JSON.parse(resp);
     //self.makeMediaLibHash(self.mediaDir.files);
     self.displayFolder(self.mediaDir.files, self.getRootDirDiv());
-    self.evtSys.dispatchEvent(new Event("loading done"));
+    self.triggerLoadingDone()
   });
 }
 
@@ -97,7 +111,8 @@ MusicLibrary.prototype.setFolderView = function(node, view) {
   var state = view === 'open' ? true : false;
   toggler.setAttribute('aria-expanded', state);
   collapser.setAttribute('aria-expanded', state);
-  collapser.classList.toggle('in', state)
+  //collapser.classList.toggle('in', state)
+  collapser.classList.toggle('collapse', !state)
   if (state) collapser.style.height = null;
 }
 
@@ -197,10 +212,14 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
   panel.appendChild(panelHeader);
 
   var bodyCollapse = document.createElement("div");
-  bodyCollapse.setAttribute("id", this.getFolderCollapseId(folderEntry.id));
+  bodyCollapse.id = this.getFolderCollapseId(folderEntry.id);
   bodyCollapse.className = "panel-collapse collapse folder-body";
   bodyCollapse.setAttribute("role", "tabpanel");
   panel.appendChild(bodyCollapse);
+
+  collapseButton.onclick = function (e) {
+    bodyCollapse.classList.toggle('collapse');
+  };
 
   return [panel, bodyCollapse];
 }
@@ -296,7 +315,7 @@ MusicLibrary.prototype.showSearch = function(keyword) {
   keyword = self.encodeURI(keyword)
   if (keyword.length <= 0) return;
   this.toggleNowPlaying(false, true);
-  this.evtSys.dispatchEvent(new Event("loading"));
+  this.triggerLoading()
   this.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
     var data = JSON.parse(resp);
     var everything = document.querySelectorAll('[role*="audio-file"],[role="directory"]');
@@ -331,10 +350,10 @@ MusicLibrary.prototype.showSearch = function(keyword) {
       } else if (!d.classList.contains("hidden"))
         d.classList.add("hidden");
     }, function() {
-      self.evtSys.dispatchEvent(new Event("loading done"));
+      self.triggerLoadingDone()
     });
   }, function(resp) {
-    self.evtSys.dispatchEvent(new Event("loading done"));
+    self.triggerLoadingDone()
   });
 }
 
@@ -372,7 +391,7 @@ MusicLibrary.prototype.swapServerToStreaming = function() {
 }
 
 MusicLibrary.prototype.swapOutput = function() {
-  this.evtSys.dispatchEvent(new Event("loading done"));
+  this.triggerLoadingDone();
   if (this.streaming) this.swapStreamingToServer();
   else this.swapServerToStreaming();
 }
@@ -382,7 +401,7 @@ MusicLibrary.prototype.stopSong = function() {
     var self = this;
     this.apiCall("/api/commands/stop", "POST", true, function(resp) {
       self.playbackState = PlayBackStates["STOPPED"];
-      self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
+      self.triggerNewState();
     });
   } else
     this.audioDiv.pause();
@@ -391,7 +410,7 @@ MusicLibrary.prototype.stopSong = function() {
 MusicLibrary.prototype.playSong = function(songEntry, offset) {
   this.curTrackLen = 0;
   this.seekTimeTo = -1;
-  this.evtSys.dispatchEvent(new Event("loading"));
+  this.triggerLoading()
   if (this.curTrackInfo) {
     this.playHist.push(this.curTrackInfo);
     var lastPlayed = document.getElementById(this.curTrackInfo.id);
@@ -407,11 +426,11 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
     if (offset >= 0) url += "?offset=" + offset;
     this.apiCall(url, "GET", true, function(resp) {
       self.playbackState = PlayBackStates["PLAYING"];
-      self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
+      self.triggerNewState()
       self.updateTrackInfo(function(d) {
         self.curTrackLen = d['length'];
       });
-      self.evtSys.dispatchEvent(new Event("loading done"));
+      self.triggerLoadingDone()
     });
   } else {
     //if we are streaming, get audio file path to add to local web player
@@ -430,11 +449,11 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
       var seekHandler = function(audio) {
         self.audioDiv.removeEventListener('canplay', seekHandler);
         if (offset > 0) audio.target.currentTime = offset;
-        self.evtSys.dispatchEvent(new Event("loading done"));
+        self.triggerLoadingDone()
       }
       self.audioDiv.addEventListener("canplay",seekHandler);
       self.playbackState = PlayBackStates["PLAYING"];
-      self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
+      self.triggerNewState();
       self.updateTrackInfo(function(d) {
         self.curTrackLen = d['length'];
       });
@@ -447,12 +466,12 @@ MusicLibrary.prototype.pauseSong = function() {
   if (!this.streaming) {
     this.apiCall("/api/commands/pause", "POST", true, function(resp) {
       self.playbackState = PlayBackStates["PAUSED"];
-      self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
+      self.triggerNewState()
     });
   } else {
     this.audioDiv.pause();
     this.playbackState = PlayBackStates["PAUSED"];
-    self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
+    self.triggerNewState()
   }
 }
 
@@ -461,13 +480,13 @@ MusicLibrary.prototype.unpauseSong = function() {
   if (!this.streaming) {
     this.apiCall("/api/commands/pause", "POST", true, function(resp) {
       self.playbackState = PlayBackStates["PLAYING"];
-      self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
+      self.triggerNewState()
     });
     return
   }
   this.audioDiv.play();
   this.playbackState = PlayBackStates["PLAYING"];
-  self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
+  self.triggerNewState()
 }
 
 MusicLibrary.prototype.nextSong = function() {
@@ -631,8 +650,8 @@ MusicLibrary.prototype.init = function() {
   this.audioDiv.onended = function() {
     if (self.streaming && self.audioDiv.src.length > 0) self.nextSong();
   }
-  this.audioDiv.onseeking = function() { self.evtSys.dispatchEvent(new Event("loading")); }
-  this.audioDiv.onseeked = function() { self.evtSys.dispatchEvent(new Event("loading done")); }
+  this.audioDiv.onseeking = function() { self.triggerLoading(); };
+  this.audioDiv.onseeked = function() { self.triggerLoadingDone(); };
   document.body.appendChild(this.audioDiv);
   
   var style = window.getComputedStyle(document.body);
