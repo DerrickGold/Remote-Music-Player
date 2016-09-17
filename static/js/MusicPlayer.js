@@ -68,12 +68,12 @@ MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {
 
 MusicLibrary.prototype.getFiles = function() {
   var self = this;
-  this.evtSys.dispatchEvent("loading");
+  this.evtSys.dispatchEvent(new Event("loading"));
   this.apiCall("/api/files", "GET", true, function(resp) {
     self.mediaDir = JSON.parse(resp);
     //self.makeMediaLibHash(self.mediaDir.files);
     self.displayFolder(self.mediaDir.files, self.getRootDirDiv());
-    self.evtSys.dispatchEvent("loading done");
+    self.evtSys.dispatchEvent(new Event("loading done"));
   });
 }
 
@@ -296,7 +296,7 @@ MusicLibrary.prototype.showSearch = function(keyword) {
   keyword = self.encodeURI(keyword)
   if (keyword.length <= 0) return;
   this.toggleNowPlaying(false, true);
-  this.evtSys.dispatchEvent("loading");
+  this.evtSys.dispatchEvent(new Event("loading"));
   this.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
     var data = JSON.parse(resp);
     var everything = document.querySelectorAll('[role*="audio-file"],[role="directory"]');
@@ -331,10 +331,10 @@ MusicLibrary.prototype.showSearch = function(keyword) {
       } else if (!d.classList.contains("hidden"))
         d.classList.add("hidden");
     }, function() {
-      self.evtSys.dispatchEvent("loading done");
+      self.evtSys.dispatchEvent(new Event("loading done"));
     });
   }, function(resp) {
-    self.evtSys.dispatchEvent("loading done");
+    self.evtSys.dispatchEvent(new Event("loading done"));
   });
 }
 
@@ -372,7 +372,7 @@ MusicLibrary.prototype.swapServerToStreaming = function() {
 }
 
 MusicLibrary.prototype.swapOutput = function() {
-  this.evtSys.dispatchEvent("loading");
+  this.evtSys.dispatchEvent(new Event("loading done"));
   if (this.streaming) this.swapStreamingToServer();
   else this.swapServerToStreaming();
 }
@@ -382,7 +382,7 @@ MusicLibrary.prototype.stopSong = function() {
     var self = this;
     this.apiCall("/api/commands/stop", "POST", true, function(resp) {
       self.playbackState = PlayBackStates["STOPPED"];
-      self.evtSys.dispatchEvent('media state change', self.playbackState);
+      self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
     });
   } else
     this.audioDiv.pause();
@@ -391,7 +391,7 @@ MusicLibrary.prototype.stopSong = function() {
 MusicLibrary.prototype.playSong = function(songEntry, offset) {
   this.curTrackLen = 0;
   this.seekTimeTo = -1;
-  this.evtSys.dispatchEvent("loading");
+  this.evtSys.dispatchEvent(new Event("loading"));
   if (this.curTrackInfo) {
     this.playHist.push(this.curTrackInfo);
     var lastPlayed = document.getElementById(this.curTrackInfo.id);
@@ -407,11 +407,11 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
     if (offset >= 0) url += "?offset=" + offset;
     this.apiCall(url, "GET", true, function(resp) {
       self.playbackState = PlayBackStates["PLAYING"];
-      self.evtSys.dispatchEvent('media state change', self.playbackState);
+      self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
       self.updateTrackInfo(function(d) {
         self.curTrackLen = d['length'];
       });
-      self.evtSys.dispatchEvent("loading done");
+      self.evtSys.dispatchEvent(new Event("loading done"));
     });
   } else {
     //if we are streaming, get audio file path to add to local web player
@@ -430,11 +430,11 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
       var seekHandler = function(audio) {
         self.audioDiv.removeEventListener('canplay', seekHandler);
         if (offset > 0) audio.target.currentTime = offset;
-        self.evtSys.dispatchEvent("loading done");
+        self.evtSys.dispatchEvent(new Event("loading done"));
       }
       self.audioDiv.addEventListener("canplay",seekHandler);
       self.playbackState = PlayBackStates["PLAYING"];
-      self.evtSys.dispatchEvent('media state change', self.playbackState);
+      self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
       self.updateTrackInfo(function(d) {
         self.curTrackLen = d['length'];
       });
@@ -443,31 +443,31 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
 }
 
 MusicLibrary.prototype.pauseSong = function() {
+  var self = this;
   if (!this.streaming) {
-    var self = this;
     this.apiCall("/api/commands/pause", "POST", true, function(resp) {
       self.playbackState = PlayBackStates["PAUSED"];
-      self.evtSys.dispatchEvent('media state change', self.playbackState);
+      self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
     });
   } else {
     this.audioDiv.pause();
     this.playbackState = PlayBackStates["PAUSED"];
-    this.evtSys.dispatchEvent('media state change', this.playbackState);
+    self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
   }
 }
 
 MusicLibrary.prototype.unpauseSong = function() {
+  var self = this;
   if (!this.streaming) {
-    var self = this;
     this.apiCall("/api/commands/pause", "POST", true, function(resp) {
       self.playbackState = PlayBackStates["PLAYING"];
-      self.evtSys.dispatchEvent('media state change', self.playbackState);
+      self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
     });
     return
   }
   this.audioDiv.play();
   this.playbackState = PlayBackStates["PLAYING"];
-  this.evtSys.dispatchEvent('media state change', this.playbackState);
+  self.evtSys.dispatchEvent(new Event('media state change', {playbackState: self.playbackState}));
 }
 
 MusicLibrary.prototype.nextSong = function() {
@@ -631,8 +631,8 @@ MusicLibrary.prototype.init = function() {
   this.audioDiv.onended = function() {
     if (self.streaming && self.audioDiv.src.length > 0) self.nextSong();
   }
-  this.audioDiv.onseeking = function() { self.evtSys.dispatchEvent("loading"); }
-  this.audioDiv.onseeked = function() { self.evtSys.dispatchEvent("loading done"); }
+  this.audioDiv.onseeking = function() { self.evtSys.dispatchEvent(new Event("loading")); }
+  this.audioDiv.onseeked = function() { self.evtSys.dispatchEvent(new Event("loading done")); }
   document.body.appendChild(this.audioDiv);
   
   var style = window.getComputedStyle(document.body);
@@ -644,7 +644,6 @@ MusicLibrary.prototype.init = function() {
     self.toggleNowPlaying(false, true);
   });
 
-  this.evtSys.registerEvent('media state change');
   document.getElementById('settings-menu').addEventListener('click', function(e) {
     e.stopPropagation();
   });
