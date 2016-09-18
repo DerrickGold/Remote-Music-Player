@@ -10,9 +10,9 @@ html, body {
 
 body {
   position: relative;
-  background: -moz-linear-gradient(249deg, #eae6dd, #ffefe2);
-  background: linear-gradient(249deg, #eae6dd, #ffefe2);
   font-family: Helvetica, Arial, sans-serif;
+  background: black;
+  overflow: hidden;
 }
 
 .fit-box {
@@ -49,7 +49,7 @@ body {
 }
 
 .bool-toggle.on .toggle-on {
-  display: initial; 
+  display: inline-block; 
 }
 
 .faux {
@@ -73,7 +73,7 @@ body {
 
 .input-helper .helper {
   position: absolute;
-  right: 0.5em;
+  right: 0.8em;
   top: 50%;
   transform: translateY(-50%);
 }
@@ -93,7 +93,7 @@ body {
 nav {
   padding: 1em;
   text-align: right;
-  background: rgba(255, 255, 255, 0.65);
+  background: white; 
 }
 
 .search-box {
@@ -104,7 +104,15 @@ nav {
 .search-box input[type="text"] {
   border: none;
   padding: 0.5em 0.5em 0.6em;
-  background: white;
+  background-color: rgb(252, 252, 252);
+  border-radius: 5px;
+  width: 160px;
+  min-width: 160px;
+  transition: width 0.5s;
+}
+
+.search-box input[type="text"]:focus {
+  width: 30%;
 }
 
 .settings-container {
@@ -128,6 +136,7 @@ nav {
 }
 
 .controls-container {
+  border-top: solid 3px rgba(255, 255, 255, 0.5);
 }
 
 .controls {
@@ -139,13 +148,14 @@ nav {
   font-size: 16px;
   margin: 0 0.5em;
   vertical-align: middle;
+  color: white;
 }
 
 .controls button.active {
-  color: #9600ff;
+  color: #00ff5d;
 }
 
-#media-btn-play {
+button[role="play"] {
   font-size: 22px;
 }
 
@@ -153,9 +163,10 @@ nav {
   padding: 1em;
   padding-right: 0;
   background: white;
-  border: solid 1px rgba(0, 0, 0, 0.1);
-  border-left: none;
+  border: solid 1px rgb(231, 231, 231);
   border-right: none;
+  border-left: none;
+  border-bottom: none;
 }
 
 .folder-heading .fa {
@@ -182,10 +193,44 @@ nav {
   pointer-events: none;
 }
 
+.blurred {
+  position: fixed;
+  z-index: -1;
+}
+
+.blurred .bg-content {
+  position: relative;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background: linear-gradient(249deg, #eae6dd, #ffefe2);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(20px) brightness(80%);
+}
+
+.content {
+  transition: all 0.2s;
+}
+
+.content.inactive {
+  opacity: 0;
+  transform: scale(2);
+  pointer-events: none;
+}
+
 .now-playing {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   text-align: center;
+  color: white;
+  font-weight: bold;
+  padding: 2em 0;
 }
 
 .now-playing.inactive {
@@ -193,19 +238,58 @@ nav {
 }
 
 .now-playing .artwork {
-  min-height: 70%;
-  padding: 2em;
+  height: 70%;
+  max-height: 70%;
   box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.artwork img {
+  display: block;
+}
+
+.scrub-time {
+  padding: 1em 0 0;
+  width: 80%;
+  margin: 0 auto;
+  flex-direction: row;
+}
+
+.scrub-container {
+  padding: 0 1em;
+}
+
+.scrub-digits {
+  font-size: 14px;
+  color: white;
 }
 
 .scrub-box {
   height: 6px;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.5);
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+  overflow: hidden;
+  border-radius: 3px;
 }
 
 .scrub-slider {
   height: 100%;
-  width: 3px;
-  background-color: black;
+  width: 10%;
+  background-color: white;
+  position: absolute;
+  top: 0;
+}
+
+#curinfo-track {
+  margin-top: 1em;
+  font-size: 18px;
+}
+
+#curinfo-artist {
+  font-size: 14px;
+  font-weight: normal;
 }
 

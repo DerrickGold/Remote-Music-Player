@@ -5,6 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Remote Music Player Web Interface</title>
+    <link rel="shortcut icon" href="/static/img/default_album_art.png">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/loader.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" type="text/css"
@@ -14,18 +15,21 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   </head>
   <body>
-    <div class="flex fit-box">
+    <div class="bg blurred">
+      <div class="bg-content" role="background-cover"></div>
+    </div>
+    <div class="content flex fit-box" role="content">
       <nav class="flex-span">
         <form class="search-box">
+          <button id="search-btn" class="faux">
+            <i class="fa fa-search"></i>
+          </button>
           <div class="input-helper">
             <input id="search-txt" type="text" placeholder="Song Title..."/>
             <button id="search-btn-clear" class="faux helper faded">
               <i class="fa fa-times"></i>
             </button>
           </div>
-          <button id="search-btn" class="faux">
-            <i class="fa fa-search"></i>
-          </button>
         </form>
         <div class="settings-container">
           <button role="open-settings" class="faux">
@@ -48,22 +52,6 @@
         </div>
       </nav>
       <div class="flex-hold fit-box">
-        <div class="now-playing inactive flex fit-box" role="currently-playing">
-          <div class="flex-span artwork">
-            <div class="bg">
-              <div class="bg-content" 
-                   role="bg-artwork"
-                   style="background-image:url('static/img/default_album_art.png')"></div>
-            </div>
-          </div>
-          <div class="flex-hold">
-            <div id="curinfo-path" class="hidden"></div>
-            <div id="curinfo-track">No Track Playing</div>
-            <div class="curInfo" id="curinfo-artist">&mdash;</div>        
-            <p id="curinfo-time"></p> / <p id="curinfo-totaltime"></p>
-            <a id="openfile-loc-btn" href="#" role="button">Show File Location</a>
-          </div>
-        </div>
         <div class="fit-box scroll-y listing">
           <div class="file-listing" role="listroot">
             <div role="tablist" id="dirlist"></div>
@@ -71,30 +59,71 @@
         </div>
       </div>
       <div class="flex-span controls-container">   
-        <div id="scrub-box" class="scrub-box">
-          <div id="scrubber" class="scrub-slider"></div>
-        </div>
         <div class="controls">
-          <button id="media-btn-exit" class="faux">
+          <button role="toggle-player" class="faux">
             <i class="fa fa-fw fa-toggle-up"></i>
           </button>
-          <button id="media-btn-prev" class="faux">
+          <button role="prev" class="faux">
             <i class="fa fa-fw fa-backward"></i>
           </button>
-          <button id="media-btn-play" class="bool-toggle faux">
+          <button role="play" class="bool-toggle faux">
             <i class="fa fa-fw fa-play toggle-off"></i>
             <i class="fa fa-fw fa-pause toggle-on"></i>
           </button>
-          <button id="media-btn-next" class="faux">
+          <button role="next" class="faux">
             <i class="fa fa-fw fa-forward"></i>
           </button>
-          <button id="media-btn-shuffle" class="faux">
+          <button role="shuffle" class="faux">
             <i class="fa fa-fw fa-random"></i>
           </button>
         </div>
       </div>
     </div>
-    
+    <div class="now-playing inactive flex fit-box" role="currently-playing">
+      <div class="flex-span bg artwork">
+        <div role="background-cover" 
+             class="bg-content"
+             style="background-image: url('static/img/default_album_art.png');"></div>
+      </div>
+      <div class="flex-hold">
+        <div id="curinfo-path" class="hidden"></div>
+        <div id="curinfo-track">No Track Playing</div>
+        <div id="curinfo-artist">&mdash;</div>
+        <div class="scrub-time flex">
+          <p id="curinfo-time" class="flex-span scrub-digits">0:00</p>
+          <div class="flex-hold scrub-container">
+            <div id="scrub-box" class="scrub-box">
+              <div id="scrubber" class="scrub-slider"></div>
+            </div>
+          </div>
+          <p id="curinfo-totaltime" class="flex-span scrub-digits">0:00</p>
+        </div>
+        <div class="controls">
+          <button class="faux">
+            <i class="fa fa-fw"></i>
+          </button>
+          <button role="toggle-player" class="faux">
+            <i class="fa fa-fw fa-toggle-down"></i>
+          </button>
+          <button role="prev" class="faux">
+            <i class="fa fa-fw fa-backward"></i>
+          </button>
+          <button role="play" class="bool-toggle faux">
+            <i class="fa fa-fw fa-play toggle-off"></i>
+            <i class="fa fa-fw fa-pause toggle-on"></i>
+          </button>
+          <button role="next" class="faux">
+            <i class="fa fa-fw fa-forward"></i>
+          </button>
+          <button role="shuffle" class="faux">
+            <i class="fa fa-fw fa-random"></i>
+          </button>
+          <button role="open-location" class="faux">
+            <i class="fa fa-fw fa-link"></i>
+          </button>
+        </div>
+      </div>
+    </div>
     <div role="load-screen" class="loader-container">
       <div class="loader">
         <div class="loader__bar"></div>
