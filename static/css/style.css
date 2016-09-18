@@ -208,7 +208,7 @@ button[role="play"] {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  filter: blur(20px) brightness(80%);
+  filter: blur(20px) brightness(75%);
 }
 
 .content {
