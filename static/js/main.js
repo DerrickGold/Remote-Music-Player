@@ -1,19 +1,24 @@
 var Media, MediaControls;
 
 document.addEventListener("DOMContentLoaded", function() {
-  var reactor = new Reactor();
-  reactor.registerEvent("loading");
-  reactor.addEventListener("loading", function() {
-    var loadingScreen = document.querySelector('[role="load-screen"]');
+  var loadingScreen = document.querySelector('[role="load-screen"]');
+  var reactor = constructEmitter({});
+  reactor.addEventListener("loading", function(e) {
     loadingScreen.classList.add("visible");
   });
-
-  reactor.registerEvent("loading done");
   reactor.addEventListener("loading done", function() {
-    var loadingScreen = document.querySelector('[role="load-screen"]');
     loadingScreen.classList.remove("visible");
   });
   
   Media         = new MusicLibrary(reactor, true);
   MediaControls = new MediaButtons(reactor, Media);
 });
+
+function constructEmitter (obj) {
+	var target = document.createDocumentFragment();
+	['addEventListener', 'dispatchEvent', 'removeEventListener']
+	.forEach(function(method) {
+		obj[method] = target[method].bind(target)
+	})
+  return obj
+}
