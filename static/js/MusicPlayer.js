@@ -73,11 +73,10 @@ MusicLibrary.prototype.getRootDirDiv = function() {
 
 MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {
   var overlay = document.querySelector('[role="currently-playing"]');
-  var files = document.querySelector('[role="listroot"]');
-  if (forceClose || (!preventClose && overlay.classList.contains("visible")))
-    overlay.classList.remove("visible");
-  else
-    overlay.classList.add("visible");
+  var content = document.querySelector('[role="content"]');
+  var state   = (forceClose || (!preventClose && !overlay.classList.contains("inactive")))
+  overlay.classList.toggle("inactive", state);
+  content.classList.toggle("inactive", !state);
 }
 
 MusicLibrary.prototype.getFiles = function() {
@@ -111,7 +110,6 @@ MusicLibrary.prototype.setFolderView = function(node, view) {
   var state = view === 'open' ? true : false;
   toggler.setAttribute('aria-expanded', state);
   collapser.setAttribute('aria-expanded', state);
-  //collapser.classList.toggle('in', state)
   collapser.classList.toggle('collapse', !state)
   if (state) collapser.style.height = null;
 }
@@ -171,7 +169,7 @@ MusicLibrary.prototype.closeDirectory = function(folderDiv) {
 MusicLibrary.prototype.displayMakeExcludeButton = function(nodeID, container) {
   var self = this;
   var icon = document.createElement("span");
-  icon.className = "glyphicon glyphicon-ban-circle exclude-btn";
+  icon.className = "fa fa-ban exclude-btn";
   icon.setAttribute("aria-hidden", "true");
   icon.onclick = function(e) {
     e.preventDefault();
@@ -191,11 +189,11 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
   panelHeader.appendChild(this.displayMakeExcludeButton(folderEntry.id, panelHeader));
 
   var icon = document.createElement("span");
-  icon.className = "glyphicon glyphicon-folder-close";
+  icon.className = "fa fa-folder-o";
   icon.setAttribute("aria-hidden", "true");
   panelHeader.appendChild(icon);
 
-  var collapseButton       = document.createElement("div");
+  var collapseButton       = document.createElement("span");
   collapseButton.className = "folder-entry-name";
   collapseButton.setAttribute("role", "button");
   collapseButton.setAttribute("data-toggle", "collapse");
@@ -494,6 +492,7 @@ MusicLibrary.prototype.nextSong = function() {
     this.playSong(this.getRandomTrack(), 0);
     return;
   }
+  if (!this.curTrackInfo) return;
   var nodes = this.reverseTrackHashLookup(this.curTrackInfo).reverse();
   var lastDir = this.curTrackInfo.id;
   while (nodes.length > 0) {
@@ -536,14 +535,31 @@ MusicLibrary.prototype.prevSong = function() {
   this.playSong(lastTrack, 0);
 }
 
-MusicLibrary.prototype.setCover = function(imgPath) {
-  var cover = document.querySelector('[role="album-art"]');
-  if (imgPath !== undefined) {
-    imgPath = self.encodeURI(imgPath);
-    cover.setAttribute("src", imgPath +  "?" + Math.floor(Math.random() * 10000000) + 1);
+MusicLibrary.prototype.setCover = function(uri) {
+  var fallback = uri ? false : true;
+  if (fallback) {
+    uri = "static/img/default_album_art.png";
+    doit()
+  } else {
+    uri = uri + "?" + Math.floor(Math.random() * 10000000) + 1;
+    var preload = new Image();
+    preload.src = uri
+    preload.onload = doit()
   }
-  else cover.setAttribute("src", "static/img/default_album_art.png");
+
+  function doit() {
+    effect('[role="album-cover"]', function (el) {
+      el.src = uri;
+    });
+    effect('[role="background-cover"]', function (el) {
+      el.style.backgroundImage = fallback ? null : 'url("' + uri + '")';
+    });
+    effect('[rel="shortcut icon"]', function (el) {
+      el.href = uri;
+    });
+  }
 }
+
 
 MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
   var self = this;
@@ -555,8 +571,8 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
 
     document.getElementById("curinfo-track").innerHTML = title;
     document.title = title;
-    infoStr = data.artist.length > 0 ? data.artist + " -- " : '';
-    infoStr += data.album.length > 0 ? data.album : '';
+    infoStr  = data.artist ? data.artist : '';
+    infoStr += data.album ? (infoStr ? " &mdash; " + data.album : data.album) : '';
     document.getElementById("curinfo-artist").innerHTML = infoStr;
     document.getElementById("curinfo-totaltime").innerHTML = self.secondsToMinutesStr(data["length"]);
     if (doneCb) doneCb(data);
@@ -622,7 +638,7 @@ MusicLibrary.prototype.scrub = function(scrubbox, mouseevent) {
   var offsets = this.mouseDivOffset(scrubbox, mouseevent);
   if (offsets[0] < 0) return;
   var xoffset = parseFloat((parseInt(offsets[0]) * 100)/parseInt(offsets[1])).toFixed(0);
-  this.scrubSlider.style.left = xoffset + "%";
+  this.scrubSlider.style.width = xoffset + "%";
   this.seekTimeTo = parseFloat((parseInt(offsets[0]))/parseInt(offsets[1]) * parseFloat(this.curTrackLen));
   this.curTimeDiv.innerHTML = this.secondsToMinutesStr(this.seekTimeTo);
 }
@@ -632,13 +648,14 @@ MusicLibrary.prototype.init = function() {
   this.getFiles();
 
   this.audioDiv = document.createElement("AUDIO");
-  this.audioDiv.setAttribute("preload", "off");
+  this.audioDiv.preload = "off";
+
   this.curTimeDiv = document.getElementById("curinfo-time");
   this.scrubSlider = document.getElementById("scrubber");  
   this.audioDiv.ontimeupdate = function(e) {
     if (!self.isScrubbing) {
-      if (self.curTrackLen > 0) self.scrubSlider.style.left = (self.curTimeOffset * 100 / self.curTrackLen) + '%';
-      else self.scrubSlider.style.left = 0;
+      if (self.curTrackLen > 0) self.scrubSlider.style.width = (self.curTimeOffset * 100 / self.curTrackLen) + '%';
+      else self.scrubSlider.style.width = 0;
       if (self.seekTimeTo >= 0) {
         this.currentTime = self.seekTimeTo;
         self.seekTimeTo = -1;
@@ -654,17 +671,10 @@ MusicLibrary.prototype.init = function() {
   this.audioDiv.onseeked = function() { self.triggerLoadingDone(); };
   document.body.appendChild(this.audioDiv);
   
-  var style = window.getComputedStyle(document.body);
-  this.navbarOffset = parseInt(style.getPropertyValue("padding-top").replace('px', ''));
-  var curInfo = document.getElementById("openfile-loc-btn");
-  curInfo.addEventListener("click", function(e) {
-    e.preventDefault();
+  react('[role="open-location"]', 'click', function (ev) {
+    ev.preventDefault();
     self.openFileDisplayToTrack(self.curTrackInfo);
     self.toggleNowPlaying(false, true);
-  });
-
-  document.getElementById('settings-menu').addEventListener('click', function(e) {
-    e.stopPropagation();
   });
 
   this.apiCall('/api/commands/formats', 'GET', true, function(resp) {
@@ -683,12 +693,12 @@ MusicLibrary.prototype.init = function() {
     }
   });
 
-  document.querySelector('[role="album-art"]').onclick = function() {
+  /*document.querySelector('[role="album-art"]').onclick = function() {
     document.getElementById("curinfo-path").classList.toggle("hidden");
-  }
+  }*/
 
-  var nowPlaying = document.querySelector('[role="currently-playing"]');
-  nowPlaying.addEventListener("mousewheel", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
-  nowPlaying.addEventListener("DOMMouseScroll", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
+  //var nowPlaying = document.querySelector('[role="currently-playing"]');
+  //nowPlaying.addEventListener("mousewheel", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
+  //nowPlaying.addEventListener("DOMMouseScroll", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
   document.getElementById("search-txt").addEventListener("keypress", function(e) { e.stopPropagation(); });
 }

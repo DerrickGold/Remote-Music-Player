@@ -1,0 +1,336 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  position: relative;
+  font-family: Helvetica, Arial, sans-serif;
+  background: black;
+  overflow: hidden;
+}
+
+.fit-box {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.flex {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-span {
+  flex-shrink: 0;
+}
+
+.flex-hold {
+  flex: 1;
+}
+
+.scroll-y {
+  overflow-y: auto;
+}
+
+.hide, .hidden, .collapse {
+  display: none;
+}
+
+.bool-toggle .toggle-on,
+.bool-toggle.on .toggle-off {
+  display: none; 
+}
+
+.bool-toggle.on .toggle-on {
+  display: inline-block; 
+}
+
+.faux {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.faded {
+  opacity: 0.5;
+}
+
+.faded:hover {
+  opacity: 1;
+}
+
+.input-helper {
+  display: inline;
+  position: relative;
+}
+
+.input-helper .helper {
+  position: absolute;
+  right: 0.8em;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.bg,
+.bg-content {
+  width: 100%;
+  height: 100%;
+}
+
+.bg-content {
+  background-position: center center;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+#top-notch {
+  position: absolute;
+  left: 0.5em;
+  font-size: 20px;
+  top: 0.9em;
+}
+
+.content {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+nav {
+  padding: 1em;
+  text-align: right;
+  background: white; 
+}
+
+.search-box {
+  display: inline;
+  margin-right: 1em;
+}
+
+.search-box input[type="text"] {
+  border: none;
+  padding: 0.5em;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-radius: 5px;
+  width: 160px;
+  min-width: 160px;
+  transition: width 0.5s;
+}
+
+.search-box input[type="text"]:focus {
+  width: 30%;
+}
+
+.settings-container {
+  display: inline;
+  position: relative;
+}
+
+.settings-container > button {
+  font-size: 16px;
+}
+
+.settings.inactive {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.9);
+}
+
+.settings {
+  position: absolute;
+  right: 0px;
+  top: 2em;
+  padding: 1em;
+  background: white none repeat scroll 0% 0%;
+  box-shadow: 0px 0px 1em rgba(0, 0, 0, 0.1);
+  transition: all 0.1s;
+}
+
+.settings table {
+  border: none;
+  font-size: 14px;
+  text-align: left;
+}
+
+
+.settings table th {
+  font-weight: bold;
+  white-space: nowrap;
+  padding-right: 1em;
+}
+
+.controls-container {
+  border-top: solid 3px rgba(255, 255, 255, 0.5);
+}
+
+.controls {
+  padding: 1em;
+  text-align: center;
+}
+
+.controls button {
+  font-size: 16px;
+  margin: 0 0.5em;
+  vertical-align: middle;
+  color: white;
+}
+
+.controls button.active {
+  color: #00ff5d;
+}
+
+button[role="play"] {
+  font-size: 22px;
+}
+
+.listing {
+  padding: 1em;
+  padding-right: 0;
+  background: white;
+  border: solid 1px rgb(231, 231, 231);
+  border-right: none;
+  border-left: none;
+  border-bottom: none;
+}
+
+.folder-heading .fa {
+  margin-right: 0.5em;
+}
+
+.folder-entry-name,
+.file-entry-name {
+  cursor: pointer;
+}
+
+.playing-entry {
+  background-color: #ecfaff;
+}
+
+.folder-body {
+  padding-left: 0.5em;
+  margin-left: 0.5em;
+  border-left: 1px black dotted;
+}
+
+.disabled-folder {
+  text-decoration: line-through;
+  pointer-events: none;
+}
+
+.blurred {
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: 0;
+}
+
+.blurred .bg-content {
+  position: relative;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  /*background: linear-gradient(249deg, #eae6dd, #ffefe2);*/
+  background-color: black;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(20px) brightness(75%);
+}
+
+.now-playing {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 1;
+}
+
+.now-playing.inactive {
+  opacity: 0;
+  transform: translateY(10%) scale(1.1);
+  pointer-events: none;
+}
+
+.now-playing .internal {
+  text-align: center;
+  color: white;
+  font-weight: bold;
+  padding: 4em 0 1em;
+}
+
+.now-playing .artwork {
+  height: 70%;
+  max-height: 70%;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.artwork img {
+  display: block;
+}
+
+.scrub-time {
+  padding: 1em 0 0;
+  width: 80%;
+  margin: 0 auto;
+  flex-direction: row;
+}
+
+.scrub-container {
+  padding: 0 1em;
+}
+
+.scrub-digits {
+  font-size: 14px;
+  color: white;
+}
+
+.scrub-box {
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.5);
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+  overflow: hidden;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.scrub-slider {
+  height: 100%;
+  width: 0%;
+  background-color: white;
+  position: absolute;
+  top: 0;
+}
+
+#curinfo-track {
+  margin-top: 1em;
+  font-size: 18px;
+}
+
+#curinfo-artist {
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.toggle-player-btn {
+  font-size: 18px;
+  color: white;
+  position: absolute;
+  top: 1em;
+  left: 1em;
+  z-index: 2;
+}

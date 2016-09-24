@@ -12,6 +12,9 @@
     top: 0;
     z-index: 2;
 }
+.loader-container.visible {
+  display: block;
+}
 
 .loader {
     display: inherit;

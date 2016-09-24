@@ -11,14 +11,13 @@ MediaButtons = function(evtSys, mediaLibrary) {
 
   var updatePlayPauseBtn = function(e) {
     self.currentState = e.playbackState;
-    var icon = document.getElementById("media-btn-play-icon");
     var playing = !isntPlaying(self.currentState);
-    icon.classList.toggle('glyphicon-pause', playing);
-    icon.classList.toggle('glyphicon-play', !playing);
+    effect('[role="play"]', function (el) {
+      el.classList.toggle('on', playing);
+    });
   }
 
-  var playPauseBtn = document.getElementById("media-btn-play");
-  playPauseBtn.onclick = function() {
+  react('[role="play"]', 'click', function (ev) {
     if (!self.mediaLibrary.curTrackInfo) {
       var track = self.mediaLibrary.getRandomTrack();
       self.mediaLibrary.playSong(track, 0);
@@ -27,35 +26,38 @@ MediaButtons = function(evtSys, mediaLibrary) {
 
     if (isntPlaying(self.mediaLibrary.getPlaybackState()))
       self.mediaLibrary.unpauseSong();
-    else self.mediaLibrary.pauseSong();
-  }
+    else 
+      self.mediaLibrary.pauseSong();
+  });
 
-  /*  var speakerBtn = document.getElementById("media-btn-speaker");
-      speakerBtn.onclick = function() {
-      self.mediaLibrary.swapOutput();
-      }
+  /*  
+  var speakerBtn = document.getElementById("media-btn-speaker");
+  speakerBtn.onclick = function() {
+    self.mediaLibrary.swapOutput();
+  }
   */
-  var nowPlayingBtn = document.getElementById("media-btn-exit");
-  nowPlayingBtn.onclick = function(e) {
-    e.stopPropagation();
+
+  react('[role="toggle-player"]', 'click', function (ev) {
+    ev.stopPropagation();
     self.mediaLibrary.toggleNowPlaying(false);
-  }
+  });
 
-  var nextBtn = document.getElementById("media-btn-next");
-  nextBtn.onclick = function() {
+  react('[role="next"]', 'click', function (ev) {
     self.mediaLibrary.nextSong();
-  }
+  });
 
-  var prevBtn = document.getElementById("media-btn-prev");
-  prevBtn.onclick = function() {
+  react('[role="prev"]', 'click', function (ev) {
     self.mediaLibrary.prevSong();
-  }
+  });
 
-  var shuffleBtn = document.getElementById("media-btn-shuffle");
-  shuffleBtn.onclick = function() {
-    self.mediaLibrary.shuffle = !self.mediaLibrary.shuffle;
-    shuffleBtn.classList.toggle("active");
-  }
+  react('[role="shuffle"]', 'click', function (ev) {
+    var state = !self.mediaLibrary.shuffle
+    self.mediaLibrary.shuffle = state;
+    effect('[role="shuffle"]', function (el) {
+      el.classList.toggle('active', state);
+    });
+  });
+
   var searchBtn = document.getElementById("search-btn");
   searchBtn.onclick = function(e) {
     e.preventDefault();
