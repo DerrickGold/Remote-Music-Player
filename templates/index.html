@@ -20,6 +20,7 @@
     </div>
     <div class="content flex fit-box" role="content">
       <nav class="flex-span">
+        <i id="top-notch" class="fa fa-fw fa-hand-peace-o"></i>
         <form class="search-box">
           <button id="search-btn" class="faux">
             <i class="fa fa-search"></i>
@@ -36,18 +37,33 @@
             <i class="fa fa-fw fa-cog"></i>
           </button>
           <div id="settings-menu" role="settings"  class="settings inactive">
-            Stream Format
-            <select clase="form-control" id="stream-format">
-            </select>
-            Stream Quality
-            <select clase="form-control" id="stream-quality">
-              <option value="-1" selected="selected">Default</option>
-            </select>
-            Transcoding
-            <select clase="form-control" id="transcoding-option">
-              <option value="false" selected="selected">Only Unsupported Files</option>
-              <option value="true">All Files</option>
-            </select>
+            <table>
+              <tbody>
+                <tr>
+                  <th>Stream Format</th>
+                  <td>
+                    <select id="stream-format"></select>
+                  </td>
+                </tr>
+                <tr>
+                  <th>Stream Quality</th>
+                  <td>
+                    <select id="stream-quality">
+                      <option value="-1" selected="selected">Default</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <th>Transcoding</th>
+                  <td>
+                    <select id="transcoding-option">
+                      <option value="false" selected="selected">Only Unsupported Files</option>
+                      <option value="true">All Files</option>
+                    </select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </nav>
@@ -79,50 +95,54 @@
         </div>
       </div>
     </div>
-    <div class="now-playing inactive flex fit-box" role="currently-playing">
-      <div class="flex-span bg artwork">
-        <div role="background-cover" 
-             class="bg-content"
-             style="background-image: url('static/img/default_album_art.png');"></div>
+    <div class="now-playing inactive fit-box" role="currently-playing">
+      <div class="bg blurred">
+        <div class="bg-content" role="background-cover"></div>
       </div>
-      <div class="flex-hold">
-        <div id="curinfo-path" class="hidden"></div>
-        <div id="curinfo-track">No Track Playing</div>
-        <div id="curinfo-artist">&mdash;</div>
-        <div class="scrub-time flex">
-          <p id="curinfo-time" class="flex-span scrub-digits">0:00</p>
-          <div class="flex-hold scrub-container">
-            <div id="scrub-box" class="scrub-box">
-              <div id="scrubber" class="scrub-slider"></div>
+      <div class="flex fit-box internal">
+        <div class="flex-span bg artwork">
+          <div role="background-cover" 
+               class="bg-content"
+               style="background-image: url('static/img/default_album_art.png');"></div>
+        </div>
+        <div class="flex-hold">
+          <div id="curinfo-path" class="hidden"></div>
+          <div id="curinfo-track">No Track Playing</div>
+          <div id="curinfo-artist">&mdash;</div>
+          <div class="scrub-time flex">
+            <p id="curinfo-time" class="flex-span scrub-digits">0:00</p>
+            <div class="flex-hold">
+              <div class="fit-box scrub-container">
+                <div id="scrub-box" class="scrub-box">
+                  <div id="scrubber" class="scrub-slider"></div>
+                </div>
+              </div>
             </div>
+            <p id="curinfo-totaltime" class="flex-span scrub-digits">0:00</p>
           </div>
-          <p id="curinfo-totaltime" class="flex-span scrub-digits">0:00</p>
-        </div>
-        <div class="controls">
-          <button class="faux">
-            <i class="fa fa-fw"></i>
-          </button>
-          <button role="toggle-player" class="faux">
-            <i class="fa fa-fw fa-toggle-down"></i>
-          </button>
-          <button role="prev" class="faux">
-            <i class="fa fa-fw fa-backward"></i>
-          </button>
-          <button role="play" class="bool-toggle faux">
-            <i class="fa fa-fw fa-play toggle-off"></i>
-            <i class="fa fa-fw fa-pause toggle-on"></i>
-          </button>
-          <button role="next" class="faux">
-            <i class="fa fa-fw fa-forward"></i>
-          </button>
-          <button role="shuffle" class="faux">
-            <i class="fa fa-fw fa-random"></i>
-          </button>
-          <button role="open-location" class="faux">
-            <i class="fa fa-fw fa-link"></i>
-          </button>
+          <div class="controls">
+            <button role="open-location" class="faux">
+              <i class="fa fa-fw fa-link"></i>
+            </button>
+            <button role="prev" class="faux">
+              <i class="fa fa-fw fa-backward"></i>
+            </button>
+            <button role="play" class="bool-toggle faux">
+              <i class="fa fa-fw fa-play toggle-off"></i>
+              <i class="fa fa-fw fa-pause toggle-on"></i>
+            </button>
+            <button role="next" class="faux">
+              <i class="fa fa-fw fa-forward"></i>
+            </button>
+            <button role="shuffle" class="faux">
+              <i class="fa fa-fw fa-random"></i>
+            </button>
+          </div>
         </div>
       </div>
+      <button role="toggle-player" class="toggle-player-btn faux">
+        <i class="fa fa-fw fa-bars"></i>
+      </button>
     </div>
     <div role="load-screen" class="loader-container">
       <div class="loader">
