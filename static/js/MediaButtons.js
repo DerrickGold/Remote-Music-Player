@@ -17,47 +17,18 @@ MediaButtons = function(evtSys, mediaLibrary) {
     });
   }
 
-  react('[role="play"]', 'click', function (ev) {
-    if (!self.mediaLibrary.curTrackInfo) {
-      var track = self.mediaLibrary.getRandomTrack();
-      self.mediaLibrary.playSong(track, 0);
-      return;
-    }
-
-    if (isntPlaying(self.mediaLibrary.getPlaybackState()))
-      self.mediaLibrary.unpauseSong();
-    else 
-      self.mediaLibrary.pauseSong();
-  });
-
+  react('[role="play"]', 'click', function(ev) { self.play(ev); });
+  react('[role="toggle-player"]', 'click', function (ev) { self.nowPlaying(ev); });
+  react('[role="next"]', 'click', function (ev) { self.next(ev); });
+  react('[role="prev"]', 'click', function (ev) { self.prev(ev); });
+  react('[role="shuffle"]', 'click', function (ev) { self.shuffle(ev); });
+  this.evtSys.addEventListener('media state change', updatePlayPauseBtn);
   /*  
   var speakerBtn = document.getElementById("media-btn-speaker");
   speakerBtn.onclick = function() {
     self.mediaLibrary.swapOutput();
   }
   */
-
-  react('[role="toggle-player"]', 'click', function (ev) {
-    ev.stopPropagation();
-    self.mediaLibrary.toggleNowPlaying(false);
-  });
-
-  react('[role="next"]', 'click', function (ev) {
-    self.mediaLibrary.nextSong();
-  });
-
-  react('[role="prev"]', 'click', function (ev) {
-    self.mediaLibrary.prevSong();
-  });
-
-  react('[role="shuffle"]', 'click', function (ev) {
-    var state = !self.mediaLibrary.shuffle
-    self.mediaLibrary.shuffle = state;
-    effect('[role="shuffle"]', function (el) {
-      el.classList.toggle('active', state);
-    });
-  });
-
   var searchBtn = document.getElementById("search-btn");
   searchBtn.onclick = function(e) {
     e.preventDefault();
@@ -75,7 +46,6 @@ MediaButtons = function(evtSys, mediaLibrary) {
     searchBox.value = "";
     self.mediaLibrary.clearSearch();
   }
-  this.evtSys.addEventListener('media state change', updatePlayPauseBtn);
 
   var scrubbox = document.getElementById("scrub-box");
   scrubbox.onmousedown = function(e) {
@@ -97,18 +67,60 @@ MediaButtons = function(evtSys, mediaLibrary) {
   //add keyboard bindings
   document.addEventListener("keypress", function(e) {
     switch (e.key) {
-    case ' ':
-      e.preventDefault();
-      playPauseBtn.click();
-      break;
-    case 'b': nextBtn.click(); break;
-    case 'z': prevBtn.click(); break;
-    case 's': shuffleBtn.click(); break;
-    case 'i': nowPlayingBtn.click(); break;
-    case 'f': self.mediaLibrary.openFileDisplayToTrack(); break;
-    case '/': document.getElementById("search-txt").focus(); break;
+    case ' ': self.play(e); break;
+    case 'b': self.next(e); break;
+    case 'z': self.prev(e); break;
+    case 's': self.shuffle(e); break;
+    case 'i': self.nowPlaying(e); break;
+    case 'f': self.fileLocKey(e); break;
+    case '/': self.searchKey(e); break;
     default: break;
     }
   });
 }
 
+MediaButtons.prototype.play = function(ev) {
+  ev.preventDefault();
+  ev.stopPropagation();
+  
+  if (!this.mediaLibrary.curTrackInfo) {
+    var track = this.mediaLibrary.getRandomTrack();
+    this.mediaLibrary.playSong(track, 0);
+    return;
+  }
+  
+  if (isntPlaying(this.mediaLibrary.getPlaybackState()))
+    this.mediaLibrary.unpauseSong();
+  else 
+    this.mediaLibrary.pauseSong();
+}
+
+MediaButtons.prototype.nowPlaying = function(ev) {
+  this.mediaLibrary.toggleNowPlaying(false);
+}
+
+MediaButtons.prototype.next = function(ev) {
+  this.mediaLibrary.nextSong();
+}
+
+MediaButtons.prototype.prev = function(ev) {
+  this.mediaLibrary.prevSong();
+}
+
+MediaButtons.prototype.shuffle = function(ev) {
+  var state = !this.mediaLibrary.shuffle
+  this.mediaLibrary.shuffle = state;
+  effect('[role="shuffle"]', function (el) {
+    el.classList.toggle('active', state);
+  });
+}
+
+MediaButtons.prototype.searchKey = function(ev) {
+  this.mediaLibrary.toggleNowPlaying(false, true);
+  document.getElementById("search-txt").focus();
+}
+
+MediaButtons.prototype.fileLocKey = function(ev) {
+  this.mediaLibrary.toggleNowPlaying(false, true);
+  this.mediaLibrary.openFileDisplayToTrack();
+}
