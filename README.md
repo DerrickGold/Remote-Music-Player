@@ -23,10 +23,12 @@ Simply run:
 to install python dependencies.
 
 ## Docker:
-Build the docker image in the Remote-Media-Player directory
+Build the docker image in the Remote-Media-Player directory:
+
 `docker build -t rmp .`
 
 Then to run the server:
+
 `docker run -v <YOUR MUSIC FOLDER PATH>:/server/music -p <YOUR PORT NUMBER>:25222 rmp`
 
 
