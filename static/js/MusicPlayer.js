@@ -4,7 +4,7 @@ PlayBackStates = {
   "PAUSED": 1
 }
 
-MusicLibrary = function(evtSys, doStreaming) {
+MusicLibrary = function(evtSys, doStreaming, autoplay) {
   this.mediaDir = null;
   this.mediaHash = {};
   this.indentSize = 10;
@@ -23,7 +23,12 @@ MusicLibrary = function(evtSys, doStreaming) {
   this.supportedFormats = null;
   this.curTimeDiv = null;
   this.scrubSlider = null;
+  this.autoplay = autoplay;
   this.init();
+}
+
+MusicLibrary.prototype.hashToEntry = function (hash) {
+  return this.mediaHash[hash];
 }
 
 MusicLibrary.prototype.triggerLoading = function () {
@@ -82,11 +87,16 @@ MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {
 MusicLibrary.prototype.getFiles = function() {
   var self = this;
   this.triggerLoading()
+  self._doneGet = false;
   this.apiCall("/api/files", "GET", true, function(resp) {
     self.mediaDir = JSON.parse(resp);
-    //self.makeMediaLibHash(self.mediaDir.files);
-    self.displayFolder(self.mediaDir.files, self.getRootDirDiv());
-    self.triggerLoadingDone()
+    self.displayFolder(self.mediaDir.files, self.getRootDirDiv(), 0, self.mediaDir.count, function(hash) {
+      self.triggerLoadingDone();
+      if (self.autoplay) {
+        self.playSong(self.hashToEntry(self.autoplay), 0);
+        self.toggleNowPlaying();
+      }
+    });
   });
 }
 
@@ -236,18 +246,24 @@ MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
   return text;
 }
 
-MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth) {
+MusicLibrary.prototype.displayFolder = function(folder, parentDiv, depth, count, donecb) {
   var self = this;
+  if (depth == 0) self._processed = 0;
   self.mediaHash[folder.id] = folder;
-  if (!depth) depth = 0;
   this.chunking(folder.children, function(f) {
+    self._processed++;
     if (f.directory) {
       var things = self.displayMakeFolder(f, false, depth);
       parentDiv.appendChild(things[0]);
-      self.displayFolder(f, things[1], depth + 1);
+      self.displayFolder(f, things[1], depth + 1, count, donecb);
     } else {
       self.mediaHash[f.id] = f;
       parentDiv.appendChild(self.displayMakeFile(f, depth));
+    }
+  }, function() {
+    if (self._processed >= count - 1 && donecb) {
+      self._processed = -1;
+      donecb(self.mediaHash);
     }
   });
 }
@@ -288,7 +304,7 @@ MusicLibrary.prototype.openFileDisplayToTrack = function(track) {
 MusicLibrary.prototype.chunking = function(library, cb, donecb) {
   var perFrame = 500, idx = 0, lib = library, fps = 60;
   var time = 1000/fps;
-  function doChunk(data) {
+  function doChunk() {
     setTimeout(function() {
       var liblen = lib.length;
       if (idx >= liblen) {
@@ -405,18 +421,31 @@ MusicLibrary.prototype.stopSong = function() {
     this.audioDiv.pause();
 }
 
+MusicLibrary.prototype.updatePlayingEntry = function(entry, isPlaying) {
+  if (!entry) return;
+  console.log(entry);
+  var song = document.getElementById(entry.id);
+  song.classList.toggle('playing-entry', isPlaying);
+  if (!isPlaying) {
+    var shareBtn = document.querySelector('[role="share"]');
+    song.removeChild(shareBtn);
+  } else {
+    var shareBtn = document.createElement('a');
+    shareBtn.innerHTML = "share";
+    shareBtn.setAttribute("href", "gui?stream=true&autoplay=" + entry.id);
+    shareBtn.setAttribute("role", "share");
+    song.appendChild(shareBtn);
+  }
+}
+
 MusicLibrary.prototype.playSong = function(songEntry, offset) {
   this.curTrackLen = 0;
   this.seekTimeTo = -1;
   this.triggerLoading()
-  if (this.curTrackInfo) {
-    this.playHist.push(this.curTrackInfo);
-    var lastPlayed = document.getElementById(this.curTrackInfo.id);
-    lastPlayed.classList.remove('playing-entry');
-  }
+  if (this.curTrackInfo) this.playHist.push(this.curTrackInfo);
+  this.updatePlayingEntry(this.curTrackInfo, false);
   this.curTrackInfo = songEntry;
-  var nowplaying = document.getElementById(this.curTrackInfo.id);
-  nowplaying.classList.add('playing-entry');
+  this.updatePlayingEntry(this.curTrackInfo, true);
   //this.openFileDisplayToTrack(songEntry);
   var self = this;
   if (!this.streaming) {

@@ -1,4 +1,6 @@
 var Media, MediaControls;
+var params = queryStringToObject(location.search);
+
 
 document.addEventListener("DOMContentLoaded", function() {
   var loadingScreen = document.querySelector('[role="load-screen"]');
@@ -9,8 +11,8 @@ document.addEventListener("DOMContentLoaded", function() {
   reactor.addEventListener("loading done", function() {
     loadingScreen.classList.remove("visible");
   });
-  
-  Media         = new MusicLibrary(reactor, true);
+
+  Media         = new MusicLibrary(reactor, !!params.stream, params.autoplay);
   MediaControls = new MediaButtons(reactor, Media);
 
   reaction('[role="open-settings"]', 'click', '[role="settings"]', 
@@ -52,6 +54,18 @@ function constructEmitter (obj) {
   ['addEventListener', 'dispatchEvent', 'removeEventListener']
   .forEach(function(method) {
     obj[method] = target[method].bind(target)
+  })
+  return obj
+}
+
+function queryStringToObject (str) {
+  var obj = {}
+  if (!str) return obj
+  if (str[0] == "?") str = str.substr(1)
+  var arr = str.split("&")
+  arr.forEach(function (el) {
+    var a = el.split("=")
+    obj[decodeURIComponent(a[0])] = decodeURIComponent(a[1])
   })
   return obj
 }

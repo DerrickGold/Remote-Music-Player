@@ -334,3 +334,7 @@ button[role="play"] {
   left: 1em;
   z-index: 2;
 }
+
+a[role="share"] {
+    padding: 5px;
+}
