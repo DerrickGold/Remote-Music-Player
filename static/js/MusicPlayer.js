@@ -455,6 +455,8 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
       self.updateTrackInfo(function(d) {
         self.curTrackLen = d['length'];
       });
+    }, function() {
+      self.nextSong();
     });
   }
 }

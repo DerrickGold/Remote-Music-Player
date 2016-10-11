@@ -154,14 +154,17 @@ def guessTranscodedSize(codec, quality, metadata):
     # currently assumes all audio will end up as stereo output
     quality = re.findall('\d+', quality)[0]
 
-    if codec == "wav":
-        # frequncy * bitdepth (16 bits = 2 bytes) * num of channels (2 =
-        # stereo) * length (seconds)
-        metadata['size'] = int(quality) * 4 * int(float(metadata['length']))
-    elif codec == "mp3":
-        # bitrate (kilobits) * 8 to convert to kilobytes * length (seconds)
-        metadata['size'] = int(int(quality) * 1000 // 8 * float(metadata['length']))
-
+    try:
+        if codec == "wav":
+            # frequncy * bitdepth (16 bits = 2 bytes) * num of channels (2 =
+            # stereo) * length (seconds)
+            metadata['size'] = int(quality) * 4 * int(float(metadata['length']))
+        elif codec == "mp3":
+            # bitrate (kilobits) * 8 to convert to kilobytes * length (seconds)
+            metadata['size'] = int(int(quality) * 1000 // 8 * float(metadata['length']))
+    except ValueError:
+        print("Invalid track length")
+        
     print(metadata)
 
 
