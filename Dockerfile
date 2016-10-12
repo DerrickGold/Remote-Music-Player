@@ -10,28 +10,29 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y python3 
 RUN mkdir ~/ffmpeg_sources
 
 #get libfdk-aac
-RUN cd ~/ffmpeg_sources && \
+RUN cd /root/ffmpeg_sources && \
 	wget -O fdk-aac.tar.gz https://github.com/mstorsjo/fdk-aac/tarball/master && \
 	tar xzvf fdk-aac.tar.gz && \
+	libtoolize && \
 	cd mstorsjo-fdk-aac* && \
 	autoreconf -fiv && \
-	./configure --prefix="$HOME/ffmpeg_build" --disable-shared && \
+	./configure --prefix="/root/ffmpeg_build" --disable-shared && \
 	make && \
 	make install && \
 	make distclean
 
 
 #build ffmpeg
-RUN cd ~/ffmpeg_sources && \
+RUN cd /root/ffmpeg_sources && \
 	wget http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 && \
 	tar xjvf ffmpeg-snapshot.tar.bz2 && \
 	cd ffmpeg && \
-	PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
-	  --prefix="$HOME/ffmpeg_build" \
+	PATH="/root/bin:$PATH" PKG_CONFIG_PATH="/root/ffmpeg_build/lib/pkgconfig" ./configure \
+	  --prefix="/root/ffmpeg_build" \
   	--pkg-config-flags="--static" \
-  	--extra-cflags="-I$HOME/ffmpeg_build/include" \
-  	--extra-ldflags="-L$HOME/ffmpeg_build/lib" \
-  	--bindir="$HOME/bin" \
+  	--extra-cflags="-I/root/ffmpeg_build/include" \
+  	--extra-ldflags="-L/root/ffmpeg_build/lib" \
+  	--bindir="/root/bin" \
   	--enable-gpl \
   	--enable-libass \
   	--enable-libfdk-aac \
@@ -42,24 +43,25 @@ RUN cd ~/ffmpeg_sources && \
   	--enable-libvorbis \
   	--enable-libx264 \
   	--enable-nonfree &&\
-	PATH="$HOME/bin:$PATH" make && \
+	PATH="/root/bin:$PATH" make && \
 	make install && \
 	make distclean && \
 	hash -r
 
 
 #add server files
-RUN mkdir /server && cd /server && mkdir .cache
-ADD ./static /server/static
-ADD ./templates /server/templates
-ADD ./rmp.py /server/rmp.py
-ADD ./requirements.txt /server/reqs.txt
+RUN mkdir /server && mkdir /server/.cache && chmod -R 755 /server
+WORKDIR /server
+
+ADD ./static static
+ADD ./templates templates
+ADD ./rmp.py rmp.py
+ADD ./requirements.txt reqs.txt
 
 #install server dependencies
-RUN cd /server && pip3 install -r reqs.txt
+RUN pip3 install -r reqs.txt
 
 EXPOSE 25222
 VOLUME /server/music
-WORKDIR /server
 ENV PATH "$PATH:/root/bin"
 CMD [ "/usr/bin/python3", "rmp.py", "-p", "25222", "music" ]
