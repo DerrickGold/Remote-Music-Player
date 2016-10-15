@@ -93,6 +93,12 @@ MusicLibrary.prototype.getFiles = function() {
     self.displayFolder(self.mediaDir.files, self.getRootDirDiv(), 0, self.mediaDir.count, function(hash) {
       self.triggerLoadingDone();
       if (self.autoplay) {
+        //get the user to touch the screen to gain control of the audio player in mobile
+        //browsers
+        if (window.mobilecheck) {
+          var msg = document.querySelector('[role="load-text"]');
+          msg.classList.remove("hidden");
+        }
         self.playSong(self.hashToEntry(self.autoplay), 0);
         self.toggleNowPlaying();
       }
@@ -241,6 +247,7 @@ MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
   var self = this;
   text.onclick = function(e) {
     e.preventDefault();
+    self.audioDiv.play();
     self.playSong(fileEntry, 0);
   }
   return text;
