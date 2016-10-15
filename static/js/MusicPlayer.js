@@ -426,11 +426,14 @@ MusicLibrary.prototype.updatePlayingEntry = function(entry, isPlaying) {
   console.log(entry);
   var song = document.getElementById(entry.id);
   song.classList.toggle('playing-entry', isPlaying);
+
+  var shareBtn = null;
   if (!isPlaying) {
-    var shareBtn = document.querySelector('[role="share"]');
-    song.removeChild(shareBtn);
+    //shareBtn = document.querySelector('[role="share"]');
+    shareBtn = song.querySelector('[role="share"]');
+    if (shareBtn) song.removeChild(shareBtn);
   } else {
-    var shareBtn = document.createElement('a');
+    shareBtn = document.createElement('a');
     shareBtn.innerHTML = "share";
     shareBtn.setAttribute("href", "gui?stream=true&autoplay=" + entry.id);
     shareBtn.setAttribute("role", "share");
@@ -561,6 +564,9 @@ MusicLibrary.prototype.nextSong = function() {
 
 MusicLibrary.prototype.prevSong = function() {
   if (this.playHist.length < 1) return;
+  //purge the current song content since the next song
+  //after the previous will be randomly selected
+  this.updatePlayingEntry(this.curTrackInfo, false);
   this.curTrackInfo = null;
   var lastTrack = this.playHist.pop();
   this.playSong(lastTrack, 0);
