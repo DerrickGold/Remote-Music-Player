@@ -12,6 +12,17 @@
     top: 0;
     z-index: 2;
 }
+
+div[role="load-text"] {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, calc(-50% - 88px));
+    height: 30px;
+    width: 100%;
+    color: white;
+}
+
 .loader-container.visible {
   display: block;
 }
@@ -23,7 +34,7 @@
     height: 100px;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, calc(-50% - 50px));
     color: white;		
 }
 .loader__bar {

@@ -17,6 +17,15 @@ MediaButtons = function(evtSys, mediaLibrary) {
     });
   }
 
+  if (window.mobilecheck) react('[role="load-screen"]', 'click', function(ev) {
+    var msg = document.querySelector('[role="load-text"]');
+    if (self.mediaLibrary.autoplay && !msg.classList.contains("hidden")) {
+      msg.classList.add("hidden");
+      //take control of the media player in mobile browsers
+      self.play(ev);
+      self.play(ev);
+    }
+  });
   react('[role="play"]', 'click', function(ev) { self.play(ev); });
   react('[role="toggle-player"]', 'click', function (ev) { self.nowPlaying(ev); });
   react('[role="next"]', 'click', function (ev) { self.next(ev); });
@@ -82,7 +91,7 @@ MediaButtons = function(evtSys, mediaLibrary) {
 MediaButtons.prototype.play = function(ev) {
   ev.preventDefault();
   ev.stopPropagation();
-  
+  this.mediaLibrary.audioDiv.play();
   if (!this.mediaLibrary.curTrackInfo) {
     var track = this.mediaLibrary.getRandomTrack();
     this.mediaLibrary.playSong(track, 0);
