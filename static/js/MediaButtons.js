@@ -31,6 +31,7 @@ MediaButtons = function(evtSys, mediaLibrary) {
   react('[role="next"]', 'click', function (ev) { self.next(ev); });
   react('[role="prev"]', 'click', function (ev) { self.prev(ev); });
   react('[role="shuffle"]', 'click', function (ev) { self.shuffle(ev); });
+  react('[role="update-library"]', 'click', function (ev) { self.updateLibrary(ev); }); 
   this.evtSys.addEventListener('media state change', updatePlayPauseBtn);
   /*  
   var speakerBtn = document.getElementById("media-btn-speaker");
@@ -132,4 +133,8 @@ MediaButtons.prototype.searchKey = function(ev) {
 MediaButtons.prototype.fileLocKey = function(ev) {
   this.mediaLibrary.toggleNowPlaying(false, true);
   this.mediaLibrary.openFileDisplayToTrack();
+}
+
+MediaButtons.prototype.updateLibrary = function(ev) {
+  this.mediaLibrary.rescanFiles();
 }

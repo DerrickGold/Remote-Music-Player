@@ -106,6 +106,70 @@ MusicLibrary.prototype.getFiles = function() {
   });
 }
 
+MusicLibrary.prototype.rmNode = function(node) {
+  var self = this;
+  if (!node) return;
+  
+  if (node.directory && node.children.length > 0) {
+    node.children.forEach(function(e) {
+      self.rmNode(e)
+    });
+    //update the parent node to remove the child entry
+    var parent = self.mediaHash[node.parent];
+    for (var i = 0; i < parent.children.length; i++) {
+      if (parent.children[i] === node.id) {
+        parent.children.splice(i, 1);
+        break;
+      }
+    }
+  }
+  //remove the html element
+  var nodeElm = document.getElementById(node.id);
+  if (nodeElm) {
+    console.log("Found node element");
+    nodeElm.parentNode.removeChild(nodeElm);
+    console.log(nodeElm);
+  }
+  //remove element from the hash
+  delete self.mediaHash[node.id];
+}
+
+MusicLibrary.prototype.insertTree = function(dest, node, top) {
+  var self = this;
+  var newTop = top;
+  if (node.directory) {
+    if (!self.mediaHash[node.id]) {
+      if (!newTop) {
+        dest.children.push(node);
+        newTop = true;
+      }
+      self.mediaHash[node.id] = node;
+      var parentDiv = document.getElementById(self.getFolderCollapseId(dest.id));
+      var things = self.displayMakeFolder(node, false, 0);
+      parentDiv.appendChild(things[0]);
+    }    
+    node.children.forEach(function(child) {
+      self.insertTree(node, child, newTop);
+    });
+  } else {
+    var parentDiv = document.getElementById(self.getFolderCollapseId(dest.id));
+    parentDiv.appendChild(self.displayMakeFile(node, 0));
+  }
+}
+
+MusicLibrary.prototype.rescanFiles = function() {
+  var self = this;
+  this.apiCall("/api/commands/rescan", "GET", false, function(resp) {
+    mediaDiff = JSON.parse(resp);
+    console.log(mediaDiff);
+    var dest = self.mediaHash[mediaDiff.added.id];
+    self.insertTree(dest, mediaDiff.added, false);
+    mediaDiff.removed.forEach(function(id) {
+      self.rmNode(self.mediaHash[id]);
+    });
+  });
+}
+
 MusicLibrary.prototype.getTrackPos = function(doneCb) {
   if (this.streaming) return;
   var self = this;
