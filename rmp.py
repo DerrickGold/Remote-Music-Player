@@ -269,7 +269,10 @@ class FileHashNodeTree:
             parent = self.mappings[node['parent']]
             if not top:
                 parent['children'].append(node)
+                parent['children'] = sorted(parent['children'], key=cmp_to_key(dircmp))
                 top = True
+
+                
             self.mappings[node['id']] = node
             self.pathmappings[curFileName] = node
         
