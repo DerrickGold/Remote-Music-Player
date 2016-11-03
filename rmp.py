@@ -177,7 +177,7 @@ class FileHashNodeTree:
                     if 'covers' not in node: node['covers'] = []
                     node['covers'].extend(childNodes['covers'])
 
-                node['children'] = sorted(node['children'], key=cmp_to_key(dircmp))
+            node['children'] = sorted(node['children'], key=cmp_to_key(dircmp))
 
         return node, fileMapping, pathMapping
 
@@ -213,7 +213,12 @@ class FileHashNodeTree:
             for child in node['children']:
                 self.rm_node(child)
 
-        parent = self.mappings[node['parent']]
+        parent = None
+        if node['parent'] in self.mappings:
+            parent = self.mappings[node['parent']]
+        else:
+            return
+        
         for i, child in enumerate(parent['children']):
             if child['id'] == node['id']:
                 parent['children'].pop(i)
@@ -248,19 +253,22 @@ class FileHashNodeTree:
         return rmNodes
 
     
-    def merge_scan_diff_r(self, node, path='.', name='.'):
+    def merge_scan_diff_r(self, node, path='.', name='.', top=False):
         curFileName = os.path.normpath(os.path.join(path, name))
         
         if node['id'] not in self.mappings:
             parent = self.mappings[node['parent']]
-            parent['children'].append(node)
+            if not top:
+                parent['children'].append(node)
+                top = True
             self.mappings[node['id']] = node
             self.pathmappings[curFileName] = node
-
+        
         if node['directory'] and 'children' in node:
             for c in node['children']:
-                self.merge_scan_diff_r(c, curFileName, c['name'])
-        
+                self.merge_scan_diff_r(c, curFileName, c['name'], top)
+
+            node['children'] = sorted(node['children'], key=cmp_to_key(dircmp))
         
 
         
@@ -563,6 +571,20 @@ def get_quality():
     }
     return jsonify(**response)
 
+@app.route('/api/commands/rescan')
+def rescanner():
+    root_dir = GLOBAL_SETTINGS['MusicListClass'].root
+    oldHash = GLOBAL_SETTINGS['MusicListClass'].fileHash
+
+    RescanHash = FileHashNodeTree(root_dir)
+    RescanHash.scan_directory(root_dir, '.', '.', oldHash)
+    RescanHash.resolve_scan_diff(root_dir, '.', '.', oldHash)
+    deleted = oldHash.merge_scan_diff(RescanHash)
+    diff = RescanHash.get_files()
+
+    resp = {'added': diff, 'removed': deleted}
+    return jsonify(**resp)
+
 
 @app.route('/api/files')
 def files():
@@ -726,19 +748,6 @@ def index():
     doStream = bool(request.args.get('stream'))
     return render_template('index.html', enableStream=doStream)
 
-@app.route('/rescan')
-def rescanner():
-    root_dir = GLOBAL_SETTINGS['MusicListClass'].root
-    oldHash = GLOBAL_SETTINGS['MusicListClass'].fileHash
-
-    RescanHash = FileHashNodeTree(root_dir)
-    RescanHash.scan_directory(root_dir, '.', '.', oldHash)
-    RescanHash.resolve_scan_diff(root_dir, '.', '.', oldHash)
-    deleted = oldHash.merge_scan_diff(RescanHash)
-    diff = RescanHash.get_files()
-
-    resp = {'added': diff, 'removed': deleted}
-    return jsonify(**resp)
 
 
 def args():
