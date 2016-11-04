@@ -169,7 +169,12 @@ MusicLibrary.prototype.getInsertPos = function(parentNode, insertNode) {
 
 MusicLibrary.prototype.insertTree = function(dest, node, top) {
   var self = this, newTop = top, pDiv = null;
-  var parentDiv = document.getElementById(self.getFolderCollapseId(dest.id));
+  var parentDiv = null;
+  if (dest.parent === '.')
+    parentDiv = document.querySelector('[role="tablist"]');
+  else
+    parentDiv = document.getElementById(self.getFolderCollapseId(dest.id));
+    
   if (node.directory) {
     if (!self.mediaHash[node.id]) {
       self.mediaHash[node.id] = node;
