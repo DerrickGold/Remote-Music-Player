@@ -108,19 +108,22 @@ MusicLibrary.prototype.getFiles = function() {
 
 MusicLibrary.prototype.rmNode = function(node) {
   var self = this;
-  if (!node) return;
-  
+  if (!node) {
+    console.log("No node found!\n");
+    return;
+  }
+
+  var parent = self.mediaHash[node.parent];
   if (node.directory && node.children.length > 0) {
-    var parent = self.mediaHash[node.parent];
     node.children.forEach(function(e) {
       self.rmNode(e)
     });
-    //update the parent node to remove the child entry
-    for (var i = 0; i < parent.children.length; i++) {
-      if (parent.children[i] === node.id) {
-        parent.children.splice(i, 1);
-        break;
-      }
+  }
+  //update the parent node to remove the child entry
+  for (var i = 0; i < parent.children.length; i++) {
+    if (parent.children[i] === node.id) {
+      parent.children.splice(i, 1);
+      break;
     }
   }
   //remove the html element
@@ -129,6 +132,9 @@ MusicLibrary.prototype.rmNode = function(node) {
     console.log("Found node element");
     nodeElm.parentNode.removeChild(nodeElm);
     console.log(nodeElm);
+  } else {
+    console.log("Failed to find node element");
+    console.log(node);
   }
   //remove element from the hash
   delete self.mediaHash[node.id];
@@ -162,27 +168,25 @@ MusicLibrary.prototype.getInsertPos = function(parentNode, insertNode) {
 }
 
 MusicLibrary.prototype.insertTree = function(dest, node, top) {
-  var self = this;
-  var newTop = top;
+  var self = this, newTop = top, pDiv = null;
+  var parentDiv = document.getElementById(self.getFolderCollapseId(dest.id));
   if (node.directory) {
     if (!self.mediaHash[node.id]) {
       self.mediaHash[node.id] = node;
-      var parentDiv = document.getElementById(self.getFolderCollapseId(dest.id));
+      
+      var things = self.displayMakeFolder(node, false, 0);
       if (!newTop) {
         //we are taking our new tree and merging it with
         //the current file tree. Need to make sure its inserted
         //in sorted order
         dest.children.push(node);
         newTop = true;
-        var pDiv = null;
         var after = self.getInsertPos(dest, node);
         if (after) pDiv = document.getElementById(after.id);
-        var things = self.displayMakeFolder(node, false, 0);
         parentDiv.insertBefore(things[0], pDiv);
       } else {
         //here we are just creating the html for the children nodes of the tree
         //we inserted, they should already be in sorted order from the tree diff
-        var things = self.displayMakeFolder(node, false, 0);
         parentDiv.appendChild(things[0]);
       }
     }    
@@ -190,8 +194,7 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
       self.insertTree(node, child, newTop);
     });
   } else {
-    var parentDiv = document.getElementById(self.getFolderCollapseId(dest.id));
-    var pDiv = null;
+    self.mediaHash[node.id] = node;
     var after = self.getInsertPos(dest, node);
     if (after) pDiv = document.getElementById(after.id);
     //parentDiv.appendChild(self.displayMakeFile(node, 0));
