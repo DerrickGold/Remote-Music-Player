@@ -162,9 +162,9 @@ MusicLibrary.prototype.getInsertPos = function(parentNode, insertNode) {
 
   if (mid >= targetHead.children.length - 1) {
     if (this.nodeComparator(insertNode, targetHead.children[mid]) > 0)
-      return null;
+      return {node: null, pos: mid};
   }
-  return targetHead.children[mid];
+  return {node: targetHead.children[mid], pos: mid};
 }
 
 MusicLibrary.prototype.insertTree = function(dest, node, top) {
@@ -187,7 +187,10 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
         dest.children.push(node);
         newTop = true;
         var after = self.getInsertPos(dest, node);
-        if (after) pDiv = document.getElementById(after.id);
+        if (after.node) {
+          pDiv = document.getElementById(after.node.id);
+          dest.children.splice(after.pos, 0, node);
+        } else dest.children.push(node);
         parentDiv.insertBefore(things[0], pDiv);
       } else {
         //here we are just creating the html for the children nodes of the tree
@@ -196,12 +199,23 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
       }
     }    
     node.children.forEach(function(child) {
-      self.insertTree(node, child, newTop);
+      self.insertTree(self.mediaHash[node.id], child, newTop);
     });
   } else {
-    self.mediaHash[node.id] = node;
+    //TODO: cleanup this ugly implementation, I just wanna listen to some tunes now
     var after = self.getInsertPos(dest, node);
-    if (after) pDiv = document.getElementById(after.id);
+    if (after.node) {
+      pDiv = document.getElementById(after.node.id);
+      if (!self.mediaHash[node.id]) {
+        self.mediaHash[node.id] = node;
+        dest.children.splice(after.pos, 0, node);
+      }
+    } else {
+      if (!self.mediaHash[node.id]) {
+        self.mediaHash[node.id] = node;
+        dest.children.push(node);
+      }
+    }
     //parentDiv.appendChild(self.displayMakeFile(node, 0));
     parentDiv.insertBefore(self.displayMakeFile(node, 0), pDiv);
   }
@@ -217,6 +231,9 @@ MusicLibrary.prototype.rescanFiles = function() {
     mediaDiff.removed.forEach(function(id) {
       self.rmNode(self.mediaHash[id]);
     });
+
+    console.log("Final file tree");
+    console.log(dest);
   });
 }
 
