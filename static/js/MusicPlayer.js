@@ -583,6 +583,7 @@ MusicLibrary.prototype.setCover = function(uri) {
   var fallback = uri ? false : true;
   if (fallback) {
     uri = "static/img/default_album_art.png";
+    fallback = false;
     doit()
   } else {
     uri = uri + "?" + Math.floor(Math.random() * 10000000) + 1;
@@ -604,6 +605,47 @@ MusicLibrary.prototype.setCover = function(uri) {
   }
 }
 
+MusicLibrary.prototype.getExternalCover = function() {
+  //look for and use a cover image that resides in the same
+  //directory as the current track that is playing
+  var self = this;
+  var folderParent = this.mediaHash[this.curTrackInfo.parent];
+  if (!('covers' in folderParent)) {
+    self.setCover(null);
+    return;
+  }
+  
+  var useCover = null;
+  folderParent['covers'].forEach(function(c) {
+    var str = c.toLowerCase();
+    if (str.includes("front") || str.includes("cover") || str.includes("folder")) useCover = c;
+  });
+  if (!useCover) useCover = folderParent['covers'][0];
+    
+  this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover/" + useCover, "GET", true, function(resp) {
+    var data = JSON.parse(resp);
+    var cover = document.querySelector('[role="album-art"]');
+    if (!data.code) self.setCover(data.path);
+    else self.setCover(null);
+  }, function() {
+    self.setCover(null);
+  });
+}
+
+MusicLibrary.prototype.getEmbeddedCover = function() {
+  //attempt to get a cover image that is embedded in the current
+  //audio file playing
+  var self = this;
+  this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
+    var data = JSON.parse(resp);
+    var cover = document.querySelector('[role="album-art"]');
+    if (!data.code) self.setCover(data.path);
+    else self.getExternalCover();
+  }, function() {
+    self.getExternalCover();
+  });
+}
+
 
 MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
   var self = this;
@@ -621,26 +663,8 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
     document.getElementById("curinfo-totaltime").innerHTML = self.secondsToMinutesStr(data["length"]);
     if (doneCb) doneCb(data);
   });
-  var folderParent = this.mediaHash[this.curTrackInfo.parent];
-  if ('covers' in folderParent) {
-    var useCover = null;
-    folderParent['covers'].forEach(function(c) {
-      var str = c.toLowerCase();
-      if (str.includes("front") || str.includes("cover") || str.includes("folder")) useCover = c;
-    });
-    if (!useCover) useCover = folderParent['covers'][0];
-    self.setCover(self.getFilePath(folderParent) + '/' + useCover);
-  } else {
-    this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
-      var data = JSON.parse(resp);
-      var cover = document.querySelector('[role="album-art"]');
-      if (!data.code) self.setCover(data.path);
-      else self.setCover();
-    }, function() {
-      //error making cover request
-      self.setCover();
-    });
-  }
+
+  self.getEmbeddedCover();
 }
 
 MusicLibrary.prototype.updateQualitySelect = function(val) {

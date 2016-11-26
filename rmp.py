@@ -2,6 +2,7 @@
 
 from flask import Flask, request, jsonify, redirect, url_for, render_template, send_file, Response, stream_with_context
 from werkzeug.datastructures import Headers
+from urllib import parse
 import os
 import sys
 import subprocess
@@ -10,6 +11,7 @@ import logging
 import re
 import signal
 import time
+import shutil
 from flask_cors import CORS, cross_origin
 from flask_compress import Compress
 
@@ -119,7 +121,6 @@ def scan_directory(path, name='.', parent='.'):
     fileMapping = {}
     node = make_file(path, name, True, parent)
     fileMapping[str(node['id'])] = node
-
     for root, dirs, files in os.walk(os.path.normpath(os.path.join(path, name))):
         newDirs = list(dirs)
         del(dirs[:])
@@ -140,7 +141,8 @@ def scan_directory(path, name='.', parent='.'):
                 fileMapping.update(childFiles)
             elif 'covers' in childNodes:
                 for i, cover in enumerate(childNodes['covers']):
-                    childNodes['covers'][i] = d + '/' + cover
+                    childNodes['covers'][i] = os.path.join(d, cover)
+                    #childNodes['covers'][i] = d + '/' + cover
                     
                 if 'covers' not in node: node['covers'] = []
                 node['covers'].extend(childNodes['covers'])
@@ -165,8 +167,6 @@ def guessTranscodedSize(codec, quality, metadata):
     except ValueError:
         print("Invalid track length")
         
-    print(metadata)
-
 
 def makeRangeHeader(metadata):
     begin = 0
@@ -270,7 +270,7 @@ class MusicList:
         self.generate_music_list(root)
         self.transcodeProcess = []
         self.transcodeID = 0
-
+        self.art_cache_path = os.path.join(GLOBAL_SETTINGS["cache-dir"], "curcover.jpg")
         for i in range(0, GLOBAL_SETTINGS['max-transcodes']):
             self.transcodeProcess.append(None)
 
@@ -395,17 +395,34 @@ class MusicList:
             
         return (outfile, self.transcodeProcess[self.transcodeID])
 
+    def isalbum_art_cached(self):
+        return os.path.exists(self.art_cache_path)
+    
+    def clear_album_cache(self):
+        if self.isalbum_art_cached():
+            os.unlink(self.art_cache_path)
+    
     def extract_album_art(self, filepath):
-
+        self.clear_album_cache()
         args = list(GLOBAL_SETTINGS['ffmpeg-flags'])
-
-        outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "curcover.jpg")
+        outfile = self.art_cache_path
         args.extend(['-i', filepath, '-an', '-vcodec', 'copy', outfile])
 
         logging.debug(args)
         coverProc = subprocess.Popen(args)
         res = coverProc.communicate()
-        return outfile, coverProc.returncode
+        code = coverProc.returncode
+        if not self.isalbum_art_cached():
+            code = -1
+        
+        return outfile, code
+
+    def cache_album_art(self, audiopath, covername):
+        self.clear_album_cache()
+        basepath = os.path.dirname(audiopath)
+        outfile = self.art_cache_path
+        shutil.copy2(os.path.join(basepath, covername), outfile)
+        return outfile, 0
 
 
 '''
@@ -471,20 +488,27 @@ def file(identifier):
         return '', 400
     return jsonify(**file)
 
-
 @app.route('/api/files/<string:identifier>/cover')
-def get_cover(identifier):
+@app.route('/api/files/<string:identifier>/cover/<string:covername>')
+def get_cover(identifier, covername=None):
 
     filepath = GLOBAL_SETTINGS['MusicListClass'].get_file_path(identifier)
     if filepath is None: return '', 400
-    
-    path, code = GLOBAL_SETTINGS['MusicListClass'].extract_album_art(filepath)
-    response = {
-        'code': code,
-        'path': path
-    }
+    elif covername is not None:
+        path, code = GLOBAL_SETTINGS["MusicListClass"].cache_album_art(filepath, covername)
+        response = {
+            'code': code,
+            'path': path
+        }
+        return jsonify(**response)
+    else:
+        path, code = GLOBAL_SETTINGS['MusicListClass'].extract_album_art(filepath)
+        response = {
+            'code': code,
+            'path': path
+        }
 
-    return jsonify(**response)
+        return jsonify(**response)
 
 
 @app.route('/api/files/<string:identifier>/play')
@@ -510,8 +534,8 @@ def streamAudio(identifier):
     filename = GLOBAL_SETTINGS['MusicListClass'].get_file_path(identifier)
     if not file:
         return '', 400
-    logging.info("Serving file")
-    logging.info(filename)
+#    logging.info("Serving file")
+#    logging.info(filename)
     destType = request.args.get('format')
     if destType is not None:
         destType = destType.lower()
