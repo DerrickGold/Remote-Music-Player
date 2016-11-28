@@ -236,7 +236,7 @@ class FileHashNodeTree:
             
         self.mappings.pop(node['id'], None)
 
-        
+
     def merge_scan_diff(self, otherHash):
         if otherHash is None or type(otherHash) is not FileHashNodeTree:
             return
