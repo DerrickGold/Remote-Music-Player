@@ -12,7 +12,7 @@ Stream your own music from your own server right through your browser.
 
 ## Requirements
 - python3 (3.4 and 3.5 tested)
-- ffmpeg (for getting audio metadata on server)
+- ffmpeg/avconv (for getting audio metadata on server)
 - mplayer (for server speaker playback)
 
 ## Installation
