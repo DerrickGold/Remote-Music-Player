@@ -32,10 +32,19 @@ GLOBAL_SETTINGS = {
     'MusicListClass': None,
     'max-transcodes': 4,
     'stream-format': 'mp3',
-    #    'ffmpeg-flags': ["ffmpeg", "-y", "-hide_banner", "-loglevel", "panic"]
-    'ffmpeg-flags': ["ffmpeg", "-y"],
     'stream-chunk': 1024 * 512
 }
+
+# check if ffmpeg is installed, otherwise switch to avconv for pi users
+try:
+    subprocess.call(["ffmpeg", "-loglevel", "panic"])
+    GLOBAL_SETTINGS['ffmpeg-flags'] = ["ffmpeg", "-y"]
+    GLOBAL_SETTINGS['ffprobe-flags'] = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", \
+                                        "default=noprint_wrappers=1:nokey=1"]
+except OSError as e:
+    GLOBAL_SETTINGS['ffmpeg-flags'] = ["avconv", "-y"]
+    GLOBAL_SETTINGS['ffprobe-flags'] = ["avprobe", "-v", "error", "-show_format_entry", "duration"]
+
 
 AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac", ".aiff"]
 COVER_EXT = [".jpg", ".png", ".bmp"]
@@ -314,8 +323,8 @@ class MusicList:
                 response[info[0]] = info[1]
 
         # get track length
-        args = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of",
-                "default=noprint_wrappers=1:nokey=1", path]
+        args = list(GLOBAL_SETTINGS['ffprobe-flags'])
+        args.append(path)
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         output = process.communicate()
 
