@@ -25,6 +25,7 @@ MusicLibrary = function(evtSys, doStreaming, autoplay) {
   this.scrubSlider = null;
   this.autoplay = autoplay;
   this.init();
+  this.lastUpdate = 0;
 }
 
 MusicLibrary.prototype.hashToEntry = function (hash) {
@@ -223,9 +224,11 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
 
 MusicLibrary.prototype.rescanFiles = function() {
   var self = this;
-  this.apiCall("/api/commands/rescan", "GET", false, function(resp) {
+  var arg = self.lastUpdate !== null ? "?lastUpdate=" + self.lastUpdate : "";
+  this.apiCall("/api/commands/rescan" + arg , "GET", false, function(resp) {
     mediaDiff = JSON.parse(resp);
     console.log(mediaDiff);
+    self.lastUpdate = mediaDiff.time;
     var dest = self.mediaHash[mediaDiff.added.id];
     self.insertTree(dest, mediaDiff.added, false);
     mediaDiff.removed.forEach(function(id) {

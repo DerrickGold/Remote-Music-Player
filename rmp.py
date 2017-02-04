@@ -32,7 +32,7 @@ GLOBAL_SETTINGS = {
     'MusicListClass': None,
     'max-transcodes': 4,
     'stream-format': 'mp3',
-    'stream-chunk': 1024 * 512
+    'stream-chunk': 1024 * 512,
 }
 
 # check if ffmpeg is installed, otherwise switch to avconv for pi users
@@ -396,7 +396,12 @@ class MPlayer:
     def get_playing_track_info(self):
         return {'pos': self.get_info('get_time_pos')}
 
-
+class ListHistory:
+    def __init__(self, date, filehash, deleted):
+        self.date = date
+        self.filehashnode = filehash
+        self.deleted = deleted
+        
 class MusicList:
 
     def __init__(self, root):
@@ -407,7 +412,8 @@ class MusicList:
         self.transcodeID = 0
         self.art_cache_path = os.path.join(GLOBAL_SETTINGS["cache-dir"], "curcover.jpg")
         self.root = root
-
+        self.listDiffs = []
+        
         for i in range(0, GLOBAL_SETTINGS['max-transcodes']):
             self.transcodeProcess.append(None)
 
@@ -562,7 +568,22 @@ class MusicList:
         shutil.copy2(os.path.join(basepath, covername), outfile)
         return outfile, 0
 
+    def save_rescan_diff(self, filehash, deleted):
+        self.listDiffs.append(ListHistory(int(time.time()), filehash, deleted))
 
+    def latest_rescan_diff(self):
+        if len(self.listDiffs) < 1: return 0
+        return self.listDiffs[-1].date
+
+    def get_rescan_diffs(self, lastUpdate):
+        #return a list of all diffs after last update
+        diffList = []
+        for diff in self.listDiffs:
+            if diff.date > lastUpdate:
+                diffList.append(diff)
+
+        return diffList
+        
 '''
 Program Entry
 '''
@@ -601,16 +622,48 @@ def get_quality():
 
 @app.route('/api/commands/rescan')
 def rescanner():
-    root_dir = GLOBAL_SETTINGS['MusicListClass'].root
-    oldHash = GLOBAL_SETTINGS['MusicListClass'].fileHash
 
-    RescanHash = FileHashNodeTree(root_dir)
-    RescanHash.scan_directory(root_dir, '.', '.', oldHash)
-    RescanHash.resolve_scan_diff(root_dir, '.', '.', oldHash)
-    deleted = oldHash.merge_scan_diff(RescanHash)
-    diff = RescanHash.get_files()
+    lastUpdate = request.args.get('lastUpdate')
+    if lastUpdate is None:
+        lastUpdate = 0
+    else:
+        lastUpdate = int(lastUpdate)
 
-    resp = {'added': diff, 'removed': deleted}
+    updated = GLOBAL_SETTINGS['MusicListClass'].latest_rescan_diff()
+    resp = {'time': updated, 'added': [], 'removed': []}
+    if lastUpdate is None or lastUpdate >= updated:
+        #if the last update time matches both the client and the server
+        #check for new files on the server to push
+        #otherwise, we just need to sync the client up with the server
+        root_dir = GLOBAL_SETTINGS['MusicListClass'].root
+        oldHash = GLOBAL_SETTINGS['MusicListClass'].fileHash
+        RescanHash = FileHashNodeTree(root_dir)
+        RescanHash.scan_directory(root_dir, '.', '.', oldHash)
+        RescanHash.resolve_scan_diff(root_dir, '.', '.', oldHash)
+        diff = RescanHash.get_files()
+        #merge the new files added back into the original file tree
+        deleted = oldHash.merge_scan_diff(RescanHash)
+        
+        resp['added'] = diff
+        resp['deleted'] = deleted;
+        GLOBAL_SETTINGS['MusicListClass'].save_rescan_diff(RescanHash, deleted)
+    
+    else:
+        diffsList = GLOBAL_SETTINGS['MusicListClass'].get_rescan_diffs(lastUpdate)
+        combinedDiffs = diffsList[0]
+        deleted = combinedDiffs.deleted
+
+        #merge all diffs and their deleted files
+        for newDiff in diffsList:
+            if newDiff is diffsList[0]: continue
+            combinedDiffs.resolve_scan_diff(root_dir, '.', '.', newDiff)
+            combinedDiffs.filehashnode.merge_scan_diff(newDiff)
+            deleted.extend(newDiff.deleted)
+        
+        diff = combinedDiffs.filehashnode.get_files()
+        resp['added'] = diff
+        resp['deleted'] = deleted;
+
     return jsonify(**resp)
 
 
