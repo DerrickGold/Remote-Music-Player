@@ -161,10 +161,9 @@ MusicLibrary.prototype.getInsertPos = function(parentNode, insertNode) {
     else break;
   }
 
-  if (mid >= targetHead.children.length - 1) {
-    if (this.nodeComparator(insertNode, targetHead.children[mid]) > 0)
-      return {node: null, pos: mid};
-  }
+  if (this.nodeComparator(insertNode, targetHead.children[mid]) > 0)
+    return {node: null, pos: mid};
+
   return {node: targetHead.children[mid], pos: mid};
 }
 
@@ -199,39 +198,38 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
         parentDiv.appendChild(things[0]);
       }
     }    
-    node.children.forEach(function(child) {
-      self.insertTree(self.mediaHash[node.id], child, newTop);
-    });
+    for (var i = 0; i < node.children.length; i++) {
+      if (self.mediaHash[node.children[i].id]) continue;
+      self.insertTree(self.mediaHash[node.id], node.children[i], newTop);
+    }
   } else {
+    //not a directory, but a file
     //TODO: cleanup this ugly implementation, I just wanna listen to some tunes now
     var after = self.getInsertPos(dest, node);
     if (after.node) {
       pDiv = document.getElementById(after.node.id);
-      if (!self.mediaHash[node.id]) {
-        self.mediaHash[node.id] = node;
-        dest.children.splice(after.pos, 0, node);
-      }
+      self.mediaHash[node.id] = node;
+      dest.children.splice(after.pos, 0, node);
+      parentDiv.insertBefore(self.displayMakeFile(node, 0), pDiv);
     } else {
-      if (!self.mediaHash[node.id]) {
-        self.mediaHash[node.id] = node;
-        dest.children.push(node);
-      }
+      self.mediaHash[node.id] = node;
+      dest.children.push(node);
+      parentDiv.appendChild(self.displayMakeFile(node, 0));
     }
-    //parentDiv.appendChild(self.displayMakeFile(node, 0));
-    parentDiv.insertBefore(self.displayMakeFile(node, 0), pDiv);
   }
 }
 
 MusicLibrary.prototype.rescanFiles = function() {
   var self = this;
   var arg = self.lastUpdate !== null ? "?lastUpdate=" + self.lastUpdate : "";
-  this.apiCall("/api/commands/rescan" + arg , "GET", false, function(resp) {
-    mediaDiff = JSON.parse(resp);
+  this.apiCall("/api/commands/rescan" + arg , "GET", true, function(resp) {
+    var mediaDiff = JSON.parse(resp);
     console.log(mediaDiff);
+    
     self.lastUpdate = mediaDiff.time;
-    var dest = self.mediaHash[mediaDiff.added.id];
-    self.insertTree(dest, mediaDiff.added, false);
-    mediaDiff.removed.forEach(function(id) {
+    var dest = self.mediaHash[mediaDiff["added"].id];
+    self.insertTree(dest, mediaDiff["added"], false);
+    mediaDiff["removed"].forEach(function(id) {
       self.rmNode(self.mediaHash[id]);
     });
 

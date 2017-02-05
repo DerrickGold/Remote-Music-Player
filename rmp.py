@@ -16,6 +16,7 @@ from flask_cors import CORS, cross_origin
 from flask_compress import Compress
 
 app = Flask(__name__)
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 CORS(app)
 Compress(app)
 
@@ -155,7 +156,7 @@ class FileHashNodeTree:
             newDirs = list(dirs)
             del(dirs[:])
             for file in files:
-                fullpath = os.path.join(curDirPath, file)
+                fullpath = os.path.normpath(os.path.join(curDirPath, file))
                 if oldPathHash is not None and fullpath in oldPathHash:
                     continue
             
@@ -202,7 +203,7 @@ class FileHashNodeTree:
         if otherFileHash is None or type(otherFileHash) is not FileHashNodeTree:
             return
 
-        self.resolve_scan_diff_r(self.get_files(), path, name, parent,  otherFileHash.get_pathhash())
+        self.resolve_scan_diff_r(self.nodes, path, name, parent,  otherFileHash.get_pathhash())
 
     
     def resolve_scan_diff_r(self, diff, path='.', name='.', parent='.',  oldPathHash=None):
@@ -213,7 +214,7 @@ class FileHashNodeTree:
         else:
             diff['parent'] = parent
 
-        if diff['directory'] and 'children' in diff:
+        if diff['directory'] and len(diff['children']):
             for c in diff['children']:
                 self.resolve_scan_diff_r(c, curFile, c['name'], diff['id'], oldPathHash)
 
@@ -631,7 +632,7 @@ def rescanner():
 
     updated = GLOBAL_SETTINGS['MusicListClass'].latest_rescan_diff()
     resp = {'time': updated, 'added': [], 'removed': []}
-    if lastUpdate is None or lastUpdate >= updated:
+    if lastUpdate >= updated:
         #if the last update time matches both the client and the server
         #check for new files on the server to push
         #otherwise, we just need to sync the client up with the server
@@ -640,29 +641,24 @@ def rescanner():
         RescanHash = FileHashNodeTree(root_dir)
         RescanHash.scan_directory(root_dir, '.', '.', oldHash)
         RescanHash.resolve_scan_diff(root_dir, '.', '.', oldHash)
-        diff = RescanHash.get_files()
         #merge the new files added back into the original file tree
-        deleted = oldHash.merge_scan_diff(RescanHash)
-        
-        resp['added'] = diff
-        resp['deleted'] = deleted;
-        GLOBAL_SETTINGS['MusicListClass'].save_rescan_diff(RescanHash, deleted)
-    
+        resp['added'] = RescanHash.get_files()
+        resp['removed'] = oldHash.merge_scan_diff(RescanHash)
+        GLOBAL_SETTINGS['MusicListClass'].save_rescan_diff(RescanHash, resp['removed'])
+        resp['time'] = GLOBAL_SETTINGS['MusicListClass'].latest_rescan_diff()
     else:
         diffsList = GLOBAL_SETTINGS['MusicListClass'].get_rescan_diffs(lastUpdate)
         combinedDiffs = diffsList[0]
-        deleted = combinedDiffs.deleted
+        resp['removed'] = combinedDiffs.deleted
 
         #merge all diffs and their deleted files
         for newDiff in diffsList:
             if newDiff is diffsList[0]: continue
-            combinedDiffs.resolve_scan_diff(root_dir, '.', '.', newDiff)
+            combinedDiffs.filehashnode.resolve_scan_diff(root_dir, '.', '.', newDiff)
             combinedDiffs.filehashnode.merge_scan_diff(newDiff)
-            deleted.extend(newDiff.deleted)
+            resp['removed'].extend(newDiff.deleted)
         
-        diff = combinedDiffs.filehashnode.get_files()
-        resp['added'] = diff
-        resp['deleted'] = deleted;
+        resp['added'] = combinedDiffs.filehashnode.get_files()
 
     return jsonify(**resp)
 
