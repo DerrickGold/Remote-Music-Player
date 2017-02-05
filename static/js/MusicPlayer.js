@@ -107,6 +107,9 @@ MusicLibrary.prototype.getFiles = function() {
   });
 }
 
+//ToDo: Fix this broken shiz
+//Doesn't seem to remove entries from the hash, they still
+//exist, but visually the nodes are removed
 MusicLibrary.prototype.rmNode = function(node) {
   var self = this;
   if (!node) {
@@ -115,7 +118,7 @@ MusicLibrary.prototype.rmNode = function(node) {
   }
 
   var parent = self.mediaHash[node.parent];
-  if (node.directory && node.children.length > 0) {
+  if (node.directory) {
     node.children.forEach(function(e) {
       self.rmNode(e)
     });
@@ -152,19 +155,20 @@ MusicLibrary.prototype.nodeComparator = function(node1, node2) {
 
 MusicLibrary.prototype.getInsertPos = function(parentNode, insertNode) {
   var targetHead = this.mediaHash[parentNode.id];
-  var min = 0, max = targetHead.children.length - 1, mid = 0;
+  var min = 0, max = targetHead.children.length - 1, mid = 0, order = 0;
   while (min <= max) {
     mid = parseInt((min + max) / 2);
-    var order = this.nodeComparator(insertNode, targetHead.children[mid]);
+    order = this.nodeComparator(insertNode, targetHead.children[mid]);
     if (order < 0) max = mid - 1;
     else if (order > 0) min = mid + 1;
     else break;
   }
-
-  if (this.nodeComparator(insertNode, targetHead.children[mid]) > 0)
-    return {node: null, pos: mid};
-
-  return {node: targetHead.children[mid], pos: mid};
+  if (mid >= targetHead.children.length - 1) {
+    console.log("MIN IS OVER ARRAY");
+    return {node: null, pos: targetHead.children.length -1, o: order};
+  }
+  mid += (this.nodeComparator(insertNode, targetHead.children[mid]) > 0);
+  return {node: targetHead.children[mid], pos: mid, o: order};
 }
 
 MusicLibrary.prototype.insertTree = function(dest, node, top) {
@@ -184,13 +188,19 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
         //we are taking our new tree and merging it with
         //the current file tree. Need to make sure its inserted
         //in sorted order
-        dest.children.push(node);
+        //dest.children.push(node);
         newTop = true;
         var after = self.getInsertPos(dest, node);
-        if (after.node) {
+        console.log("Inserting: ");
+        console.log(after);
+/*        if (after.node) {
           pDiv = document.getElementById(after.node.id);
           dest.children.splice(after.pos, 0, node);
         } else dest.children.push(node);
+        parentDiv.insertBefore(things[0], pDiv);
+*/
+        pDiv = (after.node) ? document.getElementById(after.node.id) : null;
+        dest.children.splice(after.pos, 0, node);
         parentDiv.insertBefore(things[0], pDiv);
       } else {
         //here we are just creating the html for the children nodes of the tree
@@ -206,7 +216,12 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
     //not a directory, but a file
     //TODO: cleanup this ugly implementation, I just wanna listen to some tunes now
     var after = self.getInsertPos(dest, node);
-    if (after.node) {
+    pDiv = (after.node) ? document.getElementById(after.node.id) : null;
+    self.mediaHash[node.id] = node;
+    dest.children.splice(after.pos, 0, node);
+    parentDiv.insertBefore(self.displayMakeFile(node, 0), pDiv);
+  }
+/*    if (after.node) {
       pDiv = document.getElementById(after.node.id);
       self.mediaHash[node.id] = node;
       dest.children.splice(after.pos, 0, node);
@@ -217,6 +232,7 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
       parentDiv.appendChild(self.displayMakeFile(node, 0));
     }
   }
+*/
 }
 
 MusicLibrary.prototype.rescanFiles = function() {
@@ -224,13 +240,15 @@ MusicLibrary.prototype.rescanFiles = function() {
   var arg = self.lastUpdate !== null ? "?lastUpdate=" + self.lastUpdate : "";
   this.apiCall("/api/commands/rescan" + arg , "GET", true, function(resp) {
     var mediaDiff = JSON.parse(resp);
+    console.log(mediaDiff);
     self.lastUpdate = mediaDiff.time;
+    //remove files first, then add them
+    for (var i = 0; i < mediaDiff["removed"].length; i++) {
+      var id = mediaDiff["removed"][i];
+      self.rmNode(self.mediaHash[id]);
+    }
     var dest = self.mediaHash[mediaDiff["added"].id];
     self.insertTree(dest, mediaDiff["added"], false);
-    mediaDiff["removed"].forEach(function(id) {
-      self.rmNode(self.mediaHash[id]);
-    });
-    //if there are more diffs to fetch, grab them as well
     if (mediaDiff['more'] === true) self.rescanFiles();
   });
 }
