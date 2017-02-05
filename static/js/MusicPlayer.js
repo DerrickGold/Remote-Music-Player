@@ -25,6 +25,7 @@ MusicLibrary = function(evtSys, doStreaming, autoplay) {
   this.scrubSlider = null;
   this.autoplay = autoplay;
   this.init();
+  this.lastUpdate = 0;
 }
 
 MusicLibrary.prototype.hashToEntry = function (hash) {
@@ -103,6 +104,152 @@ MusicLibrary.prototype.getFiles = function() {
         self.toggleNowPlaying();
       }
     });
+  });
+}
+
+//ToDo: Fix this broken shiz
+//Doesn't seem to remove entries from the hash, they still
+//exist, but visually the nodes are removed
+MusicLibrary.prototype.rmNode = function(node) {
+  var self = this;
+  if (!node) {
+    console.log("No node found!\n");
+    return;
+  }
+
+  var parent = self.mediaHash[node.parent];
+  if (node.directory) {
+    node.children.forEach(function(e) {
+      self.rmNode(e)
+    });
+  }
+  //update the parent node to remove the child entry
+  for (var i = 0; i < parent.children.length; i++) {
+    if (parent.children[i] === node.id) {
+      parent.children.splice(i, 1);
+      break;
+    }
+  }
+  //remove the html element
+  var nodeElm = document.getElementById(node.id);
+  if (nodeElm) {
+    console.log("Found node element");
+    nodeElm.parentNode.removeChild(nodeElm);
+    console.log(nodeElm);
+  } else {
+    console.log("Failed to find node element");
+    console.log(node);
+  }
+  //remove element from the hash
+  delete self.mediaHash[node.id];
+}
+
+MusicLibrary.prototype.nodeComparator = function(node1, node2) {
+  if (node1.directory && !node2.directory) return -1;
+  else if (!node1.directory && node2.directory) return 1;
+
+  var name1 = node1.name.toLowerCase();
+  var name2 = node2.name.toLowerCase();
+  return name1.localeCompare(node2.name);
+}
+
+MusicLibrary.prototype.getInsertPos = function(parentNode, insertNode) {
+  var targetHead = this.mediaHash[parentNode.id];
+  var min = 0, max = targetHead.children.length - 1, mid = 0, order = 0;
+  while (min <= max) {
+    mid = parseInt((min + max) / 2);
+    order = this.nodeComparator(insertNode, targetHead.children[mid]);
+    if (order < 0) max = mid - 1;
+    else if (order > 0) min = mid + 1;
+    else break;
+  }
+  if (mid >= targetHead.children.length - 1) {
+    console.log("MIN IS OVER ARRAY");
+    return {node: null, pos: targetHead.children.length -1, o: order};
+  }
+  mid += (this.nodeComparator(insertNode, targetHead.children[mid]) > 0);
+  return {node: targetHead.children[mid], pos: mid, o: order};
+}
+
+MusicLibrary.prototype.insertTree = function(dest, node, top) {
+  var self = this, newTop = top, pDiv = null;
+  var parentDiv = null;
+  if (dest.parent === '.')
+    parentDiv = document.querySelector('[role="tablist"]');
+  else
+    parentDiv = document.getElementById(self.getFolderCollapseId(dest.id));
+    
+  if (node.directory) {
+    if (!self.mediaHash[node.id]) {
+      self.mediaHash[node.id] = node;
+      
+      var things = self.displayMakeFolder(node, false, 0);
+      if (!newTop) {
+        //we are taking our new tree and merging it with
+        //the current file tree. Need to make sure its inserted
+        //in sorted order
+        //dest.children.push(node);
+        newTop = true;
+        var after = self.getInsertPos(dest, node);
+        console.log("Inserting: ");
+        console.log(after);
+/*        if (after.node) {
+          pDiv = document.getElementById(after.node.id);
+          dest.children.splice(after.pos, 0, node);
+        } else dest.children.push(node);
+        parentDiv.insertBefore(things[0], pDiv);
+*/
+        pDiv = (after.node) ? document.getElementById(after.node.id) : null;
+        dest.children.splice(after.pos, 0, node);
+        parentDiv.insertBefore(things[0], pDiv);
+      } else {
+        //here we are just creating the html for the children nodes of the tree
+        //we inserted, they should already be in sorted order from the tree diff
+        parentDiv.appendChild(things[0]);
+      }
+    }    
+    for (var i = 0; i < node.children.length; i++) {
+      if (self.mediaHash[node.children[i].id]) continue;
+      self.insertTree(self.mediaHash[node.id], node.children[i], newTop);
+    }
+  } else {
+    //not a directory, but a file
+    //TODO: cleanup this ugly implementation, I just wanna listen to some tunes now
+    var after = self.getInsertPos(dest, node);
+    pDiv = (after.node) ? document.getElementById(after.node.id) : null;
+    self.mediaHash[node.id] = node;
+    dest.children.splice(after.pos, 0, node);
+    parentDiv.insertBefore(self.displayMakeFile(node, 0), pDiv);
+  }
+/*    if (after.node) {
+      pDiv = document.getElementById(after.node.id);
+      self.mediaHash[node.id] = node;
+      dest.children.splice(after.pos, 0, node);
+      parentDiv.insertBefore(self.displayMakeFile(node, 0), pDiv);
+    } else {
+      self.mediaHash[node.id] = node;
+      dest.children.push(node);
+      parentDiv.appendChild(self.displayMakeFile(node, 0));
+    }
+  }
+*/
+}
+
+MusicLibrary.prototype.rescanFiles = function() {
+  var self = this;
+  var arg = self.lastUpdate !== null ? "?lastUpdate=" + self.lastUpdate : "";
+  this.apiCall("/api/commands/rescan" + arg , "GET", true, function(resp) {
+    var mediaDiff = JSON.parse(resp);
+    console.log(mediaDiff);
+    self.lastUpdate = mediaDiff.time;
+    //remove files first, then add them
+    for (var i = 0; i < mediaDiff["removed"].length; i++) {
+      var id = mediaDiff["removed"][i];
+      self.rmNode(self.mediaHash[id]);
+    }
+    var dest = self.mediaHash[mediaDiff["added"].id];
+    self.insertTree(dest, mediaDiff["added"], false);
+    if (mediaDiff['more'] === true) self.rescanFiles();
   });
 }
 

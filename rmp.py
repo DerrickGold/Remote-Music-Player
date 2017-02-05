@@ -16,6 +16,7 @@ from flask_cors import CORS, cross_origin
 from flask_compress import Compress
 
 app = Flask(__name__)
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 CORS(app)
 Compress(app)
 
@@ -32,7 +33,7 @@ GLOBAL_SETTINGS = {
     'MusicListClass': None,
     'max-transcodes': 4,
     'stream-format': 'mp3',
-    'stream-chunk': 1024 * 512
+    'stream-chunk': 1024 * 512,
 }
 
 # check if ffmpeg is installed, otherwise switch to avconv for pi users
@@ -125,40 +126,166 @@ def cmp_to_key(comparator):
 
     return K
 
+class FileHashNodeTree:
+    def __init__(self, root):
+        self.root = root
+        self.nodes = None
+        self.mappings = None
+        self.pathmappings = None
 
-def scan_directory(path, name='.', parent='.'):
-    fileMapping = {}
-    node = make_file(path, name, True, parent)
-    fileMapping[str(node['id'])] = node
-    for root, dirs, files in os.walk(os.path.normpath(os.path.join(path, name))):
-        newDirs = list(dirs)
-        del(dirs[:])
-        for file in files:
-            ext = os.path.splitext(file)
-            if file[0] != '.' and ext[1] in AUDIO_EXT:
-                newFile = make_file(root, file, False, node['id'])
-                node['children'].append(newFile)
-                fileMapping[newFile['id']] = newFile
-            elif file[0] != '.' and ext[1] in COVER_EXT:
-                if 'covers' not in node: node['covers'] = []
-                node['covers'].append(file)
+    def get_files(self): return self.nodes
+    def get_mapping(self): return self.mappings
+    def get_pathhash(self): return self.pathmappings
+        
+    def scan_directory(self, path, name='.', parent='.', oldHash=None):
+        oldPathHash = None
+        if oldHash is not None and type(oldHash) is FileHashNodeTree:
+            oldPathHash = oldHash.get_pathhash()
+            
+        self.nodes, self.mappings, self.pathmappings = self.scan_directory_r(path, name, parent, oldPathHash)
 
-        for d in newDirs:
-            childNodes, childFiles = scan_directory(root, d, node['id'])
-            if len(childFiles) > 1:
-                node['children'].append(childNodes)
-                fileMapping.update(childFiles)
-            elif 'covers' in childNodes:
-                for i, cover in enumerate(childNodes['covers']):
-                    childNodes['covers'][i] = os.path.join(d, cover)
-                    #childNodes['covers'][i] = d + '/' + cover
+    def scan_directory_r(self, path, name='.', parent='.', oldPathHash=None):
+        fileMapping = {}
+        pathMapping = {}
+        curDirPath = os.path.normpath(os.path.join(path, name))
+        node = make_file(path, name, True, parent)
+        fileMapping[str(node['id'])] = node
+        pathMapping[curDirPath] = node
+
+        for root, dirs, files in os.walk(curDirPath):
+            newDirs = list(dirs)
+            del(dirs[:])
+            for file in files:
+                fullpath = os.path.normpath(os.path.join(curDirPath, file))
+                if oldPathHash is not None and fullpath in oldPathHash:
+                    continue
+            
+                ext = os.path.splitext(file)
+                if file[0] != '.' and ext[1] in AUDIO_EXT:
+                    newFile = make_file(root, file, False, node['id'])
+                    node['children'].append(newFile)
+                    fileMapping[newFile['id']] = newFile
+                    pathMapping[fullpath] = newFile
+                elif file[0] != '.' and ext[1] in COVER_EXT:
+                    pathMapping[fullpath] = file
+                    if 'covers' not in node: node['covers'] = []
+                    node['covers'].append(file)
+                
+
+            for d in newDirs:
+                childNodes, childFiles, childPaths = self.scan_directory_r(root, d, node['id'], oldPathHash)
+                if len(childFiles) > 0:
+                    if len(childFiles) == 1:
+                        continue
                     
-                if 'covers' not in node: node['covers'] = []
-                node['covers'].extend(childNodes['covers'])
+                    node['children'].append(childNodes)
+                    fileMapping.update(childFiles)
+                    pathMapping.update(childPaths)
+                elif 'covers' in childNodes and len(childNodes['covers']) > 0:
+                    for i, cover in enumerate(childNodes['covers']):
+                        childNodes['covers'][i] = d + '/' + cover
+                
+                    if 'covers' not in node: node['covers'] = []
+                    node['covers'].extend(childNodes['covers'])
 
-        node['children'] = sorted(node['children'], key=cmp_to_key(dircmp))
+            node['children'] = sorted(node['children'], key=cmp_to_key(dircmp))
 
-    return node, fileMapping
+        return node, fileMapping, pathMapping
+
+
+    #If multiple scans are made to the file system, this function
+    #will recurse through the new scan (which should contain only
+    #the differences from the first scan with oldPathHash provided)
+    #and attempt to match up node ID's with the ID's generated in the
+    #initial scan
+    #this resolved diff can be send to the client to merge
+    def resolve_scan_diff(self, path='.', name='.', parent='.', otherFileHash=None):
+        if otherFileHash is None or type(otherFileHash) is not FileHashNodeTree:
+            return
+
+        self.resolve_scan_diff_r(self.nodes, path, name, parent,  otherFileHash.get_pathhash())
+
+    
+    def resolve_scan_diff_r(self, diff, path='.', name='.', parent='.',  oldPathHash=None):
+        curFile = os.path.normpath(os.path.join(path, name))
+        if curFile in oldPathHash:
+            diff['id'] = oldPathHash[curFile]['id']
+            diff['parent'] = oldPathHash[curFile]['parent']
+        else:
+            diff['parent'] = parent
+
+        if diff['directory'] and len(diff['children']):
+            for c in diff['children']:
+                self.resolve_scan_diff_r(c, curFile, c['name'], diff['id'], oldPathHash)
+
+
+    def rm_node(self, node):
+        if node['directory'] and 'children' in node:
+            for child in node['children']:
+                self.rm_node(child)
+
+        parent = None
+        if node['parent'] in self.mappings:
+            parent = self.mappings[node['parent']]
+        else:
+            return
+        
+        for i, child in enumerate(parent['children']):
+            if child['id'] == node['id']:
+                parent['children'].pop(i)
+                break
+            
+        self.mappings.pop(node['id'], None)
+
+
+    def merge_scan_diff(self, otherHash):
+        if otherHash is None or type(otherHash) is not FileHashNodeTree:
+            return
+
+        self.merge_scan_diff_r(otherHash.nodes, otherHash.root)
+        rmPathList = []
+        rmNodes = []
+        # now remove any files that no longer exist in the file system
+        for path in self.pathmappings:
+            t = os.path.realpath(path)
+            if os.path.exists(t): continue
+            print("{} does not exist?".format(t))
+            #if it no longer exists...
+            node = self.pathmappings[path]
+            if type(node) is not dict: continue
+            #remove all references to that node
+            #self.pathmappings.pop(path, None)
+            rmPathList.append(path)
+            rmNodes.append(node['id'])
+            self.rm_node(node)
+
+        for path in rmPathList: self.pathmappings.pop(path, None)
+        return rmNodes
+
+    
+    def merge_scan_diff_r(self, node, path='.', name='.', top=False):
+        curFileName = os.path.normpath(os.path.join(path, name))
+        
+        if node['id'] not in self.mappings:
+            if node['parent'] != '.':
+                parent = self.mappings[node['parent']]
+                if not top:
+                    parent['children'].append(node)
+                    parent['children'] = sorted(parent['children'], key=cmp_to_key(dircmp))
+                    top = True
+
+                
+            self.mappings[node['id']] = node
+            self.pathmappings[curFileName] = node
+        
+        if node['directory'] and 'children' in node:
+            for c in node['children']:
+                self.merge_scan_diff_r(c, curFileName, c['name'], top)
+
+            node['children'] = sorted(node['children'], key=cmp_to_key(dircmp))
+        
+
+        
 
 
 def guessTranscodedSize(codec, quality, metadata):
@@ -271,20 +398,30 @@ class MPlayer:
     def get_playing_track_info(self):
         return {'pos': self.get_info('get_time_pos')}
 
-
+class ListHistory:
+    def __init__(self, date, filehash, deleted):
+        self.date = date
+        self.filehashnode = filehash
+        self.deleted = deleted
+        
 class MusicList:
 
     def __init__(self, root):
         self.listFile = GLOBAL_SETTINGS['music-list-name']
+        self.fileHash = FileHashNodeTree(root)
         self.generate_music_list(root)
         self.transcodeProcess = []
         self.transcodeID = 0
         self.art_cache_path = os.path.join(GLOBAL_SETTINGS["cache-dir"], "curcover.jpg")
+        self.root = root
+        self.listDiffs = []
+        
         for i in range(0, GLOBAL_SETTINGS['max-transcodes']):
             self.transcodeProcess.append(None)
 
     def generate_music_list(self, musicRoot, outputFile=None):
-        self.files, self.mapping = scan_directory(musicRoot)
+        self.fileHash.scan_directory(musicRoot)
+        self.mapping = self.fileHash.get_mapping()
 
     def get_file(self, identifier):
         if not identifier in self.mapping:
@@ -433,7 +570,22 @@ class MusicList:
         shutil.copy2(os.path.join(basepath, covername), outfile)
         return outfile, 0
 
+    def save_rescan_diff(self, filehash, deleted):
+        self.listDiffs.append(ListHistory(int(time.time()), filehash, deleted))
 
+    def latest_rescan_diff(self):
+        if len(self.listDiffs) < 1: return 0
+        return self.listDiffs[-1].date
+
+    def get_rescan_diffs(self, lastUpdate):
+        #return a list of all diffs after last update
+        diffList = []
+        for diff in self.listDiffs:
+            if diff.date > lastUpdate:
+                diffList.append(diff)
+
+        return diffList
+        
 '''
 Program Entry
 '''
@@ -470,12 +622,46 @@ def get_quality():
     }
     return jsonify(**response)
 
+@app.route('/api/commands/rescan')
+def rescanner():
+    lastUpdate = request.args.get('lastUpdate')
+    if lastUpdate is None:
+        lastUpdate = 0
+    else:
+        lastUpdate = int(lastUpdate)
+
+    root_dir = GLOBAL_SETTINGS['MusicListClass'].root
+    updated = GLOBAL_SETTINGS['MusicListClass'].latest_rescan_diff()
+    resp = {'more': False, 'time': updated, 'added': [], 'removed': []}
+    if lastUpdate >= updated:
+        #if the last update time matches both the client and the server
+        #check for new files on the server to push
+        #otherwise, we just need to sync the client up with the server
+        oldHash = GLOBAL_SETTINGS['MusicListClass'].fileHash
+        RescanHash = FileHashNodeTree(root_dir)
+        RescanHash.scan_directory(root_dir, '.', '.', oldHash)
+        RescanHash.resolve_scan_diff(root_dir, '.', '.', oldHash)
+        #merge the new files added back into the original file tree
+        resp['added'] = RescanHash.get_files()
+        resp['removed'] = oldHash.merge_scan_diff(RescanHash)
+        GLOBAL_SETTINGS['MusicListClass'].save_rescan_diff(RescanHash, resp['removed'])
+        resp['time'] = GLOBAL_SETTINGS['MusicListClass'].latest_rescan_diff()
+    else:
+        diffsList = GLOBAL_SETTINGS['MusicListClass'].get_rescan_diffs(lastUpdate)
+        combinedDiffs = diffsList.pop(0)
+        resp['removed'] = combinedDiffs.deleted
+        resp['time'] = combinedDiffs.date
+        resp['more'] = resp['time'] <= updated;
+        resp['added'] = combinedDiffs.filehashnode.get_files()
+
+    return jsonify(**resp)
+
 
 @app.route('/api/files')
 def files():
     obj = {
         'root' : GLOBAL_SETTINGS['music-dir'],
-        'files': GLOBAL_SETTINGS['MusicListClass'].files,
+        'files': GLOBAL_SETTINGS['MusicListClass'].fileHash.get_files(),
         'count': len(GLOBAL_SETTINGS['MusicListClass'].mapping.keys())
     }
     return jsonify(**obj)
@@ -639,6 +825,7 @@ def togui():
 def index():
     doStream = bool(request.args.get('stream'))
     return render_template('index.html', enableStream=doStream)
+
 
 
 def args():
