@@ -224,17 +224,14 @@ MusicLibrary.prototype.rescanFiles = function() {
   var arg = self.lastUpdate !== null ? "?lastUpdate=" + self.lastUpdate : "";
   this.apiCall("/api/commands/rescan" + arg , "GET", true, function(resp) {
     var mediaDiff = JSON.parse(resp);
-    console.log(mediaDiff);
-    
     self.lastUpdate = mediaDiff.time;
     var dest = self.mediaHash[mediaDiff["added"].id];
     self.insertTree(dest, mediaDiff["added"], false);
     mediaDiff["removed"].forEach(function(id) {
       self.rmNode(self.mediaHash[id]);
     });
-
-    console.log("Final file tree");
-    console.log(dest);
+    //if there are more diffs to fetch, grab them as well
+    if (mediaDiff['more'] === true) self.rescanFiles();
   });
 }
 

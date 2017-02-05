@@ -267,11 +267,12 @@ class FileHashNodeTree:
         curFileName = os.path.normpath(os.path.join(path, name))
         
         if node['id'] not in self.mappings:
-            parent = self.mappings[node['parent']]
-            if not top:
-                parent['children'].append(node)
-                parent['children'] = sorted(parent['children'], key=cmp_to_key(dircmp))
-                top = True
+            if node['parent'] != '.':
+                parent = self.mappings[node['parent']]
+                if not top:
+                    parent['children'].append(node)
+                    parent['children'] = sorted(parent['children'], key=cmp_to_key(dircmp))
+                    top = True
 
                 
             self.mappings[node['id']] = node
@@ -623,20 +624,19 @@ def get_quality():
 
 @app.route('/api/commands/rescan')
 def rescanner():
-
     lastUpdate = request.args.get('lastUpdate')
     if lastUpdate is None:
         lastUpdate = 0
     else:
         lastUpdate = int(lastUpdate)
 
+    root_dir = GLOBAL_SETTINGS['MusicListClass'].root
     updated = GLOBAL_SETTINGS['MusicListClass'].latest_rescan_diff()
-    resp = {'time': updated, 'added': [], 'removed': []}
+    resp = {'more': False, 'time': updated, 'added': [], 'removed': []}
     if lastUpdate >= updated:
         #if the last update time matches both the client and the server
         #check for new files on the server to push
         #otherwise, we just need to sync the client up with the server
-        root_dir = GLOBAL_SETTINGS['MusicListClass'].root
         oldHash = GLOBAL_SETTINGS['MusicListClass'].fileHash
         RescanHash = FileHashNodeTree(root_dir)
         RescanHash.scan_directory(root_dir, '.', '.', oldHash)
@@ -648,16 +648,10 @@ def rescanner():
         resp['time'] = GLOBAL_SETTINGS['MusicListClass'].latest_rescan_diff()
     else:
         diffsList = GLOBAL_SETTINGS['MusicListClass'].get_rescan_diffs(lastUpdate)
-        combinedDiffs = diffsList[0]
+        combinedDiffs = diffsList.pop(0)
         resp['removed'] = combinedDiffs.deleted
-
-        #merge all diffs and their deleted files
-        for newDiff in diffsList:
-            if newDiff is diffsList[0]: continue
-            combinedDiffs.filehashnode.resolve_scan_diff(root_dir, '.', '.', newDiff)
-            combinedDiffs.filehashnode.merge_scan_diff(newDiff)
-            resp['removed'].extend(newDiff.deleted)
-        
+        resp['time'] = combinedDiffs.date
+        resp['more'] = resp['time'] <= updated;
         resp['added'] = combinedDiffs.filehashnode.get_files()
 
     return jsonify(**resp)
