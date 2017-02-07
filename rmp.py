@@ -17,6 +17,7 @@ from flask_compress import Compress
 
 app = Flask(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+app.config['JSON_AS_ASCII'] = False
 CORS(app)
 Compress(app)
 
