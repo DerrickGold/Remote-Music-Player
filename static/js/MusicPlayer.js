@@ -4,23 +4,6 @@ PlayBackStates = {
   "PAUSED": 1
 }
 
-function CopyToClipboard(obj) {
-  if (document.selection) { 
-    var range = document.body.createTextRange();
-    range.moveToElementText(obj);
-    range.select().createTextRange();
-    document.execCommand("Copy"); 
-    
-  } else if (window.getSelection) {
-    var range = document.createRange();
-    range.selectNode(obj);
-    window.getSelection().addRange(range);
-    document.execCommand("Copy");
-    
-  }
-  alert("Copied URL to clipboard.");
-}
-
 MusicLibrary = function(evtSys, doStreaming, autoplay) {
   this.mediaDir = null;
   this.mediaHash = {};
@@ -613,14 +596,15 @@ MusicLibrary.prototype.updatePlayingEntry = function(entry, isPlaying) {
     shareBtn.setAttribute("role", "share");
     urlBox = document.createElement('p');
     urlBox.setAttribute("role", "share-url");
-    urlBox.innerHTML = window.location + "qui?stream=true&autoplay=" + entry.id;
+    urlBox.innerHTML = window.location.href.match(".+/")
+      + "gui?stream=true&autoplay=" + entry.id;
     shareBtn.onclick = function(e) {
       e.preventDefault();
       e.stopPropagation();
-      CopyToClipboard(urlBox);
+      if (urlBox) CopyToClipboard(urlBox);
     };
     song.appendChild(shareBtn);
-    song.appendChild(urlBox);
+    if (urlBox) song.appendChild(urlBox);
   }
 }
 
