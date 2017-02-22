@@ -338,3 +338,9 @@ button[role="play"] {
 a[role="share"] {
     padding: 5px;
 }
+
+/*have to hide this url so that it can be copied to the clipboard*/
+p[role="share-url"] {
+    position: absolute;
+    top: -100%;
+}

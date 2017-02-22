@@ -4,6 +4,23 @@ PlayBackStates = {
   "PAUSED": 1
 }
 
+function CopyToClipboard(obj) {
+  if (document.selection) { 
+    var range = document.body.createTextRange();
+    range.moveToElementText(obj);
+    range.select().createTextRange();
+    document.execCommand("Copy"); 
+    
+  } else if (window.getSelection) {
+    var range = document.createRange();
+    range.selectNode(obj);
+    window.getSelection().addRange(range);
+    document.execCommand("Copy");
+    
+  }
+  alert("Copied URL to clipboard.");
+}
+
 MusicLibrary = function(evtSys, doStreaming, autoplay) {
   this.mediaDir = null;
   this.mediaHash = {};
@@ -582,16 +599,28 @@ MusicLibrary.prototype.updatePlayingEntry = function(entry, isPlaying) {
   song.classList.toggle('playing-entry', isPlaying);
 
   var shareBtn = null;
+  var urlBox = null;
   if (!isPlaying) {
     //shareBtn = document.querySelector('[role="share"]');
     shareBtn = song.querySelector('[role="share"]');
     if (shareBtn) song.removeChild(shareBtn);
+    urlBox = song.querySelector('[role="share-url"]');
+    if (urlBox) song.removeChild(urlBox);
   } else {
     shareBtn = document.createElement('a');
     shareBtn.innerHTML = "share";
-    shareBtn.setAttribute("href", "gui?stream=true&autoplay=" + entry.id);
+    shareBtn.setAttribute("href", "#");
     shareBtn.setAttribute("role", "share");
+    urlBox = document.createElement('p');
+    urlBox.setAttribute("role", "share-url");
+    urlBox.innerHTML = window.location + "qui?stream=true&autoplay=" + entry.id;
+    shareBtn.onclick = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      CopyToClipboard(urlBox);
+    };
     song.appendChild(shareBtn);
+    song.appendChild(urlBox);
   }
 }
 
