@@ -70,7 +70,16 @@ MusicLibrary.prototype.getRandomTrack = function() {
   var allFiles = Object.keys(this.mediaHash), index = -1;
   while (index < 0 || this.mediaHash[allFiles[index]].directory)
     index = Math.floor((Math.random() * 17435609119)) % allFiles.length;
-  return this.mediaHash[allFiles[index]];
+
+
+  var curTrack = this.mediaHash[allFiles[index]];
+  var nodes = this.reverseTrackHashLookup(curTrack).reverse();
+  for (var i = 0; i < nodes.length; i++) {
+    curTrack = this.mediaHash[nodes[i]];
+    if (curTrack._exclude === true) return this.getRandomTrack();
+  }
+  
+  return curTrack;
 }
 
 MusicLibrary.prototype.getRootDirDiv = function() {
