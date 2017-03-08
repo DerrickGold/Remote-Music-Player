@@ -26,6 +26,7 @@ MusicLibrary = function(evtSys, doStreaming, autoplay) {
   this.autoplay = autoplay;
   this.init();
   this.lastUpdate = 0;
+  this.randomRecursDepth = 32;
 }
 
 MusicLibrary.prototype.hashToEntry = function (hash) {
@@ -66,17 +67,21 @@ MusicLibrary.prototype.getFilePath = function(file) {
   return this.mediaDir.root + '/' + output;
 }
 
-MusicLibrary.prototype.getRandomTrack = function() {
+MusicLibrary.prototype.getRandomTrack = function(r_count) {
+  if (r_count != undefined && r_count != null) {
+    if (r_count >= this.randomRecursDepth) return null;
+  } else r_count = 1;
+
+  console.log("R_Count: " + r_count);
   var allFiles = Object.keys(this.mediaHash), index = -1;
   while (index < 0 || this.mediaHash[allFiles[index]].directory)
     index = Math.floor((Math.random() * 17435609119)) % allFiles.length;
-
 
   var curTrack = this.mediaHash[allFiles[index]];
   var nodes = this.reverseTrackHashLookup(curTrack).reverse();
   for (var i = 0; i < nodes.length; i++) {
     curTrack = this.mediaHash[nodes[i]];
-    if (curTrack._exclude === true) return this.getRandomTrack();
+    if (curTrack._exclude === true) return this.getRandomTrack(r_count + 1);
   }
   
   return curTrack;
@@ -618,6 +623,10 @@ MusicLibrary.prototype.updatePlayingEntry = function(entry, isPlaying) {
 }
 
 MusicLibrary.prototype.playSong = function(songEntry, offset) {
+  if (songEntry === null || songEntry === undefined) {
+    alert("No available songs in play list to play!");
+    return;
+  }
   this.curTrackLen = 0;
   this.seekTimeTo = -1;
   this.triggerLoading()
