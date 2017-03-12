@@ -187,6 +187,8 @@ MusicLibrary.prototype.getInsertPos = function(parentNode, insertNode) {
 
 MusicLibrary.prototype.insertTree = function(dest, node, top) {
   var self = this, newTop = top, pDiv = null;
+  console.log("Inserting: ");
+  console.log(node);
   var parentDiv = null;
   if (dest.parent === '.')
     parentDiv = document.querySelector('[role="tablist"]');
@@ -223,10 +225,11 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
       }
     }    
     for (var i = 0; i < node.children.length; i++) {
-      if (self.mediaHash[node.children[i].id]) continue;
+//      if (self.mediaHash[node.children[i].id]) continue;
       self.insertTree(self.mediaHash[node.id], node.children[i], newTop);
     }
   } else {
+    if (self.mediaHash[node.id]) return;
     //not a directory, but a file
     //TODO: cleanup this ugly implementation, I just wanna listen to some tunes now
     var after = self.getInsertPos(dest, node);
