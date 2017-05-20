@@ -141,10 +141,17 @@ MediaButtons.prototype.updateLibrary = function(ev) {
 }
 
 MediaButtons.prototype.toggleFullscreen = function(ev) {
-  if (!document.body.fullscreenElement)
-    document.body.requestFullscreen();
-  else  {
-    if (document.body.exitFullscreen)
-      document.body.exitFullscreen();
+  var t = document.body;
+  if (t.requestFullscreen) {
+    if (!t.fullscreenElement) t.requestFullscreen();
+    else  { if (t.exitFullscreen) t.exitFullscreen(); }
+  }
+  else if (t.mozRequestFullScreen) {
+    if (!t.mozFullScreenElement) t.mozRequestFullScreen();
+    else { if (t.mozCancelFullScreen) t.mozCancelFullScreen(); }
+  }
+  else if (t.webkitRequestFullscreen) {
+    if (!t.webkitFullscreenElement) t.webkitFullscreenElement();
+    else { if (t.webkitExitFullscreen) t.webkitExitFullscreen(); }
   }
 }
