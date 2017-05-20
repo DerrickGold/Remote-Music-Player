@@ -151,7 +151,7 @@ MediaButtons.prototype.toggleFullscreen = function(ev) {
     else { if (t.mozCancelFullScreen) t.mozCancelFullScreen(); }
   }
   else if (t.webkitRequestFullscreen) {
-    if (!t.webkitFullscreenElement) t.webkitFullscreenElement();
+    if (!t.webkitFullscreenElement) t.webkitRequestFullscreen();
     else { if (t.webkitExitFullscreen) t.webkitExitFullscreen(); }
   }
 }
