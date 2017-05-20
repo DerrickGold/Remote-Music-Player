@@ -31,7 +31,8 @@ MediaButtons = function(evtSys, mediaLibrary) {
   react('[role="next"]', 'click', function (ev) { self.next(ev); });
   react('[role="prev"]', 'click', function (ev) { self.prev(ev); });
   react('[role="shuffle"]', 'click', function (ev) { self.shuffle(ev); });
-  react('[role="update-library"]', 'click', function (ev) { self.updateLibrary(ev); }); 
+  react('[role="update-library"]', 'click', function (ev) { self.updateLibrary(ev); });
+  react('[role="toggle-fullscreen"]', 'click', function (ev) { self.toggleFullscreen(ev); }); 
   this.evtSys.addEventListener('media state change', updatePlayPauseBtn);
   /*  
   var speakerBtn = document.getElementById("media-btn-speaker");
@@ -137,4 +138,13 @@ MediaButtons.prototype.fileLocKey = function(ev) {
 
 MediaButtons.prototype.updateLibrary = function(ev) {
   this.mediaLibrary.rescanFiles();
+}
+
+MediaButtons.prototype.toggleFullscreen = function(ev) {
+  if (!document.body.fullscreenElement)
+    document.body.requestFullscreen();
+  else  {
+    if (document.body.exitFullscreen)
+      document.body.exitFullscreen();
+  }
 }
