@@ -4,7 +4,7 @@ PlayBackStates = {
   "PAUSED": 1
 }
 
-MusicLibrary = function(evtSys, doStreaming, autoplay) {
+MusicLibrary = function(evtSys, doStreaming, autoplay, authtoken) {
   this.mediaDir = null;
   this.mediaHash = {};
   this.indentSize = 10;
@@ -24,9 +24,17 @@ MusicLibrary = function(evtSys, doStreaming, autoplay) {
   this.curTimeDiv = null;
   this.scrubSlider = null;
   this.autoplay = autoplay;
-  this.init();
   this.lastUpdate = 0;
   this.randomRecursDepth = 32;
+  this.authtoken = authtoken;
+  console.log("Authtoken: " + this.authtoken);
+  this.init();
+}
+
+MusicLibrary.prototype.appendTokenToUrl = function(url) {
+  if (url.indexOf("?") > -1) url += "&token=" + this.authtoken;
+  else url += "?token=" + this.authtoken;
+  return url;
 }
 
 MusicLibrary.prototype.hashToEntry = function (hash) {
@@ -101,7 +109,7 @@ MusicLibrary.prototype.toggleNowPlaying = function(preventClose, forceClose) {
 
 MusicLibrary.prototype.getFiles = function() {
   var self = this;
-  this.triggerLoading()
+  this.triggerLoading();
   self._doneGet = false;
   this.apiCall("/api/files", "GET", true, function(resp) {
     self.mediaDir = JSON.parse(resp);
@@ -314,6 +322,7 @@ MusicLibrary.prototype.secondsToMinutesStr = function(time) {
 }
 
 MusicLibrary.prototype.apiCall = function(route, method, async, successCb, errorCb) {
+  var self = this;
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (xhttp.readyState == 4 && xhttp.status == 200)
@@ -321,6 +330,7 @@ MusicLibrary.prototype.apiCall = function(route, method, async, successCb, error
     else if (xhttp.readyState == 4)
       if (errorCb) errorCb(xhttp.responseText);
   }
+  route = this.appendTokenToUrl(route);
   xhttp.open(method, route, async);
   xhttp.send();
 }
@@ -500,7 +510,7 @@ MusicLibrary.prototype.showSearch = function(keyword) {
   keyword = self.encodeURI(keyword)
   if (keyword.length <= 0) return;
   this.toggleNowPlaying(false, true);
-  this.triggerLoading()
+  this.triggerLoading();
   this.apiCall("/api/files/search/" + keyword, "GET", true, function(resp) {
     var data = JSON.parse(resp);
     var everything = document.querySelectorAll('[role*="audio-file"],[role="directory"]');
@@ -535,10 +545,10 @@ MusicLibrary.prototype.showSearch = function(keyword) {
       } else if (!d.classList.contains("hidden"))
         d.classList.add("hidden");
     }, function() {
-      self.triggerLoadingDone()
+      self.triggerLoadingDone();
     });
   }, function(resp) {
-    self.triggerLoadingDone()
+    self.triggerLoadingDone();
   });
 }
 
@@ -632,7 +642,7 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
   }
   this.curTrackLen = 0;
   this.seekTimeTo = -1;
-  this.triggerLoading()
+  this.triggerLoading();
   if (this.curTrackInfo) this.playHist.push(this.curTrackInfo);
   this.updatePlayingEntry(this.curTrackInfo, false);
   this.curTrackInfo = songEntry;
@@ -648,7 +658,7 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
       self.updateTrackInfo(function(d) {
         self.curTrackLen = d['length'];
       });
-      self.triggerLoadingDone()
+      self.triggerLoadingDone();
     });
   } else {
     //if we are streaming, get audio file path to add to local web player
@@ -662,12 +672,14 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
       var transcode        = transcodeOptions.options[transcodeOptions.selectedIndex].value;
       var srcURL           = "api/files/" + trackData.id + "/stream?format=" + fmt +
           "&quality=" + quality + "&transcode=" + transcode;
-      self.audioDiv.src = self.encodeURI(srcURL);
+      
+      var signedSrc = self.appendTokenToUrl(srcURL);
+      self.audioDiv.src = self.encodeURI(signedSrc);
       self.audioDiv.play();
       var seekHandler = function(audio) {
         self.audioDiv.removeEventListener('canplay', seekHandler);
         if (offset > 0) audio.target.currentTime = offset;
-        self.triggerLoadingDone()
+        self.triggerLoadingDone();
       }
       self.audioDiv.addEventListener("canplay",seekHandler);
       self.playbackState = PlayBackStates["PLAYING"];

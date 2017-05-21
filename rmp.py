@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, jsonify, redirect, url_for, render_template, send_file, Response, stream_with_context
+from flask import Flask, request, jsonify, redirect, url_for, render_template, send_file, Response, stream_with_context, json
 from werkzeug.datastructures import Headers
 from urllib import parse
 import os
@@ -35,6 +35,9 @@ GLOBAL_SETTINGS = {
     'max-transcodes': 4,
     'stream-format': 'mp3',
     'stream-chunk': 1024 * 512,
+    'default-password': "admin",
+    'password': "",
+    'auth-token': ""
 }
 
 # check if ffmpeg is installed, otherwise switch to avconv for pi users
@@ -590,6 +593,16 @@ class MusicList:
 '''
 Program Entry
 '''
+def authMiddleware():
+    resp = {"status": 401}
+    token = request.args.get('token')
+#    data = request.data.decode('UTF-8')
+#    data = json.loads(data)
+    if token is not None:
+        resp["status"] = 200 if token == GLOBAL_SETTINGS['auth-token'] else resp["status"]
+
+    return resp
+
 
 
 def play_file(file, offset):
@@ -612,19 +625,29 @@ def stop():
 
 @app.route('/api/commands/info', methods=['POST'])
 def get_info():
-    return jsonify(**GLOBAL_SETTINGS['MPlayerClass'].get_playing_track_info())
+    resp = authMiddleware()
+    if resp['status'] == 200:
+        resp = GLOBAL_SETTINGS['MPlayerClass'].get_playing_track_info()
+
+    jsonify(**resp)
 
 
 @app.route('/api/commands/formats')
 def get_quality():
-    response = {
-        'format': STREAM_FORMAT,
-        'quality': STREAM_QUALITY
-    }
-    return jsonify(**response)
+    resp = authMiddleware()
+    if resp['status'] == 200:
+        resp = {
+            'format': STREAM_FORMAT,
+            'quality': STREAM_QUALITY
+        }
+    return jsonify(**resp)
 
 @app.route('/api/commands/rescan')
 def rescanner():
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
+    
     lastUpdate = request.args.get('lastUpdate')
     if lastUpdate is None:
         lastUpdate = 0
@@ -660,6 +683,10 @@ def rescanner():
 
 @app.route('/api/files')
 def files():
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
+    
     obj = {
         'root' : GLOBAL_SETTINGS['music-dir'],
         'files': GLOBAL_SETTINGS['MusicListClass'].fileHash.get_files(),
@@ -670,6 +697,10 @@ def files():
 
 @app.route('/api/files/search/<string:keyword>')
 def search(keyword):
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
+    
     keyword = keyword.strip()
     if len(keyword) <= 0:
         return '', 400
@@ -679,6 +710,10 @@ def search(keyword):
 
 @app.route('/api/files/<string:identifier>')
 def file(identifier):
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
+    
     file = GLOBAL_SETTINGS['MusicListClass'].get_file(identifier)
     if not file:
         return '', 400
@@ -687,7 +722,10 @@ def file(identifier):
 @app.route('/api/files/<string:identifier>/cover')
 @app.route('/api/files/<string:identifier>/cover/<string:covername>')
 def get_cover(identifier, covername=None):
-
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
+    
     filepath = GLOBAL_SETTINGS['MusicListClass'].get_file_path(identifier)
     if filepath is None: return '', 400
     elif covername is not None:
@@ -709,6 +747,10 @@ def get_cover(identifier, covername=None):
 
 @app.route('/api/files/<string:identifier>/play')
 def play(identifier):
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
+    
     offset = request.args.get('offset')
     file = GLOBAL_SETTINGS['MusicListClass'].get_file(identifier)
     if not file:
@@ -720,13 +762,20 @@ def play(identifier):
 
 @app.route('/api/files/<string:identifier>/data')
 def metadata(identifier):
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
+    
     data = GLOBAL_SETTINGS['MusicListClass'].get_audio_metadata(identifier)
     return jsonify(**data)
 
 
 @app.route('/api/files/<string:identifier>/stream')
 def streamAudio(identifier):
-
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
+    
     filename = GLOBAL_SETTINGS['MusicListClass'].get_file_path(identifier)
     if not file:
         return '', 400
@@ -827,7 +876,18 @@ def index():
     doStream = bool(request.args.get('stream'))
     return render_template('index.html', enableStream=doStream)
 
+@app.route('/authenticate', methods=['POST'])
+def authenticate():
+    resp = {"status": 401}
+    data = request.data.decode('UTF-8')
+    data = json.loads(data)
+    if data is not None:
+        password = data.get('password')
+        if password == GLOBAL_SETTINGS['password']:
+            resp["status"] = 200;
+            resp["token"] = GLOBAL_SETTINGS['auth-token']
 
+    return jsonify(**resp)
 
 def args():
 
@@ -843,6 +903,18 @@ def args():
         logging.info("Using default port: {}".format(
             GLOBAL_SETTINGS['server-port']))
 
+    try:
+        idx = sys.argv.index('-password')
+        if idx + 1 < len(sys.argv):
+            GLOBAL_SETTINGS['password'] = sys.argv[idx + 1]
+        else:
+            logging.error("Missing password value!")
+            exit(1)
+    except:
+        GLOBAL_SETTINGS['password'] = GLOBAL_SETTINGS['default-password']
+        logging.info("Using default password: {}".format(GLOBAL_SETTINGS['password']))
+        
+        
     GLOBAL_SETTINGS['music-dir'] = sys.argv[-1]
 
 
@@ -850,9 +922,9 @@ def main():
     args()
     GLOBAL_SETTINGS['MPlayerClass'] = MPlayer()
     GLOBAL_SETTINGS['MusicListClass'] = MusicList(GLOBAL_SETTINGS['music-dir'])
-    GLOBAL_SETTINGS[
-        'running-dir'] = os.path.dirname(os.path.realpath(__file__))
-
+    GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
+    GLOBAL_SETTINGS['auth-token'] = str(uuid.uuid4())
+                     
     try:
         os.stat(GLOBAL_SETTINGS["cache-dir"])
     except:

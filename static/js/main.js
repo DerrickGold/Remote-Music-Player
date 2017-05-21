@@ -24,6 +24,21 @@ window.mobilecheck = function() {
   return check;
 };
 
+function Authenticate(successCb, errorCb) {
+  var pwdBox = document.querySelector('[role="password-field"]');
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (xhttp.readyState == 4 && xhttp.status == 200)
+      if (successCb) successCb(xhttp.responseText);
+    else if (xhttp.readyState == 4)
+      if (errorCb) errorCb(xhttp.responseText);
+  }
+  xhttp.open('POST', '/authenticate', true);
+
+  var data = JSON.stringify({password: pwdBox.value});
+  xhttp.send(data);
+}
+
 document.addEventListener("DOMContentLoaded", function() {
   var loadingScreen = document.querySelector('[role="load-screen"]');
   var reactor = constructEmitter({});
@@ -33,14 +48,28 @@ document.addEventListener("DOMContentLoaded", function() {
   reactor.addEventListener("loading done", function() {
     loadingScreen.classList.remove("visible");
   });
-
-  Media         = new MusicLibrary(reactor, !!params.stream, params.autoplay);
-  MediaControls = new MediaButtons(reactor, Media);
-
   reaction('[role="open-settings"]', 'click', '[role="settings"]', 
   function (ev, target, reactor) {
     ev.stopPropagation();
     reactor.classList.toggle('inactive');
+  });
+
+  document.querySelector('[role="login-btn"]').addEventListener('click', function(ev) {
+    Authenticate(
+      function(response) {
+        resp = JSON.parse(response);
+        if (resp.status == 200) {
+          Media         = new MusicLibrary(reactor, !!params.stream, params.autoplay, resp.token);
+          MediaControls = new MediaButtons(reactor, Media);
+          document.querySelector(".auth-layer").classList.add("hidden");
+        } else {
+          alert("You are unauthorized to access this content");
+        }
+      },
+      function(resp) {
+        alert("An error occured while attempting to authenticate");
+      }
+    );
   });
 });
 
