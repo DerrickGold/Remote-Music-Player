@@ -863,6 +863,11 @@ def streamAudio(identifier):
 
 @app.route('/<path:filename>')
 def serving(filename):
+    if GLOBAL_SETTINGS['music-dir'] in filename:
+        resp = authMiddleware()
+        if resp['status'] != 200:
+            return jsonify(**resp)
+    
     # for whatever isn't an audio file
     return send_file(filename)
 

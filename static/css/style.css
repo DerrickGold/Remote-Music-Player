@@ -360,5 +360,20 @@ p[role="share-url"] {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: green;
+    text-align: center;
+}
+
+.authbox > div {
+    padding: 5px;
+}
+
+.authbox input[role="password-field"] {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.authbox input[role="login-btn"] {
+    width: 100%;
+    border: grey 1px solid;
+    padding: 5px;
 }
