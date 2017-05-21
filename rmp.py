@@ -15,13 +15,6 @@ import shutil
 from flask_cors import CORS, cross_origin
 from flask_compress import Compress
 
-app = Flask(__name__)
-app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
-app.config['JSON_AS_ASCII'] = False
-CORS(app)
-Compress(app)
-
-logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 GLOBAL_SETTINGS = {
     'music-dir': '.',
@@ -54,7 +47,6 @@ except OSError as e:
 AUDIO_EXT = [".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac", ".aiff"]
 COVER_EXT = [".jpg", ".png", ".bmp"]
 TRANSCODE_FROM = ["aac", "wav", "flac", "m4a", "aiff"]
-#STREAM_FORMAT = ["mp3", "wav", "ogg"]
 STREAM_FORMAT = ["mp3", "wav"]
 STREAM_QUALITY = {
     'mp3': ["32k", "48k", "64k", "96k", "128k", "144k", "160k", "192k", "224k", "256k", "320k"],
@@ -590,19 +582,79 @@ class MusicList:
 
         return diffList
         
-'''
+'''==================================================
 Program Entry
-'''
+=================================================='''
+class Startup:
+    def args(self):
+        # get port number
+        try:
+            idx = sys.argv.index('-p')
+            if idx + 1 < len(sys.argv):
+                GLOBAL_SETTINGS['server-port'] = sys.argv[idx + 1]
+            else:
+                logging.error("Missing port value!")
+                exit(1)
+        except:
+            logging.info("Using default port: {}".format(
+                GLOBAL_SETTINGS['server-port']))
+
+        try:
+            idx = sys.argv.index('-password')
+            if idx + 1 < len(sys.argv):
+                GLOBAL_SETTINGS['password'] = sys.argv[idx + 1]
+            else:
+                logging.error("Missing password value!")
+                exit(1)
+        except:
+            GLOBAL_SETTINGS['password'] = GLOBAL_SETTINGS['default-password']
+            logging.info("Using default password: {}".format(GLOBAL_SETTINGS['password']))
+        
+        
+        GLOBAL_SETTINGS['music-dir'] = sys.argv[-1]
+
+    def envvars(self):
+        GLOBAL_SETTINGS['server-port'] = int(os.environ.get('RMP_PORT')) if os.environ.get('RMP_PORT') else GLOBAL_SETTINGS['server-port']
+        print("PORT: " + str(GLOBAL_SETTINGS['server-port']))
+        GLOBAL_SETTINGS['password'] = os.environ.get('RMP_PASSWORD') if os.environ.get('RMP_PASSWORD') else GLOBAL_SETTINGS['password']
+        print("Password: " + GLOBAL_SETTINGS['password'])
+        GLOBAL_SETTINGS['music-dir'] = os.environ.get('RMP_MUSIC_DIR') if os.environ.get('RMP_MUSIC_DIR') else GLOBAL_SETTINGS['music-dir']
+        print("Music: " + GLOBAL_SETTINGS['music-dir'])
+        
+    def setup(self):
+        self.args()
+        self.envvars()
+        GLOBAL_SETTINGS['MPlayerClass'] = MPlayer()
+        GLOBAL_SETTINGS['MusicListClass'] = MusicList(GLOBAL_SETTINGS['music-dir'])
+        GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
+        GLOBAL_SETTINGS['auth-token'] = str(uuid.uuid4())
+        try:
+            os.stat(GLOBAL_SETTINGS["cache-dir"])
+        except:
+            os.mkdir(GLOBAL_SETTINGS["cache-dir"])
+
+    def run(self):
+        app.run(host='0.0.0.0', threaded=True, port=GLOBAL_SETTINGS['server-port'])
+
+
+system = Startup()
+system.setup()
+
+app = Flask(__name__)
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+app.config['JSON_AS_ASCII'] = False
+CORS(app)
+Compress(app)
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+
+
 def authMiddleware():
     resp = {"status": 401}
     token = request.args.get('token')
-#    data = request.data.decode('UTF-8')
-#    data = json.loads(data)
     if token is not None:
         resp["status"] = 200 if token == GLOBAL_SETTINGS['auth-token'] else resp["status"]
 
     return resp
-
 
 
 def play_file(file, offset):
@@ -610,6 +662,11 @@ def play_file(file, offset):
     path  = GLOBAL_SETTINGS['MusicListClass'].get_file_path(file['id'])
     GLOBAL_SETTINGS['MPlayerClass'].play(path, offset)
 
+    
+
+'''==================================================
+ Routes
+=================================================='''
 
 @app.route('/api/commands/pause', methods=['POST'])
 def pause():
@@ -779,8 +836,7 @@ def streamAudio(identifier):
     filename = GLOBAL_SETTINGS['MusicListClass'].get_file_path(identifier)
     if not file:
         return '', 400
-#    logging.info("Serving file")
-#    logging.info(filename)
+
     destType = request.args.get('format')
     if destType is not None:
         destType = destType.lower()
@@ -861,6 +917,8 @@ def streamAudio(identifier):
     # for whatever isn't an audio file
     return send_file(newFile)
 
+
+
 @app.route('/<path:filename>')
 def serving(filename):
     if GLOBAL_SETTINGS['music-dir'] in filename:
@@ -894,48 +952,7 @@ def authenticate():
 
     return jsonify(**resp)
 
-def args():
 
-    # get port number
-    try:
-        idx = sys.argv.index('-p')
-        if idx + 1 < len(sys.argv):
-            GLOBAL_SETTINGS['server-port'] = sys.argv[idx + 1]
-        else:
-            logging.error("Missing port value!")
-            exit(1)
-    except:
-        logging.info("Using default port: {}".format(
-            GLOBAL_SETTINGS['server-port']))
-
-    try:
-        idx = sys.argv.index('-password')
-        if idx + 1 < len(sys.argv):
-            GLOBAL_SETTINGS['password'] = sys.argv[idx + 1]
-        else:
-            logging.error("Missing password value!")
-            exit(1)
-    except:
-        GLOBAL_SETTINGS['password'] = GLOBAL_SETTINGS['default-password']
-        logging.info("Using default password: {}".format(GLOBAL_SETTINGS['password']))
         
-        
-    GLOBAL_SETTINGS['music-dir'] = sys.argv[-1]
-
-
-def main():
-    args()
-    GLOBAL_SETTINGS['MPlayerClass'] = MPlayer()
-    GLOBAL_SETTINGS['MusicListClass'] = MusicList(GLOBAL_SETTINGS['music-dir'])
-    GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
-    GLOBAL_SETTINGS['auth-token'] = str(uuid.uuid4())
-                     
-    try:
-        os.stat(GLOBAL_SETTINGS["cache-dir"])
-    except:
-        os.mkdir(GLOBAL_SETTINGS["cache-dir"])
-
-    app.run(host='0.0.0.0', threaded=True, port=GLOBAL_SETTINGS['server-port'])
-
 if __name__ == '__main__':
-    main()
+    system.run()
