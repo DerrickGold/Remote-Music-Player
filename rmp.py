@@ -507,7 +507,7 @@ class MusicList:
                             1) % GLOBAL_SETTINGS['max-transcodes']
         proc = self.transcodeProcess[self.transcodeID]
 
-        if proc is not None and proc.poll():
+        if proc is not None and proc.poll() and os.getpgid(proc.pid):
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
 
         ext = os.path.splitext(path)
