@@ -507,13 +507,23 @@ class MusicList:
                             1) % GLOBAL_SETTINGS['max-transcodes']
         proc = self.transcodeProcess[self.transcodeID]
 
-        if proc is not None and proc.poll() and os.getpgid(proc.pid):
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        try:
+            if proc is not None and proc.poll() and os.getpgid(proc.pid):
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        except ProcessLookupError:
+            logging.debug("Process: " + str(proc.pid) + " no longer exists....")
 
         ext = os.path.splitext(path)
-        outfile = os.path.join(
-            GLOBAL_SETTINGS["cache-dir"], "transcoded{}.audio".format(self.transcodeID))
-
+        outfile = os.path.join(GLOBAL_SETTINGS["cache-dir"], "transcoded{}.audio".format(self.transcodeID))
+        
+        #delete old cache file before transcoding new one
+        try:
+            tfh = open(outfile, 'rb')
+            tfh.close()
+            os.unlink(outfile)
+        except:
+            pass
+        
         args = list(GLOBAL_SETTINGS['ffmpeg-flags'])
         args.extend(TRANSCODE_CMD['{}'.format(fmt)])
 
@@ -864,8 +874,16 @@ def streamAudio(identifier):
         newFile, proc = GLOBAL_SETTINGS['MusicListClass'].transcode_audio(
             filename, quality, destType)
         headers, offset = makeRangeHeader(data)
-        # give ffmpeg some time to start transcoding
-        time.sleep(1)
+        # try opening the output file until it's successful
+        tfh = None
+        while tfh is None:
+            try:
+                tfh = open(newFile, 'rb')
+            except:
+                # give ffmpeg some time to start transcoding
+                time.sleep(1)
+
+        tfh.close()
         @stream_with_context
         def generate(inFile, ffmpegProc, pos):
             file = open(inFile, 'rb')
