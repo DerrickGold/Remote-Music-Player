@@ -217,12 +217,6 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
         var after = self.getInsertPos(dest, node);
         console.log("Inserting: ");
         console.log(after);
-/*        if (after.node) {
-          pDiv = document.getElementById(after.node.id);
-          dest.children.splice(after.pos, 0, node);
-        } else dest.children.push(node);
-        parentDiv.insertBefore(things[0], pDiv);
-*/
         pDiv = (after.node) ? document.getElementById(after.node.id) : null;
         dest.children.splice(after.pos, 0, node);
         parentDiv.insertBefore(things[0], pDiv);
@@ -233,7 +227,6 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
       }
     }    
     for (var i = 0; i < node.children.length; i++) {
-//      if (self.mediaHash[node.children[i].id]) continue;
       self.insertTree(self.mediaHash[node.id], node.children[i], newTop);
     }
   } else {
@@ -243,21 +236,8 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
     var after = self.getInsertPos(dest, node);
     pDiv = (after.node) ? document.getElementById(after.node.id) : null;
     self.mediaHash[node.id] = node;
-    dest.children.splice(after.pos, 0, node);
     parentDiv.insertBefore(self.displayMakeFile(node, 0), pDiv);
   }
-/*    if (after.node) {
-      pDiv = document.getElementById(after.node.id);
-      self.mediaHash[node.id] = node;
-      dest.children.splice(after.pos, 0, node);
-      parentDiv.insertBefore(self.displayMakeFile(node, 0), pDiv);
-    } else {
-      self.mediaHash[node.id] = node;
-      dest.children.push(node);
-      parentDiv.appendChild(self.displayMakeFile(node, 0));
-    }
-  }
-*/
 }
 
 MusicLibrary.prototype.rescanFiles = function() {
@@ -739,7 +719,7 @@ MusicLibrary.prototype.nextSong = function() {
     var found = false;
     var position = 0;
     for(; position < directory.children.length; position++) {
-      if (directory.children[position].id == lastDir) {
+      if (directory.children[position].id === lastDir) {
         found = true;
         break;
       }
