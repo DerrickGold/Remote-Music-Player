@@ -14,7 +14,7 @@ import time
 import shutil
 from flask_cors import CORS, cross_origin
 from flask_compress import Compress
-
+import youtube_dl
 
 GLOBAL_SETTINGS = {
     'music-dir': '.',
@@ -30,7 +30,8 @@ GLOBAL_SETTINGS = {
     'stream-chunk': 1024 * 512,
     'default-password': "admin",
     'password': "",
-    'auth-token': ""
+    'auth-token': "",
+    "coverart_width": "500"
 }
 
 # check if ffmpeg is installed, otherwise switch to avconv for pi users
@@ -58,14 +59,22 @@ TRANSCODE_CMD = {
     'wav': ["-i", "{infile}", "-vn", "-acodec", "pcm_s16le", "-ar", "{quality}", "-f", "wav", "{outfile}"],
     'ogg': ["-i", "{infile}", "-vn", "-c:a", "libvorbis", "-q:a", "{quality}", "-f", "ogg", "{outfile}"]
 }
+COVERART_CMD = ['-i', "{infile}", '-an', "-vf", "scale={}:-1".format(GLOBAL_SETTINGS["coverart_width"]), "{outfile}"]
 AUDIO_MIMETYPES = {
     'mp3': 'audio/mp3',
     'wav': 'audio/wav',
     'ogg': 'audio/ogg'
 }
-
+YOUTUBE_DL_OPTS = {
+    'format': 'bestaudio/best',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '320'
+    }],
+}
 TRANSCODE_CACHE = []
-
+YOUTUBE_DL_CACHE = {}
 
 def make_file(path, name, directory=False, parent=None):
     id = str(uuid.uuid4())
@@ -558,7 +567,10 @@ class MusicList:
         self.clear_album_cache()
         args = list(GLOBAL_SETTINGS['ffmpeg-flags'])
         outfile = self.art_cache_path
-        args.extend(['-i', filepath, '-an', '-vcodec', 'copy', outfile])
+        args.extend(COVERART_CMD)
+        
+        args[args.index("{infile}")] = filepath
+        args[args.index("{outfile}")] = outfile
 
         logging.debug(args)
         coverProc = subprocess.Popen(args)
@@ -672,7 +684,10 @@ def play_file(file, offset):
     path  = GLOBAL_SETTINGS['MusicListClass'].get_file_path(file['id'])
     GLOBAL_SETTINGS['MPlayerClass'].play(path, offset)
 
-    
+
+def ytdl_hook(d):
+    if d['status'] == 'finished':
+        pass
 
 '''==================================================
  Routes
@@ -935,6 +950,17 @@ def streamAudio(identifier):
     # for whatever isn't an audio file
     return send_file(newFile)
 
+@app.route('/api/youtube')
+def youtube():
+    yturl = request.args.get('yturl')
+    resp = {"status": 400}
+    YOUTUBE_DL_OPTS['progress_hooks'] = [ytdl_hook]
+    with youtube_dl.YoutubeDL(YOUTUBE_DL_OPTS) as ydl:
+        ydl.download([yturl])
+
+    resp["status"] = 200
+    return jsonify(**resp)
+
 
 
 @app.route('/<path:filename>')
@@ -946,6 +972,7 @@ def serving(filename):
     
     # for whatever isn't an audio file
     return send_file(filename)
+
 
 @app.route('/')
 def togui():

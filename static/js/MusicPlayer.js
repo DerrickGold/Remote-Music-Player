@@ -129,15 +129,9 @@ MusicLibrary.prototype.getFiles = function() {
   });
 }
 
-//ToDo: Fix this broken shiz
-//Doesn't seem to remove entries from the hash, they still
-//exist, but visually the nodes are removed
 MusicLibrary.prototype.rmNode = function(node) {
   var self = this;
-  if (!node) {
-    console.log("No node found!\n");
-    return;
-  }
+  if (!node) return;
 
   var parent = self.mediaHash[node.parent];
   if (node.directory) {
@@ -155,12 +149,8 @@ MusicLibrary.prototype.rmNode = function(node) {
   //remove the html element
   var nodeElm = document.getElementById(node.id);
   if (nodeElm) {
-    console.log("Found node element");
     nodeElm.parentNode.removeChild(nodeElm);
     console.log(nodeElm);
-  } else {
-    console.log("Failed to find node element");
-    console.log(node);
   }
   //remove element from the hash
   delete self.mediaHash[node.id];
@@ -186,7 +176,6 @@ MusicLibrary.prototype.getInsertPos = function(parentNode, insertNode) {
     else break;
   }
   if (mid >= targetHead.children.length - 1) {
-    console.log("MIN IS OVER ARRAY");
     return {node: null, pos: targetHead.children.length -1, o: order};
   }
   mid += (this.nodeComparator(insertNode, targetHead.children[mid]) > 0);
@@ -212,7 +201,6 @@ MusicLibrary.prototype.insertTree = function(dest, node, top) {
         //we are taking our new tree and merging it with
         //the current file tree. Need to make sure its inserted
         //in sorted order
-        //dest.children.push(node);
         newTop = true;
         var after = self.getInsertPos(dest, node);
         console.log("Inserting: ");
