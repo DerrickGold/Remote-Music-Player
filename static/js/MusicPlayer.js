@@ -52,8 +52,6 @@ MusicLibrary.prototype.triggerLoadingDone = function () {
 
 MusicLibrary.prototype.triggerGotMetadata = function() {
   var self = this;
-  console.log(self.curTrackMetadata);
-  self.curTrackLen = self.curTrackMetadata.length;
   self.curTrackMetadata.cover = self.setCover(self.curTrackMetadata.cover);
   self.evtSys.dispatchEvent(new CustomEvent("retrieved metadata", {'detail': self.curTrackMetadata}));
 }
@@ -826,13 +824,14 @@ MusicLibrary.prototype.updateTrackInfo = function() {
         infoStr = '',
         title = data.title.length > 0 ? data.title : self.curTrackInfo.name;
 
+    self.curTrackLen = data['length'];
     self.curTrackMetadata = data;
     document.getElementById("curinfo-track").innerHTML = title;
     document.title = title;
     infoStr  = data.artist ? data.artist : '';
     infoStr += data.album ? (infoStr ? " &mdash; " + data.album : data.album) : '';
     document.getElementById("curinfo-artist").innerHTML = infoStr;
-    document.getElementById("curinfo-totaltime").innerHTML = self.secondsToMinutesStr(data["length"]);
+    document.getElementById("curinfo-totaltime").innerHTML = self.secondsToMinutesStr(self.curTrackLen);
     self.getEmbeddedCover(data);
   });
 }
@@ -925,7 +924,7 @@ MusicLibrary.prototype.init = function() {
       formats.appendChild(option);
     });
     formats.selectedIndex = 0;
-
+    self.updateQualitySelect(self.supportedFormats["format"][0]);
     formats.onchange = function(e) {
       self.updateQualitySelect(e.target.value);
     }
