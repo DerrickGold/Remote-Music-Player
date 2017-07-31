@@ -88,11 +88,31 @@ MediaButtons = function(evtSys, mediaLibrary) {
     default: break;
     }
   });
+
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.setActionHandler('play', function() { self.play(); });
+    navigator.mediaSession.setActionHandler('pause', function() { self.play(); });
+    //navigator.mediaSession.setActionHandler('seekbackward', function() {});
+    //navigator.mediaSession.setActionHandler('seekforward', function() {});
+    navigator.mediaSession.setActionHandler('previoustrack', function() {self.prev(); });
+    navigator.mediaSession.setActionHandler('nexttrack', function() { self.next() });
+    this.evtSys.addEventListener('retrieved metadata', function(e){
+      var metadata = e.detail;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        'title': metadata.title,
+        'artist': metadata.artist,
+        'album': metadata.album,
+        artwork: [{ src: metadata.cover}]
+      });
+    });
+  }
 }
 
 MediaButtons.prototype.play = function(ev) {
-  ev.preventDefault();
-  ev.stopPropagation();
+  if (ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
   this.mediaLibrary.audioDiv.play();
   if (!this.mediaLibrary.curTrackInfo) {
     var track = this.mediaLibrary.getRandomTrack();

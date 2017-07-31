@@ -13,6 +13,7 @@ MusicLibrary = function(evtSys, doStreaming, autoplay, authtoken) {
   this.playbackState = PlayBackStates["STOPPED"];
   this.evtSys = evtSys;
   this.curTrackInfo = null;
+  this.curTrackMetadata = {};
   this.curTimeOffset = 0;
   this.seekTimeTo = 0;
   this.curTrackLen = 0;
@@ -47,6 +48,14 @@ MusicLibrary.prototype.triggerLoading = function () {
 
 MusicLibrary.prototype.triggerLoadingDone = function () {
   this.evtSys.dispatchEvent(new Event("loading done"));
+}
+
+MusicLibrary.prototype.triggerGotMetadata = function() {
+  var self = this;
+  console.log(self.curTrackMetadata);
+  self.curTrackLen = self.curTrackMetadata.length;
+  self.curTrackMetadata.cover = self.setCover(self.curTrackMetadata.cover);
+  self.evtSys.dispatchEvent(new CustomEvent("retrieved metadata", {'detail': self.curTrackMetadata}));
 }
 
 MusicLibrary.prototype.triggerNewState = function () {
@@ -622,10 +631,8 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
     if (offset >= 0) url += "?offset=" + offset;
     this.apiCall(url, "GET", true, function(resp) {
       self.playbackState = PlayBackStates["PLAYING"];
-      self.triggerNewState()
-      self.updateTrackInfo(function(d) {
-        self.curTrackLen = d['length'];
-      });
+      self.triggerNewState();
+      self.updateTrackInfo();
       self.triggerLoadingDone();
     });
   } else {
@@ -652,9 +659,7 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
       self.audioDiv.addEventListener("canplay",seekHandler);
       self.playbackState = PlayBackStates["PLAYING"];
       self.triggerNewState();
-      self.updateTrackInfo(function(d) {
-        self.curTrackLen = d['length'];
-      });
+      self.updateTrackInfo();
     }, function() {
       self.nextSong();
     });
@@ -751,8 +756,7 @@ MusicLibrary.prototype.setCover = function(uri) {
     var preload = new Image();
     preload.src = uri
     preload.onload = doit()
-  }
-
+  }  
   function doit() {
     effect('[role="album-cover"]', function (el) {
       el.src = uri;
@@ -764,15 +768,19 @@ MusicLibrary.prototype.setCover = function(uri) {
       el.href = uri;
     });
   }
+
+  return uri;
 }
 
-MusicLibrary.prototype.getExternalCover = function() {
+MusicLibrary.prototype.getExternalCover = function(metadata) {
   //look for and use a cover image that resides in the same
   //directory as the current track that is playing
+  console.log("Looking for external cover");
   var self = this;
+  metadata.cover = null;
   var folderParent = this.mediaHash[this.curTrackInfo.parent];
   if (!('covers' in folderParent)) {
-    self.setCover(null);
+    self.triggerGotMetadata();
     return;
   }
   
@@ -786,29 +794,31 @@ MusicLibrary.prototype.getExternalCover = function() {
   this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover/" + useCover, "GET", true, function(resp) {
     var data = JSON.parse(resp);
     var cover = document.querySelector('[role="album-art"]');
-    if (!data.code) self.setCover(data.path);
-    else self.setCover(null);
+    if (!data.code) metadata.cover = data.path;
+    self.triggerGotMetadata();
   }, function() {
-    self.setCover(null);
+    self.triggerGotMetadata();
   });
 }
 
-MusicLibrary.prototype.getEmbeddedCover = function() {
-  //attempt to get a cover image that is embedded in the current
-  //audio file playing
+MusicLibrary.prototype.getEmbeddedCover = function(metadata) {
+  //attempt to get a cover image that is embedded in the current audio file playing
   var self = this;
   this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, function(resp) {
     var data = JSON.parse(resp);
     var cover = document.querySelector('[role="album-art"]');
-    if (!data.code) self.setCover(data.path);
-    else self.getExternalCover();
+    if (!data.code) {
+      metadata.cover = data.path;
+      self.triggerGotMetadata();
+    }
+    else self.getExternalCover(metadata);
   }, function() {
-    self.getExternalCover();
+    self.getExternalCover(metadata);
   });
 }
 
 
-MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
+MusicLibrary.prototype.updateTrackInfo = function() {
   var self = this;
   document.getElementById("curinfo-path").innerHTML = this.getFilePath(this.curTrackInfo);
   this.apiCall("/api/files/"+ this.curTrackInfo.id + "/data", "GET", true, function(resp) {
@@ -816,16 +826,15 @@ MusicLibrary.prototype.updateTrackInfo = function(doneCb) {
         infoStr = '',
         title = data.title.length > 0 ? data.title : self.curTrackInfo.name;
 
+    self.curTrackMetadata = data;
     document.getElementById("curinfo-track").innerHTML = title;
     document.title = title;
     infoStr  = data.artist ? data.artist : '';
     infoStr += data.album ? (infoStr ? " &mdash; " + data.album : data.album) : '';
     document.getElementById("curinfo-artist").innerHTML = infoStr;
     document.getElementById("curinfo-totaltime").innerHTML = self.secondsToMinutesStr(data["length"]);
-    if (doneCb) doneCb(data);
+    self.getEmbeddedCover(data);
   });
-
-  self.getEmbeddedCover();
 }
 
 MusicLibrary.prototype.updateQualitySelect = function(val) {
@@ -916,18 +925,12 @@ MusicLibrary.prototype.init = function() {
       formats.appendChild(option);
     });
     formats.selectedIndex = 0;
-    self.updateQualitySelect(self.supportedFormats["format"][0]);
+
     formats.onchange = function(e) {
       self.updateQualitySelect(e.target.value);
     }
   });
 
-  /*document.querySelector('[role="album-art"]').onclick = function() {
-    document.getElementById("curinfo-path").classList.toggle("hidden");
-  }*/
 
-  //var nowPlaying = document.querySelector('[role="currently-playing"]');
-  //nowPlaying.addEventListener("mousewheel", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
-  //nowPlaying.addEventListener("DOMMouseScroll", function(e) { e.preventDefault(); e.stopPropagation(); }, false);
   document.getElementById("search-txt").addEventListener("keypress", function(e) { e.stopPropagation(); });
 }
