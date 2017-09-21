@@ -2,7 +2,7 @@
 
 Stream your own music from your own server right through your browser.
 
-##Desktop Browser
+## Desktop Browser
 ![Remote Music Player](/screenshots/desktop1.png?raw=true "Remote Music Player")
 ![Remote Music Player](/screenshots/desktop2.png?raw=true "Remote Music Player")
 
