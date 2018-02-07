@@ -456,11 +456,11 @@ class MusicList:
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         output = process.communicate()
 
-        data = output[0].decode('unicode-escape').splitlines()
+        data = output[0].splitlines()
         data.sort()
 
         for l in data:
-            info = l.split('=')
+            info = l.decode().split('=')
             if len(info) > 1:
                 response[info[0]] = info[1]
 
@@ -987,7 +987,7 @@ def index():
 @app.route('/authenticate', methods=['POST'])
 def authenticate():
     resp = {"status": 401}
-    data = request.data.decode('UTF-8')
+    data = request.data
     data = json.loads(data)
     if data is not None:
         password = data.get('password')
