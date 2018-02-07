@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function() {
       function(response) {
         resp = JSON.parse(response);
         if (resp.status == 200) {
-          Media         = new MusicLibrary(reactor, !!params.stream, params.autoplay, resp.token);
+          Media         = new MusicLibrary(reactor, true, params.autoplay, resp.token);
           MediaControls = new MediaButtons(reactor, Media);
           document.querySelector(".auth-layer").classList.add("hidden");
         } else {

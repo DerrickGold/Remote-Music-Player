@@ -539,33 +539,6 @@ MusicLibrary.prototype.clearSearch = function(keyword) {
   this.showFiles(true);
 }
 
-MusicLibrary.prototype.swapStreamingToServer = function() {
-  //round value to one decimal place for mplayer
-  var timeoffset = parseFloat(this.curTimeOffset)
-  timeoffset = timeoffset.toFixed(1);
-  this.pauseSong();
-  this.streaming = false;
-  this.playSong(this.curTrackInfo, timeoffset);
-}
-
-MusicLibrary.prototype.swapServerToStreaming = function() {
-  this.pauseSong();
-  var self = this;
-  this.getTrackPos(function() {
-    var timeoffset = parseFloat(self.curTimeOffset);
-    timeoffset += 0.1;
-    timeoffset = timeoffset.toFixed(1);
-    self.streaming = true;
-    self.playSong(self.curTrackInfo, timeoffset);
-  });
-}
-
-MusicLibrary.prototype.swapOutput = function() {
-  this.triggerLoadingDone();
-  if (this.streaming) this.swapStreamingToServer();
-  else this.swapServerToStreaming();
-}
-
 MusicLibrary.prototype.stopSong = function() {
   if (!this.streaming) {
     var self = this;
@@ -902,7 +875,7 @@ MusicLibrary.prototype.init = function() {
     self.curTimeOffset = this.currentTime;
   }
   this.audioDiv.onended = function() {
-    if (self.streaming && self.audioDiv.src.length > 0) self.nextSong();
+    if (self.audioDiv.currentTime > 0) self.nextSong();
   }
   this.audioDiv.onseeking = function() { self.triggerLoading(); };
   this.audioDiv.onseeked = function() { self.triggerLoadingDone(); };
