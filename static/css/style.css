@@ -377,3 +377,11 @@ p[role="share-url"] {
     border: grey 1px solid;
     padding: 5px;
 }
+
+.unselectable {
+    -moz-usr-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}

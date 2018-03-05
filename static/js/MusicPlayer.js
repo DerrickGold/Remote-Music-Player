@@ -370,7 +370,7 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
 
   var panel       = document.createElement("div");
   panel.id        = folderEntry.id;
-  panel.className = "folder-entry";
+  panel.className = "folder-entry unselectable";
   panel.setAttribute("role", "directory");
   panel.appendChild(panelHeader);
 
@@ -390,7 +390,7 @@ MusicLibrary.prototype.displayMakeFolder = function(folderEntry, expanded, depth
 MusicLibrary.prototype.displayMakeFile = function(fileEntry, depth) {
   var text       = document.createElement("div");
   text.id        = fileEntry.id;
-  text.className = "file-entry folder-heading file-entry-name";
+  text.className = "file-entry folder-heading file-entry-name unselectable";
   text.setAttribute("role", "button audio-file");
   text.appendChild(document.createTextNode(fileEntry.name));
   var self = this;
