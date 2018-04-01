@@ -874,13 +874,10 @@ MusicLibrary.prototype.init = function() {
       }
       self.curTimeDiv.innerHTML = self.secondsToMinutesStr(this.currentTime);
     }
-    if (self.playbackState === PlayBackStates['PLAYING'] && self.curTimeOffset === this.currentTime) {
-      this.songEndTimeout += 1;
-      if (this.songEndTimeout > 5) {
-        self.nextSong();
-      }
-    }
     self.curTimeOffset = this.currentTime;
+  }
+  this.audioDiv.onerror = function () {
+    self.nextSong();
   }
   this.audioDiv.onended = function() {
     if (self.audioDiv.currentTime > 0) self.nextSong();
