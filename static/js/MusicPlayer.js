@@ -28,6 +28,7 @@ MusicLibrary = function(evtSys, doStreaming, autoplay, authtoken) {
   this.lastUpdate = 0;
   this.randomRecursDepth = 32;
   this.authtoken = authtoken;
+  this.songEndTimeout = 0;
   console.log("Authtoken: " + this.authtoken);
   this.init();
 }
@@ -588,6 +589,7 @@ MusicLibrary.prototype.playSong = function(songEntry, offset) {
     alert("No available songs in play list to play!");
     return;
   }
+  this.songEndTimeout = 0;
   this.curTrackLen = 0;
   this.seekTimeTo = -1;
   this.triggerLoading();
@@ -871,7 +873,13 @@ MusicLibrary.prototype.init = function() {
         self.seekTimeTo = -1;
       }
       self.curTimeDiv.innerHTML = self.secondsToMinutesStr(this.currentTime);
-    }    
+    }
+    if (self.playbackState === PlayBackStates['PLAYING'] && self.curTimeOffset === this.currentTime) {
+      this.songEndTimeout += 1;
+      if (this.songEndTimeout > 5) {
+        self.nextSong();
+      }
+    }
     self.curTimeOffset = this.currentTime;
   }
   this.audioDiv.onended = function() {
