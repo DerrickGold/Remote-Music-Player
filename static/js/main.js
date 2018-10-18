@@ -42,10 +42,10 @@ function Authenticate(successCb, errorCb) {
 document.addEventListener("DOMContentLoaded", () => {
   const loadingScreen = document.querySelector('[role="load-screen"]');
   const reactor = constructEmitter({});
-  reactor.addEventListener("loading", function(e) {
+  reactor.addEventListener("loading", (e) => {
     loadingScreen.classList.add("visible");
   });
-  reactor.addEventListener("loading done", function() {
+  reactor.addEventListener("loading done", () => {
     loadingScreen.classList.remove("visible");
   });
   reaction('[role="open-settings"]', 'click', '[role="settings"]', 
