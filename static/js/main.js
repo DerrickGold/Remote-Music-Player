@@ -6,16 +6,16 @@ function CopyToClipboard(obj) {
     var range = document.body.createTextRange();
     range.moveToElementText(obj);
     range.select().createTextRange();
-    document.execCommand("Copy"); 
+    document.execCommand('Copy'); 
     
   } else if (window.getSelection) {
     var range = document.createRange();
     range.selectNode(obj);
     window.getSelection().addRange(range);
-    document.execCommand("Copy");
+    document.execCommand('Copy');
     
   }
-  alert("Copied URL to clipboard.");
+  alert('Copied URL to clipboard.');
 }
 
 window.mobilecheck = () => {
@@ -39,14 +39,14 @@ function Authenticate(successCb, errorCb) {
   xhttp.send(data);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
   const loadingScreen = document.querySelector('[role="load-screen"]');
   const reactor = constructEmitter({});
-  reactor.addEventListener("loading", (e) => {
-    loadingScreen.classList.add("visible");
+  reactor.addEventListener('loading', (e) => {
+    loadingScreen.classList.add('visible');
   });
-  reactor.addEventListener("loading done", () => {
-    loadingScreen.classList.remove("visible");
+  reactor.addEventListener('loading done', () => {
+    loadingScreen.classList.remove('visible');
   });
   reaction('[role="open-settings"]', 'click', '[role="settings"]', 
   (ev, target, reactor) => {
@@ -60,13 +60,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (resp.status == 200) {
           Media         = new MusicLibrary(reactor, true, params.autoplay, resp.token);
           MediaControls = new MediaButtons(reactor, Media);
-          document.querySelector(".auth-layer").classList.add("hidden");
+          document.querySelector('.auth-layer').classList.add('hidden');
         } else {
-          alert("You are unauthorized to access this content");
+          alert('You are unauthorized to access this content');
         }
       },
       (resp) => {
-        alert("An error occured while attempting to authenticate");
+        alert('An error occured while attempting to authenticate');
       }
     );
   });
@@ -111,10 +111,10 @@ function constructEmitter (obj) {
 function queryStringToObject (str) {
   const obj = {}
   if (!str) return obj
-  if (str[0] == "?") str = str.substr(1)
-  const arr = str.split("&")
+  if (str[0] == '?') str = str.substr(1)
+  const arr = str.split('&')
   arr.forEach((el) => {
-    const a = el.split("=")
+    const a = el.split('=')
     obj[decodeURIComponent(a[0])] = decodeURIComponent(a[1])
   })
   return obj
