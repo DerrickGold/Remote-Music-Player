@@ -12,7 +12,7 @@ class MusicLibrary{
     this.indentSize = 10;
     this.audioDiv = null;
     this.streaming = doStreaming;
-    this.playbackState = PlayBackStates["STOPPED"];
+    this.playbackState = PlayBackStates['STOPPED'];
     this.evtSys = evtSys;
     this.curTrackInfo = null;
     this.curTrackMetadata = {};
@@ -22,7 +22,7 @@ class MusicLibrary{
     this.isScrubbing = false;
     this.shuffle = false;
     this.playHist = [];
-    this.navbarOffset = "";
+    this.navbarOffset = '';
     this.supportedFormats = null;
     this.curTimeDiv = null;
     this.scrubSlider = null;
@@ -34,11 +34,11 @@ class MusicLibrary{
 
     this.getFiles();
   
-    this.audioDiv = document.createElement("AUDIO");
-    this.audioDiv.preload = "off";
+    this.audioDiv = document.createElement('AUDIO');
+    this.audioDiv.preload = 'off';
   
-    this.curTimeDiv = document.getElementById("curinfo-time");
-    this.scrubSlider = document.getElementById("scrubber"); 
+    this.curTimeDiv = document.getElementById('curinfo-time');
+    this.scrubSlider = document.getElementById('scrubber'); 
     
     const self = this;
     this.audioDiv.ontimeupdate = function(e) {
@@ -77,43 +77,43 @@ class MusicLibrary{
     this.apiCall('/api/commands/formats', 'GET', true, (resp) => {
       this.supportedFormats = JSON.parse(resp);
       const formats = document.getElementById('stream-format');
-      this.supportedFormats["format"].forEach((fmt) => {
-        const option = document.createElement("option");
+      this.supportedFormats['format'].forEach((fmt) => {
+        const option = document.createElement('option');
         option.value = fmt;
         option.text = fmt;
         formats.appendChild(option);
       });
       formats.selectedIndex = 0;
-      this.updateQualitySelect(this.supportedFormats["format"][0]);
+      this.updateQualitySelect(this.supportedFormats['format'][0]);
       formats.onchange = (e) => {
         this.updateQualitySelect(e.target.value);
       }
     });
   
   
-    document.getElementById("search-txt")
-      .addEventListener("keypress", (e) => { e.stopPropagation(); });
+    document.getElementById('search-txt')
+      .addEventListener('keypress', (e) => { e.stopPropagation(); });
   }
 
   appendTokenToUrl(url) {
-    if (url.indexOf("?") > -1) url += "&token=" + this.authtoken;
-    else url += "?token=" + this.authtoken;
+    if (url.indexOf('?') > -1) url += '&token=' + this.authtoken;
+    else url += '?token=' + this.authtoken;
     return url;
   }
 
   hashToEntry(hash) { return this.mediaHash[hash]; }
   
   triggerLoading() {
-    this.evtSys.dispatchEvent(new Event("loading"));
+    this.evtSys.dispatchEvent(new Event('loading'));
   }
 
   triggerLoadingDone() {
-    this.evtSys.dispatchEvent(new Event("loading done"));
+    this.evtSys.dispatchEvent(new Event('loading done'));
   }
 
   triggerGotMetadata() {
     this.curTrackMetadata.cover = this.setCover(this.curTrackMetadata.cover);
-    this.evtSys.dispatchEvent(new CustomEvent("retrieved metadata", {'detail': this.curTrackMetadata}));
+    this.evtSys.dispatchEvent(new CustomEvent('retrieved metadata', {'detail': this.curTrackMetadata}));
   }
 
   triggerNewState() {
@@ -122,16 +122,16 @@ class MusicLibrary{
     this.evtSys.dispatchEvent(ev);
   }
 
-  encodeURI(uriIn) { return encodeURI(uriIn).replace(/\(/g, "%28").replace(/\)/g, "%29"); }
+  encodeURI(uriIn) { return encodeURI(uriIn).replace(/\(/g, '%28').replace(/\)/g, '%29'); }
 
-  getFolderCollapseId(directoryID) { return "collapse-" + directoryID; }
+  getFolderCollapseId(directoryID) { return 'collapse-' + directoryID; }
 
   getFilePath(file) {
     let curFile = file;
     let output = file.name;
-    while (curFile.parent != ".") {
+    while (curFile.parent != '.') {
       const parent = this.mediaHash[curFile.parent];
-      if (parent.name === ".") break;
+      if (parent.name === '.') break;
       output = parent.name + '/' + output;
       curFile = parent;
     }
@@ -158,20 +158,20 @@ class MusicLibrary{
     return curTrack;
   }
 
-  getRootDirDiv() { return document.getElementById("dirlist"); }
+  getRootDirDiv() { return document.getElementById('dirlist'); }
 
   toggleNowPlaying(preventClose, forceClose) {
     const overlay = document.querySelector('[role="currently-playing"]');
     const content = document.querySelector('[role="content"]');
-    const state = (forceClose || (!preventClose && !overlay.classList.contains("inactive")))
-    overlay.classList.toggle("inactive", state);
-    content.classList.toggle("inactive", !state);
+    const state = (forceClose || (!preventClose && !overlay.classList.contains('inactive')))
+    overlay.classList.toggle('inactive', state);
+    content.classList.toggle('inactive', !state);
   }
 
   getFiles() {
     this.triggerLoading();
     this._doneGet = false;
-    this.apiCall("/api/files", "GET", true, (resp) => {
+    this.apiCall('/api/files', 'GET', true, (resp) => {
       this.mediaDir = JSON.parse(resp);
       this.displayFolder(this.mediaDir.files, this.getRootDirDiv(), 0, this.mediaDir.count, (hash) => {
         this.triggerLoadingDone();
@@ -180,7 +180,7 @@ class MusicLibrary{
           //browsers
           if (window.mobilecheck) {
             const msg = document.querySelector('[role="load-text"]');
-            msg.classList.remove("hidden");
+            msg.classList.remove('hidden');
           }
           this.playSong(this.hashToEntry(this.autoplay), 0);
           this.toggleNowPlaying();
@@ -293,25 +293,25 @@ class MusicLibrary{
   }
 
   rescanFiles() {
-    const arg = this.lastUpdate !== null ? "?lastUpdate=" + this.lastUpdate : "";
-    this.apiCall("/api/commands/rescan" + arg , "GET", true, (resp) => {
+    const arg = this.lastUpdate !== null ? '?lastUpdate=' + this.lastUpdate : '';
+    this.apiCall('/api/commands/rescan' + arg , 'GET', true, (resp) => {
       const mediaDiff = JSON.parse(resp);
 
       this.lastUpdate = mediaDiff.time;
       //remove files first, then add them
-      for (let i = 0; i < mediaDiff["removed"].length; i++) {
-        const id = mediaDiff["removed"][i];
+      for (let i = 0; i < mediaDiff['removed'].length; i++) {
+        const id = mediaDiff['removed'][i];
         this.rmNode(this.mediaHash[id]);
       }
-      const dest = this.mediaHash[mediaDiff["added"].id];
-      this.insertTree(dest, mediaDiff["added"], false);
+      const dest = this.mediaHash[mediaDiff['added'].id];
+      this.insertTree(dest, mediaDiff['added'], false);
       if (mediaDiff['more'] === true) this.rescanFiles();
     });
   }
   
   getTrackPos(doneCb) {
     if (this.streaming) return;
-    this.apiCall("/api/commands/info", "POST", true, (resp) => {
+    this.apiCall('/api/commands/info', 'POST', true, (resp) => {
       const data = JSON.parse(resp);
       this.curTimeOffset = data.pos;
       if (doneCb) doneCb(data);
@@ -344,8 +344,8 @@ class MusicLibrary{
     const minutes = Math.floor(timeInt / 60);
     const seconds = timeInt % 60;
 
-    let result = '' + minutes + ":";
-    if (seconds < 10) result += "0";
+    let result = '' + minutes + ':';
+    if (seconds < 10) result += '0';
     result += seconds;
     return result
   }
@@ -370,7 +370,7 @@ class MusicLibrary{
     let curNode = startNode;
 
     if (!curNode) return [];
-    while(curNode.parent != ".") {
+    while(curNode.parent != '.') {
       findStack.push(curNode.id);
       curNode = this.mediaHash[curNode.parent]
     }
@@ -379,22 +379,22 @@ class MusicLibrary{
   }
 
   closeDirectory(folderDiv) {
-    if (folderDiv.classList && folderDiv.getAttribute('role') === "directory") {
+    if (folderDiv.classList && folderDiv.getAttribute('role') === 'directory') {
       return this.closeDirectory(folderDiv.parentNode);
     }
 
     const x = folderDiv.querySelectorAll('[role="directory"]');
     for (let i = 0; i < x.length; i++) {
-      x[i].classList.remove("hidden");
-      this.setFolderView(x[i], "close");
+      x[i].classList.remove('hidden');
+      this.setFolderView(x[i], 'close');
     }
   }
 
   displayMakeExcludeButton(nodeID, container) {
-    const icon = document.createElement("span");
+    const icon = document.createElement('span');
 
-    icon.className = "fa fa-ban exclude-btn";
-    icon.setAttribute("aria-hidden", "true");
+    icon.className = 'fa fa-ban exclude-btn';
+    icon.setAttribute('aria-hidden', 'true');
 
     icon.onclick = (e) => {
       e.preventDefault();
@@ -402,43 +402,43 @@ class MusicLibrary{
       const state = !this.mediaHash[nodeID]._exclude
 
       this.mediaHash[nodeID]._exclude = state;
-      aElm.classList.toggle("disabled-folder", state);
+      aElm.classList.toggle('disabled-folder', state);
       if (state) this.closeDirectory(container.parentNode);
     }
     return icon;
   }
 
   displayMakeFolder(folderEntry, expanded, depth) {
-    const panelHeader = document.createElement("div");
-    panelHeader.className = "folder-heading";
-    panelHeader.setAttribute("role", "tab");
+    const panelHeader = document.createElement('div');
+    panelHeader.className = 'folder-heading';
+    panelHeader.setAttribute('role', 'tab');
     panelHeader.appendChild(this.displayMakeExcludeButton(folderEntry.id, panelHeader));
   
-    const icon = document.createElement("span");
-    icon.className = "fa fa-folder-o";
-    icon.setAttribute("aria-hidden", "true");
+    const icon = document.createElement('span');
+    icon.className = 'fa fa-folder-o';
+    icon.setAttribute('aria-hidden', 'true');
     panelHeader.appendChild(icon);
   
-    const collapseButton = document.createElement("span");
-    collapseButton.className = "folder-entry-name";
-    collapseButton.setAttribute("role", "button");
-    collapseButton.setAttribute("data-toggle", "collapse");
-    collapseButton.setAttribute("href","#" + this.getFolderCollapseId(folderEntry.id));
-    collapseButton.setAttribute("aria-expanded", expanded);
-    collapseButton.setAttribute("aria-controls", this.getFolderCollapseId(folderEntry.id));
+    const collapseButton = document.createElement('span');
+    collapseButton.className = 'folder-entry-name';
+    collapseButton.setAttribute('role', 'button');
+    collapseButton.setAttribute('data-toggle', 'collapse');
+    collapseButton.setAttribute('href','#' + this.getFolderCollapseId(folderEntry.id));
+    collapseButton.setAttribute('aria-expanded', expanded);
+    collapseButton.setAttribute('aria-controls', this.getFolderCollapseId(folderEntry.id));
     collapseButton.appendChild(document.createTextNode(folderEntry.name));
     panelHeader.appendChild(collapseButton);
   
-    const panel = document.createElement("div");
+    const panel = document.createElement('div');
     panel.id = folderEntry.id;
-    panel.className = "folder-entry unselectable";
-    panel.setAttribute("role", "directory");
+    panel.className = 'folder-entry unselectable';
+    panel.setAttribute('role', 'directory');
     panel.appendChild(panelHeader);
   
-    const bodyCollapse = document.createElement("div");
+    const bodyCollapse = document.createElement('div');
     bodyCollapse.id = this.getFolderCollapseId(folderEntry.id);
-    bodyCollapse.className = "panel-collapse collapse folder-body";
-    bodyCollapse.setAttribute("role", "tabpanel");
+    bodyCollapse.className = 'panel-collapse collapse folder-body';
+    bodyCollapse.setAttribute('role', 'tabpanel');
     panel.appendChild(bodyCollapse);
   
     collapseButton.onclick = (e) => {
@@ -449,10 +449,10 @@ class MusicLibrary{
   }
 
   displayMakeFile(fileEntry, depth) {
-    const text= document.createElement("div");
+    const text= document.createElement('div');
     text.id = fileEntry.id;
-    text.className = "file-entry folder-heading file-entry-name unselectable";
-    text.setAttribute("role", "button audio-file");
+    text.className = 'file-entry folder-heading file-entry-name unselectable';
+    text.setAttribute('role', 'button audio-file');
     text.appendChild(document.createTextNode(fileEntry.name));
 
     text.onclick = (e) => {
@@ -503,7 +503,7 @@ class MusicLibrary{
       //check if folder is open too
       const trackFolder = document.getElementById(this.getFolderCollapseId(track.parent));
       if (trackFolder) {
-        inView = (inView && trackFolder.classList.contains("in"));
+        inView = (inView && trackFolder.classList.contains('in'));
       }
     }
 
@@ -512,11 +512,11 @@ class MusicLibrary{
     this.chunking(nodes, (curNode) => {
       const id = curNode;
 
-      if (this.mediaHash[id].parent == ".") return;
+      if (this.mediaHash[id].parent == '.') return;
       if (this.mediaHash[id].directory) {
         lastDiv = document.getElementById(id);
         if (!lastDiv) return;
-        this.setFolderView(lastDiv, "open");
+        this.setFolderView(lastDiv, 'open');
       } else
         lastDiv = document.getElementById(id);
     }, () => {
@@ -562,13 +562,13 @@ class MusicLibrary{
 
     this.toggleNowPlaying(false, true);
     this.triggerLoading();
-    this.apiCall("/api/files/search/" + keywordFormatted, "GET", true, (resp) => {
+    this.apiCall('/api/files/search/' + keywordFormatted, 'GET', true, (resp) => {
       const data = JSON.parse(resp);
       const everything = document.querySelectorAll('[role*="audio-file"],[role="directory"]');
       this.chunking(everything, (d) => {
         const id = d.id;
         if (id in data) {
-          if (d.classList.contains("hidden")) d.classList.remove("hidden");
+          if (d.classList.contains('hidden')) d.classList.remove('hidden');
           if (d.getAttribute('role') === 'directory') return;
           else {
             const nodes = this.reverseTrackHashLookup(this.mediaHash[id]);
@@ -590,15 +590,15 @@ class MusicLibrary{
             while(nodes.length > 0) {
               const nodeID = nodes.pop();
               const hash = this.mediaHash[nodeID];
-              if (hash.parent == ".") continue;
+              if (hash.parent == '.') continue;
               data[nodeID] = 1;
               const div = document.getElementById(nodeID);
-              if (hash.directory) this.setFolderView(div, "open");
-              div.classList.remove("hidden");
+              if (hash.directory) this.setFolderView(div, 'open');
+              div.classList.remove('hidden');
             }
           }
-        } else if (!d.classList.contains("hidden"))
-          d.classList.add("hidden");
+        } else if (!d.classList.contains('hidden'))
+          d.classList.add('hidden');
       }, () => {
         this.triggerLoadingDone();
       });
@@ -619,8 +619,8 @@ class MusicLibrary{
   
   stopSong() {
     if (!this.streaming) {
-      this.apiCall("/api/commands/stop", "POST", true, (resp) => {
-        this.playbackState = PlayBackStates["STOPPED"];
+      this.apiCall('/api/commands/stop', 'POST', true, (resp) => {
+        this.playbackState = PlayBackStates['STOPPED'];
         this.triggerNewState();
       });
     } else {
@@ -644,14 +644,14 @@ class MusicLibrary{
       if (urlBox) song.removeChild(urlBox);
     } else {
       const shareBtn = document.createElement('a');
-      shareBtn.innerHTML = "share";
-      shareBtn.setAttribute("href", "#");
-      shareBtn.setAttribute("role", "share");
+      shareBtn.innerHTML = 'share';
+      shareBtn.setAttribute('href', '#');
+      shareBtn.setAttribute('role', 'share');
 
       const urlBox = document.createElement('p');
-      urlBox.setAttribute("role", "share-url");
-      urlBox.innerHTML = window.location.href.match(".+/")
-        + "gui?stream=true&autoplay=" + entry.id;
+      urlBox.setAttribute('role', 'share-url');
+      urlBox.innerHTML = window.location.href.match('.+/')
+        + 'gui?stream=true&autoplay=' + entry.id;
 
       shareBtn.onclick = (e) => {
         e.preventDefault();
@@ -666,7 +666,7 @@ class MusicLibrary{
 
   playSong(songEntry, offset) {
     if (songEntry === null || songEntry === undefined) {
-      alert("No available songs in play list to play!");
+      alert('No available songs in play list to play!');
       return;
     }
     this.songEndTimeout = 0;
@@ -680,31 +680,31 @@ class MusicLibrary{
 
 
     if (!this.streaming) {
-      let url = "/api/files/" + songEntry.id + "/play";
-      if (offset >= 0) url += "?offset=" + offset;
+      let url = '/api/files/' + songEntry.id + '/play';
+      if (offset >= 0) url += '?offset=' + offset;
 
-      this.apiCall(url, "GET", true, (resp) => {
-        this.playbackState = PlayBackStates["PLAYING"];
+      this.apiCall(url, 'GET', true, (resp) => {
+        this.playbackState = PlayBackStates['PLAYING'];
         this.triggerNewState();
         this.updateTrackInfo();
         this.triggerLoadingDone();
       });
     } else {
       //if we are streaming, get audio file path to add to local web player
-      this.apiCall("/api/files/" + songEntry.id, "GET", true, (resp) => {
+      this.apiCall('/api/files/' + songEntry.id, 'GET', true, (resp) => {
         const trackData = JSON.parse(resp);
 
-        const streamFormat = document.getElementById("stream-format");
+        const streamFormat = document.getElementById('stream-format');
         const fmt = streamFormat.options[streamFormat.selectedIndex].value;
 
-        const streamOptions = document.getElementById("stream-quality");
+        const streamOptions = document.getElementById('stream-quality');
         const quality = streamOptions.options[streamOptions.selectedIndex].value;
 
-        const transcodeOptions = document.getElementById("transcoding-option");
+        const transcodeOptions = document.getElementById('transcoding-option');
         const transcode = transcodeOptions.options[transcodeOptions.selectedIndex].value;
 
-        const srcURL = "api/files/" + trackData.id + "/stream?format=" + fmt +
-            "&quality=" + quality + "&transcode=" + transcode;
+        const srcURL = 'api/files/' + trackData.id + '/stream?format=' + fmt +
+            '&quality=' + quality + '&transcode=' + transcode;
         
         const signedSrc = this.appendTokenToUrl(srcURL);
 
@@ -716,8 +716,8 @@ class MusicLibrary{
           this.triggerLoadingDone();
         }
 
-        this.audioDiv.addEventListener("canplay", seekHandler);
-        this.playbackState = PlayBackStates["PLAYING"];
+        this.audioDiv.addEventListener('canplay', seekHandler);
+        this.playbackState = PlayBackStates['PLAYING'];
         this.triggerNewState();
         this.updateTrackInfo();
       }, () => {
@@ -728,27 +728,27 @@ class MusicLibrary{
 
   pauseSong() {
     if (!this.streaming) {
-      this.apiCall("/api/commands/pause", "POST", true, (resp) => {
-        this.playbackState = PlayBackStates["PAUSED"];
+      this.apiCall('/api/commands/pause', 'POST', true, (resp) => {
+        this.playbackState = PlayBackStates['PAUSED'];
         this.triggerNewState()
       });
     } else {
       this.audioDiv.pause();
-      this.playbackState = PlayBackStates["PAUSED"];
+      this.playbackState = PlayBackStates['PAUSED'];
       this.triggerNewState()
     }
   }
 
   unpauseSong() {
     if (!this.streaming) {
-      this.apiCall("/api/commands/pause", "POST", true, (resp) => {
-        this.playbackState = PlayBackStates["PLAYING"];
+      this.apiCall('/api/commands/pause', 'POST', true, (resp) => {
+        this.playbackState = PlayBackStates['PLAYING'];
         this.triggerNewState()
       });
       return
     }
     this.audioDiv.play();
-    this.playbackState = PlayBackStates["PLAYING"];
+    this.playbackState = PlayBackStates['PLAYING'];
     this.triggerNewState()
   }
 
@@ -825,7 +825,7 @@ class MusicLibrary{
         el.src = uri;
       });
       effect('[role="background-cover"]', function (el) {
-        el.style.backgroundImage = fallback ? null : 'url("' + uri + '")';
+        el.style.backgroundImage = fallback ? null : 'url(' + uri + ')';
       });
       effect('[rel="shortcut icon"]', function (el) {
         el.href = uri;
@@ -834,11 +834,11 @@ class MusicLibrary{
 
     let fallback = uri ? false : true;
     if (fallback) {
-      uri = "static/img/default_album_art.png";
+      uri = 'static/img/default_album_art.png';
       fallback = false;
       doit()
     } else {
-      uri = uri + "?" + Math.floor(Math.random() * 10000000) + 1;
+      uri = uri + '?' + Math.floor(Math.random() * 10000000) + 1;
       const preload = new Image();
       preload.src = uri
       preload.onload = doit()
@@ -861,13 +861,13 @@ class MusicLibrary{
     let useCover = null;
     folderParent['covers'].forEach((c) => {
       const str = c.toLowerCase();
-      if (str.includes("front") || str.includes("cover") || str.includes("folder")) useCover = c;
+      if (str.includes('front') || str.includes('cover') || str.includes('folder')) useCover = c;
     });
     if (!useCover) useCover = folderParent['covers'][0];
       
-    this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover/" + useCover, "GET", true, (resp) => {
+    this.apiCall('/api/files/'+ this.curTrackInfo.id + '/cover/' + useCover, 'GET', true, (resp) => {
       const data = JSON.parse(resp);
-      //const cover = document.querySelector('[role="album-art"]');
+      //const cover = document.querySelector('[role='album-art']');
       if (!data.code) metadata.cover = data.path;
       this.triggerGotMetadata();
     }, () => {
@@ -877,9 +877,9 @@ class MusicLibrary{
 
   getEmbeddedCover(metadata) {
     //attempt to get a cover image that is embedded in the current audio file playing
-    this.apiCall("/api/files/"+ this.curTrackInfo.id + "/cover", "GET", true, (resp) => {
+    this.apiCall('/api/files/'+ this.curTrackInfo.id + '/cover', 'GET', true, (resp) => {
       const data = JSON.parse(resp);
-      //var cover = document.querySelector('[role="album-art"]');
+      //var cover = document.querySelector('[role='album-art']');
       if (!data.code) {
         metadata.cover = data.path;
         this.triggerGotMetadata();
@@ -891,9 +891,9 @@ class MusicLibrary{
   }
 
   updateTrackInfo() {
-    document.getElementById("curinfo-path").innerHTML = this.getFilePath(this.curTrackInfo);
+    document.getElementById('curinfo-path').innerHTML = this.getFilePath(this.curTrackInfo);
 
-    this.apiCall("/api/files/"+ this.curTrackInfo.id + "/data", "GET", true, (resp) => {
+    this.apiCall('/api/files/'+ this.curTrackInfo.id + '/data', 'GET', true, (resp) => {
       const data = JSON.parse(resp);
       const title = data.title.length > 0 ? data.title : this.curTrackInfo.name;
       let infoStr = '';
@@ -901,14 +901,14 @@ class MusicLibrary{
   
       this.curTrackLen = data['length'];
       this.curTrackMetadata = data;
-      document.getElementById("curinfo-track").innerHTML = title;
+      document.getElementById('curinfo-track').innerHTML = title;
       document.title = title;
 
       infoStr  = data.artist ? data.artist : '';
-      infoStr += data.album ? (infoStr ? " &mdash; " + data.album : data.album) : '';
+      infoStr += data.album ? (infoStr ? ' &mdash; ' + data.album : data.album) : '';
 
-      document.getElementById("curinfo-artist").innerHTML = infoStr;
-      document.getElementById("curinfo-totaltime").innerHTML = this.secondsToMinutesStr(this.curTrackLen);
+      document.getElementById('curinfo-artist').innerHTML = infoStr;
+      document.getElementById('curinfo-totaltime').innerHTML = this.secondsToMinutesStr(this.curTrackLen);
 
       this.getEmbeddedCover(data);
     });
@@ -919,7 +919,7 @@ class MusicLibrary{
     //clear options first
     while (qualityList.firstChild) qualityList.removeChild(qualityList.firstChild);
     this.supportedFormats.quality[val].forEach((q) => {
-      const option = document.createElement("option");
+      const option = document.createElement('option');
 
       option.value = q;
       option.text = q;
@@ -954,7 +954,7 @@ class MusicLibrary{
     }
 
     const xoffset = parseFloat((parseInt(offsets[0]) * 100)/parseInt(offsets[1])).toFixed(0);
-    this.scrubSlider.style.width = xoffset + "%";
+    this.scrubSlider.style.width = xoffset + '%';
     this.seekTimeTo = parseFloat((parseInt(offsets[0]))/parseInt(offsets[1]) * parseFloat(this.curTrackLen));
     this.curTimeDiv.innerHTML = this.secondsToMinutesStr(this.seekTimeTo);
   }

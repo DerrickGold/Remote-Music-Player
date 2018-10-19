@@ -1,10 +1,10 @@
-const isntPlaying = (state) => {
-  return (state == PlayBackStates["PAUSED"] ||
-          state == PlayBackStates["STOPPED"]);
-}
+const isntPlaying = (state) => (
+  state == PlayBackStates['PAUSED'] ||
+  state == PlayBackStates['STOPPED']
+);
+
 
 class MediaButtons {
-
   constructor (evtSys, mediaLibrary) {
     this.mediaLibrary = mediaLibrary;
     this.currentState = null;
@@ -20,8 +20,8 @@ class MediaButtons {
   
     if (window.mobilecheck) react('[role="load-screen"]', 'click', (ev) => {
       const msg = document.querySelector('[role="load-text"]');
-      if (this.mediaLibrary.autoplay && !msg.classList.contains("hidden")) {
-        msg.classList.add("hidden");
+      if (this.mediaLibrary.autoplay && !msg.classList.contains('hidden')) {
+        msg.classList.add('hidden');
         //take control of the media player in mobile browsers
         this.play(ev);
         this.play(ev);
@@ -37,36 +37,36 @@ class MediaButtons {
     react('[role="toggle-fullscreen"]', 'click', (ev) => { this.toggleFullscreen(ev); }); 
     this.evtSys.addEventListener('media state change', updatePlayPauseBtn);
 
-    const searchBtn = document.getElementById("search-btn");
+    const searchBtn = document.getElementById('search-btn');
     searchBtn.onclick = (e) => {
       e.preventDefault();
-      const searchKey = document.getElementById("search-txt").value;
+      const searchKey = document.getElementById('search-txt').value;
       if (searchKey.length > 0)
         this.mediaLibrary.showSearch(searchKey);
       else
         this.mediaLibrary.clearSearch();
     }
   
-    const clearSearchBtn = document.getElementById("search-btn-clear");
+    const clearSearchBtn = document.getElementById('search-btn-clear');
     clearSearchBtn.onclick = (e) => {
       e.preventDefault();
-      const searchBox = document.getElementById("search-txt");
+      const searchBox = document.getElementById('search-txt');
       searchBox.value = "";
       this.mediaLibrary.clearSearch();
     }
   
-    const scrubbox = document.getElementById("scrub-box");
+    const scrubbox = document.getElementById('scrub-box');
     scrubbox.onmousedown = (e) => {
       this.mediaLibrary.scrubStart();
       e.preventDefault();
       e.stopPropagation();
     }
 
-    document.addEventListener("mouseup", (e) => {
+    document.addEventListener('mouseup', (e) => {
       this.mediaLibrary.scrubEnd();
     });
 
-    document.addEventListener("mousemove", (e) => {           
+    document.addEventListener('mousemove', (e) => {           
       if (!this.mediaLibrary.isScrubbing) return;
       e.preventDefault();
       e.stopPropagation();
@@ -74,16 +74,16 @@ class MediaButtons {
     });
     scrubbox.onclick = (e) => { this.mediaLibrary.scrub(scrubbox, e); }
     //add keyboard bindings
-    document.addEventListener("keypress", (e) => {
+    document.addEventListener('keypress', (e) => {
       switch (e.key) {
-      case ' ': this.play(e); break;
-      case 'b': this.next(e); break;
-      case 'z': this.prev(e); break;
-      case 's': this.shuffle(e); break;
-      case 'i': this.nowPlaying(e); break;
-      case 'f': this.fileLocKey(e); break;
-      case '/': this.searchKey(e); break;
-      default: break;
+        case ' ': this.play(e); break;
+        case 'b': this.next(e); break;
+        case 'z': this.prev(e); break;
+        case 's': this.shuffle(e); break;
+        case 'i': this.nowPlaying(e); break;
+        case 'f': this.fileLocKey(e); break;
+        case '/': this.searchKey(e); break;
+        default: break;
       }
     });
   
@@ -138,7 +138,7 @@ class MediaButtons {
 
   searchKey(ev) {
     this.mediaLibrary.toggleNowPlaying(false, true);
-    document.getElementById("search-txt").focus();
+    document.getElementById('search-txt').focus();
   }
 
   fileLocKey(ev) {
