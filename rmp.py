@@ -13,6 +13,7 @@ import signal
 import time
 import shutil
 import random
+from pathlib import Path
 from flask_cors import CORS, cross_origin
 from flask_compress import Compress
 
@@ -890,9 +891,13 @@ def serving(filename):
         resp = authMiddleware()
         if resp['status'] != 200:
             return jsonify(**resp)
-    
-    # for whatever isn't an audio file
-    return send_file(filename)
+
+    asPath = Path(filename)
+    if len(asPath.parts) > 1 and 'private' not in asPath.parts:
+        # for whatever isn't an audio file
+        return send_file(filename)
+    else:
+        return jsonify(**{'status':'401'})
 
 
 @app.route('/')
