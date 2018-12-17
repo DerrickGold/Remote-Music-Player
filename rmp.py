@@ -12,9 +12,9 @@ import re
 import signal
 import time
 import shutil
+import random
 from flask_cors import CORS, cross_origin
 from flask_compress import Compress
-#import youtube_dl
 
 GLOBAL_SETTINGS = {
     'music-dir': '.',
@@ -23,7 +23,6 @@ GLOBAL_SETTINGS = {
     'cache-dir': '.cache',
     'server-port': 5000,
     'debug-out': True,
-    'MPlayerClass': None,
     'MusicListClass': None,
     'max-transcodes': 4,
     'stream-format': 'mp3',
@@ -33,6 +32,13 @@ GLOBAL_SETTINGS = {
     'auth-token': "",
     "coverart_width": "500"
 }
+
+ALEXA_SESSION = {
+    'pauseOffset': 0,
+    'nextTrackId': '',
+    'currentTrackId': '',
+}
+
 
 # check if ffmpeg is installed, otherwise switch to avconv for pi users
 try:
@@ -65,16 +71,8 @@ AUDIO_MIMETYPES = {
     'wav': 'audio/wav',
     'ogg': 'audio/ogg'
 }
-YOUTUBE_DL_OPTS = {
-    'format': 'bestaudio/best',
-    'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '320'
-    }],
-}
+
 TRANSCODE_CACHE = []
-YOUTUBE_DL_CACHE = {}
 
 def make_file(path, name, directory=False, parent=None):
     id = str(uuid.uuid4())
@@ -327,82 +325,6 @@ def makeRangeHeader(metadata):
     return headers, begin
 
 
-class MPlayer:
-
-    def __init__(self):
-        self.fifofile = os.path.abspath(GLOBAL_SETTINGS['mplayer-fifo-file'])
-        self.process = None
-
-        if not os.path.exists(self.fifofile):
-            os.mkfifo(self.fifofile)
-
-    def send_cmd(self, command, file=None):
-        if file is None:
-            file = self.fifofile
-
-        with open(file, 'w') as fp:
-            fp.write(str(command) + '\n')
-
-    def mplayer_params(self, track, seek):
-        defaults = ['mplayer', '-slave', '-input',
-                    'file={}'.format(self.fifofile), '-ss', seek, track]
-
-        if not GLOBAL_SETTINGS['debug-out']:
-            defaults.extend(['-really-quiet'])
-
-        return defaults
-
-    def get_mplayer_response(self, respHeader):
-        stdout_lines = iter(self.process.stdout.readline, "")
-        for l in stdout_lines:
-            regex = '^{}'.format(respHeader)
-            m = re.search(regex, l)
-            if m:
-                return l.replace(respHeader + '=', '').strip().replace("'", '')
-
-    def kill(self):
-        if not self.is_running():
-            return
-
-        self.process.stdout.close()
-        self.process.kill()
-        self.process = None
-
-    def is_running(self):
-        if self.process is None:
-            return False
-        return self.process.poll() == None
-
-    def mute(self):
-        self.send_cmd('mute')
-
-    def play(self, filepath, seek=0):
-        self.kill()
-        self.process = subprocess.Popen(self.mplayer_params(
-            filepath, seek), stdout=subprocess.PIPE, universal_newlines=True)
-
-    def pause(self):
-        self.send_cmd('pause')
-
-    def stop(self):
-        self.kill()
-
-    def get_info(self, info):
-
-        tags = {
-            'get_meta_artist': 'ANS_META_ARTIST',
-            'get_meta_album': 'ANS_META_ALBUM',
-            'get_meta_title': 'ANS_META_TITLE',
-            'get_meta_genre': 'ANS_META_GENRE',
-            'get_time_pos': 'ANS_TIME_POSITION',
-        }
-
-        self.send_cmd(info)
-        return self.get_mplayer_response(tags[info])
-
-    def get_playing_track_info(self):
-        return {'pos': self.get_info('get_time_pos')}
-
 class ListHistory:
     def __init__(self, date, filehash, deleted):
         self.date = date
@@ -490,6 +412,19 @@ class MusicList:
                 response['{}'.format(value['id'])] = 1
                 # response['results'].append(k)
 
+        return response
+
+    def get_random(self):
+        response = {}
+
+        id = ''
+        data = {}
+        while True:
+            id, data = random.choice(list(self.mapping.items()))
+            if not data['directory']:
+                break
+
+        response['id'] = id
         return response
 
     def is_transcoding(self, id):
@@ -646,7 +581,6 @@ class Startup:
     def setup(self):
         self.args()
         self.envvars()
-        GLOBAL_SETTINGS['MPlayerClass'] = MPlayer()
         GLOBAL_SETTINGS['MusicListClass'] = MusicList(GLOBAL_SETTINGS['music-dir'])
         GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
         GLOBAL_SETTINGS['auth-token'] = str(uuid.uuid4())
@@ -673,46 +607,20 @@ logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 def authMiddleware():
     resp = {"status": 401}
     token = request.args.get('token')
+    if token is None:
+        data = json.loads(request.data)
+        token = data.get('token')
+        
     if token is not None:
         resp["status"] = 200 if token == GLOBAL_SETTINGS['auth-token'] else resp["status"]
 
     return resp
 
 
-def play_file(file, offset):
-    GLOBAL_SETTINGS['MusicListClass'].currentFile = file
-    path  = GLOBAL_SETTINGS['MusicListClass'].get_file_path(file['id'])
-    GLOBAL_SETTINGS['MPlayerClass'].play(path, offset)
-
-
-def ytdl_hook(d):
-    if d['status'] == 'finished':
-        pass
 
 '''==================================================
  Routes
 =================================================='''
-
-@app.route('/api/commands/pause', methods=['POST'])
-def pause():
-    GLOBAL_SETTINGS['MPlayerClass'].pause()
-    return '', 200
-
-
-@app.route('/api/commands/stop', methods=['POST'])
-def stop():
-    GLOBAL_SETTINGS['MPlayerClass'].stop()
-    return '', 200
-
-
-@app.route('/api/commands/info', methods=['POST'])
-def get_info():
-    resp = authMiddleware()
-    if resp['status'] == 200:
-        resp = GLOBAL_SETTINGS['MPlayerClass'].get_playing_track_info()
-
-    jsonify(**resp)
-
 
 @app.route('/api/commands/formats')
 def get_quality():
@@ -950,19 +858,32 @@ def streamAudio(identifier):
     # for whatever isn't an audio file
     return send_file(newFile)
 
-@app.route('/api/youtube')
-def youtube():
-    yturl = request.args.get('yturl')
-    resp = {"status": 400}
-    YOUTUBE_DL_OPTS['progress_hooks'] = [ytdl_hook]
-    with youtube_dl.YoutubeDL(YOUTUBE_DL_OPTS) as ydl:
-        ydl.download([yturl])
 
-    resp["status"] = 200
+
+@app.route('/authenticate', methods=['POST'])
+def authenticate():
+    resp = {"status": 401}
+    data = request.data
+    data = json.loads(data)
+    if data is not None:
+        password = data.get('password')
+        if password == GLOBAL_SETTINGS['password']:
+            resp["status"] = 200;
+            resp["token"] = GLOBAL_SETTINGS['auth-token']
+
     return jsonify(**resp)
 
 
+@app.route('/alexa/random', methods=['GET'])
+def randomTrack():
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
 
+    resp = GLOBAL_SETTINGS['MusicListClass'].get_random()
+    return jsonify(**resp)
+
+    
 @app.route('/<path:filename>')
 def serving(filename):
     if GLOBAL_SETTINGS['music-dir'] in filename:
@@ -983,20 +904,6 @@ def togui():
 def index():
     doStream = bool(request.args.get('stream'))
     return render_template('index.html', enableStream=doStream)
-
-@app.route('/authenticate', methods=['POST'])
-def authenticate():
-    resp = {"status": 401}
-    data = request.data
-    data = json.loads(data)
-    if data is not None:
-        password = data.get('password')
-        if password == GLOBAL_SETTINGS['password']:
-            resp["status"] = 200;
-            resp["token"] = GLOBAL_SETTINGS['auth-token']
-
-    return jsonify(**resp)
-
 
         
 if __name__ == '__main__':
