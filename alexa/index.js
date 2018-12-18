@@ -5,6 +5,10 @@ const SEVER_URL = process.env.RMP_SERVER;
 const SERVER_PORT = process.env.RMP_PORT;
 const SERVER_PASSWD = process.env.RMP_PASS;
 
+function JSONstringify(json) {
+  console.log(JSON.stringify(json, undefined, 2));
+}
+
 function httpRequest(host, port, path, method, query) {
   return new Promise((resolve, reject) => {
     const encodedData = JSON.stringify(query);
@@ -19,6 +23,9 @@ function httpRequest(host, port, path, method, query) {
       'Content-Type': 'application/json',
       'Content-Length': Buffer.byteLength(encodedData)
     };
+
+    console.log('options', options);
+    console.log('data', encodedData);
 
     let data = '';
     
@@ -145,18 +152,45 @@ class RemoteMusicPlayer {
     });
   }
 
-  async getPlayerState() {
-    return this.getRequest(this.alexaAPI).then((resp) => {
-      const state = JSON.parse(resp);
-      return state;
-    }).catch((err) => {
-      console.log("Error retrieving alexa player state from server", err);
-      return {error: err};
+  async enqueueTrack(event, callback) {
+    await this.playTrack(event, callback, 'ENQUEUE');
+  }
+
+  async resetPlaylist(event, callback) {
+    await this.getAuthToken(callback);
+    await this.getRequest('/alexa/resetplaylist');
+  }
+
+  async playArtist(event, callback, artist) {
+    const payload = { artist };
+    console.log("play artist: ", payload);
+    await this.getAuthToken(callback);
+    await this.postRequest('/alexa/artist', payload).then(async (resp) => {
+      JSONstringify(resp);
+      const response = JSON.parse(resp);
+      if (response.playlist.length === 0) {
+        callback(null, speechResponse(`I couldn't find any songs by ${artist}`));
+      }
+      else {
+        await this.playTrack(event, callback);
+      }
     });
   }
 
-  async enqueueTrack(event, callback) {
-    await this.playTrack(event, callback, 'ENQUEUE');
+  async playSpecific(event, callback, song, artist) {
+    const payload = { artist, song };
+    console.log("play artist: ", payload);
+    await this.getAuthToken(callback);
+    await this.postRequest('/alexa/artist/song', payload).then(async (resp) => {
+      JSONstringify(resp);
+      const response = JSON.parse(resp);
+      if (response.playlist.length === 0) {
+        callback(null, speechResponse(`I couldn't find the song ${song} by ${artist}`));
+      }
+      else {
+        await this.playTrack(event, callback);
+      }
+    });
   }
 
   async playTrack(event, callback, playBehavior = 'REPLACE_ALL') {
@@ -192,7 +226,8 @@ class RemoteMusicPlayer {
           shouldEndSession: true
         }
       };
-      console.log("AUDIO RESPONSE", JSON.stringify(audioResp, null, 4));
+      console.log("AUDIO RESPONSE");
+      JSONstringify(audioResp);
       callback(null, audioResp);
     }).catch((err) => {
       callback(null, `Error fetching random track from server: ${err}`);
@@ -247,24 +282,49 @@ class RemoteMusicPlayer {
   }
 }
 
+const getAudioPlayerData = (event) => {
+  if (event.context.AudioPlayer) {
+    return event.context.AudioPlayer;
+  } else {
+    return {
+      token: event.request.token,
+      offsetInMilliseconds: 0
+    };
+  }
+};
+
 exports.handler = async function(event, context, callback) {
-  console.log('event', event);
+  JSONstringify(event);
 
   const eventType = event.request.type;
 
   const player = new RemoteMusicPlayer(SEVER_URL, SERVER_PORT, SERVER_PASSWD);
 
   // Always have the most up-to-date info on what is playing.
-  const token = event.request.token || event.context.AudioPlayer.token;
-  if (token) player.setAudioToken(token);
-
-  const offset = event.context.AudioPlayer.offsetInMilliseconds || 0;
+  const { token, offset } = getAudioPlayerData(event);
+  player.setAudioToken(token);
   player.setAudioOffset(offset);
 
   if (eventType === 'IntentRequest') {
-
     const intentMapping = {
-      'PlayMusicIntent': async () => { await player.playTrack(event, callback) },
+      'ResetPlaylistIntent': async () => {
+        await player.resetPlaylist();
+        await player.playTrack(event, callback);
+      },
+      'PlayMusicIntent': async () => {
+
+        const intentInfo = event.request.intent.slots;
+        const artistInfo = intentInfo.artist;
+        const songInfo = intentInfo.song;
+        if (songInfo.value && artistInfo.value) {
+          await player.playSpecific(event, callback, songInfo.value, artistInfo.value);
+        } else if (artistInfo.value) {
+          await player.playArtist(event, callback, artistInfo.value);
+        } else {
+          await player.playTrack(event, callback);
+          //callback(null, speechResponse("No artist information found in request."));
+        }
+      },
       'AMAZON.NextIntent': async () => { await player.playTrack(event, callback) },
       'AMAZON.PauseIntent': async () => { await player.pauseTrack(event, callback) },
       'AMAZON.StopIntent': async () => { await player.stopTrack(event, callback) },

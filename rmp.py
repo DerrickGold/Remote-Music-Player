@@ -25,6 +25,7 @@ GLOBAL_SETTINGS = {
     'server-port': 5000,
     'debug-out': True,
     'MusicListClass': None,
+    'AlexaPlayer': None,
     'max-transcodes': 4,
     'stream-format': 'mp3',
     'stream-chunk': 1024 * 512,
@@ -32,12 +33,6 @@ GLOBAL_SETTINGS = {
     'password': "",
     'auth-token': "",
     "coverart_width": "500"
-}
-
-ALEXA_SESSION = {
-    'pauseOffset': 0,
-    'nextTrackId': '',
-    'currentTrackId': '',
 }
 
 
@@ -415,18 +410,6 @@ class MusicList:
 
         return response
 
-    def get_random(self):
-        response = {}
-
-        id = ''
-        data = {}
-        while True:
-            id, data = random.choice(list(self.mapping.items()))
-            if not data['directory']:
-                break
-
-        response['id'] = id
-        return response
 
     def is_transcoding(self, id):
         return self.transcodeProcess[id].poll()
@@ -539,7 +522,43 @@ class MusicList:
                 diffList.append(diff)
 
         return diffList
+
+
+class AlexaPlayer:
+    def __init__(self, music_list):
+        self.music_list = music_list
         
+        self.tracks = [v for k,v in self.music_list.mapping.items() if not v['directory']]
+        self.artists = [v for k,v in self.music_list.mapping.items() if v['directory']]
+        self.playlist = self.tracks
+
+    def get_random(self):
+        response = {}
+        data = random.choice(self.playlist)
+        response['id'] = data['id']
+        return response
+
+    def filter_artist(self, artist):
+        allFolders = [v for v in self.artists if artist.lower() in v['name'].lower()]
+        self.playlist = []
+        for a in allFolders:
+            for s in a['children']:
+                if not s['directory']: 
+                    self.playlist.append(s)
+                elif artist not in s['name']:
+                    allFolders.append(s)
+
+        return self.playlist
+
+    def filter_artist_song(self, artist, song):
+        artist_songs = self.filter_artist(artist)
+        self.playlist = [s for s in artist_songs if song.lower() in s['name'].lower()]
+        return self.playlist
+
+    def play_all(self):
+        self.playlist = self.tracks
+
+    
 '''==================================================
 Program Entry
 =================================================='''
@@ -583,6 +602,7 @@ class Startup:
         self.args()
         self.envvars()
         GLOBAL_SETTINGS['MusicListClass'] = MusicList(GLOBAL_SETTINGS['music-dir'])
+        GLOBAL_SETTINGS['AlexaPlayer'] = AlexaPlayer(GLOBAL_SETTINGS['MusicListClass'])
         GLOBAL_SETTINGS['running-dir'] = os.path.dirname(os.path.realpath(__file__))
         GLOBAL_SETTINGS['auth-token'] = str(uuid.uuid4())
         try:
@@ -881,9 +901,43 @@ def randomTrack():
     if resp['status'] != 200:
         return jsonify(**resp)
 
-    resp = GLOBAL_SETTINGS['MusicListClass'].get_random()
+    resp = GLOBAL_SETTINGS['AlexaPlayer'].get_random()
     return jsonify(**resp)
 
+@app.route('/alexa/artist', methods=['POST'])
+def playArtist():
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
+
+    data = json.loads(request.data)
+    artist = data.get('artist')
+    playlist = GLOBAL_SETTINGS['AlexaPlayer'].filter_artist(artist)
+    resp = { 'status': '200', 'playlist': playlist }
+    return jsonify(**resp)
+
+@app.route('/alexa/artist/song', methods=['POST'])
+def playArtistSong():
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
+
+    data = json.loads(request.data)
+    artist = data.get('artist')
+    song = data.get('song')
+    playlist = GLOBAL_SETTINGS['AlexaPlayer'].filter_artist_song(artist, song)
+    resp = { 'status': '200', 'playlist': playlist }
+    return jsonify(**resp)
+
+@app.route('/alexa/resetplaylist', methods=['GET'])
+def playAll():
+    resp = authMiddleware()
+    if resp['status'] != 200:
+        return jsonify(**resp)
+
+    GLOBAL_SETTINGS['AlexaPlayer'].play_all()
+    resp = {'status': '200'}
+    return jsonify(**resp)
     
 @app.route('/<path:filename>')
 def serving(filename):
