@@ -1,0 +1,63 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "monkey player",
+            "intents": [
+                {
+                    "name": "AMAZON.FallbackIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.PauseIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.ResumeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "PlayMusicIntent",
+                    "slots": [
+                        {
+                            "name": "artist",
+                            "type": "AMAZON.CreativeWorkType"
+                        },
+                        {
+                            "name": "song",
+                            "type": "AMAZON.CreativeWorkType"
+                        }
+                    ],
+                    "samples": [
+                        "play {song} by {artist}",
+                        "play {artist}",
+                        "start everything"
+                    ]
+                },
+                {
+                    "name": "ResetPlaylistIntent",
+                    "slots": [],
+                    "samples": [
+                        "play all"
+                    ]
+                }
+            ],
+            "types": []
+        }
+    }
+}

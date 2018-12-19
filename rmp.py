@@ -13,6 +13,7 @@ import signal
 import time
 import shutil
 import random
+import difflib
 from pathlib import Path
 from flask_cors import CORS, cross_origin
 from flask_compress import Compress
@@ -538,8 +539,14 @@ class AlexaPlayer:
         response['id'] = data['id']
         return response
 
+    def is_similar(self, first, second, ratio):
+        sanitized = re.sub('[\[\]\-\.\(\)@!#\$%\^&\*_=+]*mp3*','',second)
+        return difflib.SequenceMatcher(None, first, sanitized).ratio() > ratio or \
+        first in sanitized
+
     def filter_artist(self, artist):
-        allFolders = [v for v in self.artists if artist.lower() in v['name'].lower()]
+        #allFolders = [v for v in self.artists if artist.lower() in v['name'].lower()]
+        allFolders = [v for v in self.artists if self.is_similar(artist.lower(), v['name'].lower(), 0.68)]
         self.playlist = []
         for a in allFolders:
             for s in a['children']:
@@ -552,7 +559,8 @@ class AlexaPlayer:
 
     def filter_artist_song(self, artist, song):
         artist_songs = self.filter_artist(artist)
-        self.playlist = [s for s in artist_songs if song.lower() in s['name'].lower()]
+        #self.playlist = [s for s in artist_songs if song.lower() in s['name'].lower()]
+        self.playlist = [s for s in artist_songs if self.is_similar(song.lower(), s['name'].lower(), 0.68)]
         return self.playlist
 
     def play_all(self):
