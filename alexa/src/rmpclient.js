@@ -1,7 +1,5 @@
 const httpRequest = require('./utils').httpRequest;
 const JSONstringify = require('./utils').JSONstringify;
-const speechResponse = require('./utils').speechResponse;
-
 
 module.exports = class RemoteMusicPlayer {
   constructor(serverUrl, port, password) {
@@ -14,7 +12,14 @@ module.exports = class RemoteMusicPlayer {
     this.pauseOffset = 0;
   }
 
-  async createPlayTrackHandler() {
+  errorResponse(handlerInput, submesg, error) {
+    JSONstringify(error);
+    return handlerInput.responseBuilder
+      .speak(`I have encountered an error. ${submesg}: ${JSON.stringify(error)}`)
+      .getResponse();
+  }
+
+  createPlayTrackHandler() {
     const self = this;
     return {
       canHandle(handlerInput) {
@@ -26,110 +31,97 @@ module.exports = class RemoteMusicPlayer {
         const artistInfo = intentInfo.artist;
         const songInfo = intentInfo.song;
         
-        await self.getAuthToken();
-
+        let errorResponse = null;
         if (artistInfo.value && !songInfo.value) {
-          const payload = { artist: artistInfo.value };
+          errorResponse = await self.filterArtist({ handlerInput, artist: artistInfo.value });
           
-          const searchResponse = await self.postRequest('/alexa/artist', payload).then(async (resp) => {
-            return JSON.parse(resp);
-          });
-          
-          if (searchResponse.playlist.length === 0) {
-            return handlerInput.responseBuilder
-            .speak(`I couldn't find any songs by ${artistInfo.value}`)
-            .getResponse();
-          }
         } else if (artistInfo.value && songInfo.value) {
-          const payload = { artist: artistInfo.value, song: songInfo.value };
-          
-          const searchResponse = await self.postRequest('/alexa/artist/song', payload).then(async (resp) => {
-            JSONstringify(resp);
-            return JSON.parse(resp);
+          errorResponse = await self.filterSongByArtist({ 
+            handlerInput, 
+            artist: artistInfo.value, 
+            song: songInfo.value 
           });
-          console.log('search response:', searchResponse);
-          
-          if (searchResponse.playlist.length === 0) {
-            console.log('This should exit!');
-            return handlerInput.responseBuilder
-            .speak(`I couldn't find the song ${songInfo.value} by ${artistInfo.value}`)
-            .getResponse();
-          }
+        }
+        if (errorResponse !== null) {
+          console.log('error response?:', errorResponse);
+          return errorResponse;
         }
 
-        const songResponse = await self.getNextSong();
-
-        return self.playSong({ 
-          token: songResponse.id, 
-          handlerInput 
+        return self.getNextSong().then((songResponse) => {
+          return self.playSong({ 
+            token: songResponse.id, 
+            handlerInput 
+          });
+        }).catch((error) => {
+          return errorResponse(handlerInput, 'Error retrieving next song id', error);
         });
       }
     }
   }
 
-  async createResetPlaylistHandler() {
+  createResetPlaylistHandler() {
     const self = this;
     return {
       canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
         && handlerInput.requestEnvelope.request.intent.name === 'ResetPlaylistIntent';
       },
-      async handle(handlerInput) {
-        await self.getAuthToken();
-        await self.resetPlaylist();
-        const songResponse = await self.getNextSong();
-        return self.playSong({ 
-          token: songResponse.id,
-          handlerInput 
+      handle(handlerInput) {
+        return self.resetPlaylist().then(() => {
+          return self.getNextSong();
+        }).then((songResponse) => {
+          return self.playSong({ 
+            token: songResponse.id,
+            handlerInput 
+          });
         });
       }
     }
   }
 
-  async createEnqueueHandler() {
+  createEnqueueHandler() {
     const self = this;
     return {
       canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'AudioPlayer.PlaybackNearlyFinished';
       },
-      async handle(handlerInput) {
-        await self.getAuthToken();
-        const songResponse = await self.getNextSong();
-        return self.playSong({ 
-          token: songResponse.id,
-          handlerInput, 
-          playBehavior: 'ENQUEUE'
+      handle(handlerInput) {
+        return self.getNextSong().then((songResponse) => {
+          return self.playSong({ 
+            token: songResponse.id,
+            handlerInput, 
+            playBehavior: 'ENQUEUE'
+          });
         });
       }
     }
   }
 
-  async createNextHandler() {
+  createNextHandler() {
     const self = this;
     return {
       canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
         && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.NextIntent';
       },
-      async handle(handlerInput) {
-        await self.getAuthToken();
-        const songResponse = await self.getNextSong();
-        return self.playSong({
-          token: songResponse.id,
-          handlerInput, 
+      handle(handlerInput) {
+        return self.getNextSong().then((songResponse) => {
+          return self.playSong({
+            token: songResponse.id,
+            handlerInput, 
+          });
         });
       }
     }
   }
 
-  async createStopHandler() {
-    const self = this;
+  createStopHandler() {
     return {
       canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
         && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StopIntent';
       },
-      async handle(handlerInput) {
+      handle(handlerInput) {
         return handlerInput.responseBuilder
           .addAudioPlayerStopDirective()
           .getResponse();
@@ -137,14 +129,14 @@ module.exports = class RemoteMusicPlayer {
     }
   }
 
-  async createRestartHandler() {
+  createRestartHandler() {
     const self = this;
     return {
       canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
         && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StartOverIntent';
       },
-      async handle(handlerInput) {
+      handle(handlerInput) {
         return self.playSong({
           token: self.getAudioToken(),
           handlerInput, 
@@ -153,14 +145,13 @@ module.exports = class RemoteMusicPlayer {
     }
   }
 
-  async createPauseHandler() {
-    const self = this;
+  createPauseHandler() {
     return {
       canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
         && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.PauseIntent';
       },
-      async handle(handlerInput) {
+      handle(handlerInput) {
         return handlerInput.responseBuilder
           .addAudioPlayerStopDirective()
           .getResponse();
@@ -168,14 +159,14 @@ module.exports = class RemoteMusicPlayer {
     }
   }
 
-  async createResumeHandler() {
+  createResumeHandler() {
     const self = this;
     return {
       canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
         && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.ResumeIntent';
       },
-      async handle(handlerInput) {
+      handle(handlerInput) {
         return self.playSong({
           token: self.getAudioToken(),
           handlerInput, 
@@ -222,7 +213,7 @@ module.exports = class RemoteMusicPlayer {
     }
   }
 
-  async playSong({
+  playSong({
     token,
     handlerInput, 
     playBehavior = 'REPLACE_ALL', 
@@ -233,8 +224,8 @@ module.exports = class RemoteMusicPlayer {
     if (playBehavior === 'ENQUEUE') {
       const prevToken = this.getAudioToken();
       return handlerInput.responseBuilder
-      .addAudioPlayerPlayDirective(playBehavior, url, token, offsetInMilliseconds, prevToken)
-      .getResponse();
+        .addAudioPlayerPlayDirective(playBehavior, url, token, offsetInMilliseconds, prevToken)
+        .getResponse();
     } else {
       return handlerInput.responseBuilder
         .addAudioPlayerPlayDirective(playBehavior, url, token, offsetInMilliseconds)
@@ -242,25 +233,83 @@ module.exports = class RemoteMusicPlayer {
     }
   }
 
-  async getNextSong() {
-    return this.getRequest('/alexa/random').then(async (serverResponse) => {
-      return JSON.parse(serverResponse);
+  filterArtist({
+    handlerInput,
+    artist
+  }) {
+    const self = this;
+    const payload = { artist };
+    return this.postRequest('/alexa/artist', payload).then((resp) => {
+      if (resp.playlist.length === 0) {
+        return handlerInput.responseBuilder
+        .speak(`I couldn't find any songs by ${artist}`)
+        .getResponse();
+      } else {
+        console.log("this should return null");
+        return null;
+      }
+    }).catch((error) => {
+      return self.errorResponse(handlerInput, 'Error searching for artitst', error);
     });
+  }
+
+  filterSongByArtist({
+    handlerInput,
+    artist,
+    song
+  }) {
+    const self = this;
+    const payload = { artist, song };
+    return this.postRequest('/alexa/artist/song', payload).then((resp) => {
+      console.log('search response:', resp);
+      if (resp.playlist.length === 0) {
+        return handlerInput.responseBuilder
+          .speak(`I couldn't find the song ${song} by ${artist}`)
+          .getResponse();
+      } else {
+        return null;
+      }
+    }).catch((error) => {
+      return self.errorResponse(handlerInput, 'Error searching for song by artist', error);
+    });
+  }
+
+  getNextSong() {
+    return this.getRequest('/alexa/random');
   }
   
   postRequest(path, data) {
+    const self = this;
     const postData = Object.assign({}, data, {token: this.authToken });
-    return httpRequest(this.serverUrl, this.port, path, 'POST', postData);
+    return httpRequest(this.serverUrl, this.port, path, 'POST', postData)
+      .catch((resp) => {
+        return self.handleAuthRequests('POST', resp, path, data);
+      });
   }
   
-  getRequest(path) {
-    const postData = Object.assign({}, { token: this.authToken });
-    return httpRequest(this.serverUrl, this.port, path, 'GET', postData);
+  getRequest(path, data) {
+    const self = this;
+    const postData = Object.assign({}, data, { token: this.authToken });
+    return httpRequest(this.serverUrl, this.port, path, 'GET', postData)
+      .catch((resp) => {
+        return self.handleAuthRequests('GET', resp, path, data)
+      });
+  }
+
+  handleAuthRequests(method, response, path, data) {
+    const self = this;
+    if (response.status === 401) {
+      return self.getAuthToken().then(() => {
+        if (method === 'GET')
+          return self.getRequest(path, data);
+        else
+          return self.postRequest(path, data);
+      });
+    }
   }
 
   setAuthToken(authResponse) {
-    const parsed = JSON.parse(authResponse);
-    this.authToken =  parsed.token;
+    this.authToken =  authResponse.token;
   }
 
   getAudioURL(songId) {
@@ -287,21 +336,26 @@ module.exports = class RemoteMusicPlayer {
     return this.pauseOffset;
   }
 
-  async getAuthToken() {
+  getAuthToken() {
     if (this.authToken === null) {
-      return this.postRequest(
+      return new Promise((resolve, reject) => {
+        this.postRequest(
         '/authenticate',
         { 
           password: this.password 
-        }).then((resp) => this.setAuthToken(resp)).catch((err) => {
+        }).then((resp) => {
+          this.setAuthToken(resp);
+          resolve();
+        }).catch((err) => {
           console.log(`Failed to authenticate: ${err}`);
+          reject(err);
         });
+      });
     }
   }
   
-  async resetPlaylist() {
-    await this.getAuthToken();
-    await this.getRequest('/alexa/resetplaylist');
+  resetPlaylist() {
+    return this.getRequest('/alexa/resetplaylist');
   }
 
   setSessionAttribute(handlerInput, attributes) {

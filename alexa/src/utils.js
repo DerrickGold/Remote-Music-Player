@@ -27,7 +27,17 @@ const httpRequest = (host, port, path, method, query) => {
       });
       
       res.on('end', function() {
-        resolve(data);
+        if (host === process.env.RMP_SERVER) {
+          const parsed = JSON.parse(data);
+          JSONstringify(parsed);
+          if (parsed.status !== 200) {
+            reject(parsed);
+          } else {
+            resolve(parsed);
+          }
+        } else {
+          resolve(data);
+        }
       });
     });
     

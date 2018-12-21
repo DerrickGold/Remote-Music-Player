@@ -910,6 +910,7 @@ def randomTrack():
         return jsonify(**resp)
 
     resp = GLOBAL_SETTINGS['AlexaPlayer'].get_random()
+    resp['status'] = 200
     return jsonify(**resp)
 
 @app.route('/alexa/artist', methods=['POST'])
@@ -921,7 +922,7 @@ def playArtist():
     data = json.loads(request.data)
     artist = data.get('artist')
     playlist = GLOBAL_SETTINGS['AlexaPlayer'].filter_artist(artist)
-    resp = { 'status': '200', 'playlist': playlist }
+    resp = { 'status': 200, 'playlist': playlist }
     return jsonify(**resp)
 
 @app.route('/alexa/artist/song', methods=['POST'])
@@ -934,7 +935,7 @@ def playArtistSong():
     artist = data.get('artist')
     song = data.get('song')
     playlist = GLOBAL_SETTINGS['AlexaPlayer'].filter_artist_song(artist, song)
-    resp = { 'status': '200', 'playlist': playlist }
+    resp = { 'status': 200, 'playlist': playlist }
     return jsonify(**resp)
 
 @app.route('/alexa/resetplaylist', methods=['GET'])
@@ -944,7 +945,7 @@ def playAll():
         return jsonify(**resp)
 
     GLOBAL_SETTINGS['AlexaPlayer'].play_all()
-    resp = {'status': '200'}
+    resp = {'status': 200}
     return jsonify(**resp)
     
 @app.route('/<path:filename>')
@@ -959,7 +960,7 @@ def serving(filename):
         # for whatever isn't an audio file
         return send_file(filename)
     else:
-        return jsonify(**{'status':'401'})
+        return jsonify(**{'status': 401})
 
 
 @app.route('/')
