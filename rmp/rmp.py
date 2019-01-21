@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
 
-from flask import request, jsonify, redirect, url_for, render_template, send_file, Response, stream_with_context, json
-
-from urllib import parse
 import os
 import sys
 import uuid
 import logging
 import time
-import random
-from pathlib import Path
-
-
-from filehashnode import FileHashNodeTree
 import globalsettings
+
+from pathlib import Path
+from flask import request, jsonify, redirect, url_for, render_template, send_file, Response, stream_with_context, json
+from filehashnode import FileHashNodeTree
 from musicdb import MusicList, guessTranscodedSize, makeRangeHeader
 from setup import Startup
 
@@ -36,7 +32,6 @@ def authMiddleware():
 '''==================================================
  Routes
 =================================================='''
-
 @app.route('/api/commands/formats')
 def get_quality():
     resp = authMiddleware()
