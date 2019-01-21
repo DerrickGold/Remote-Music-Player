@@ -1,6 +1,6 @@
 # Remote-Music-Player
 
-Stream your own music from your own server right through your browser.
+Stream your own music from your own server right through your browser or through Alexa!
 
 ## Desktop Browser
 ![Remote Music Player](/screenshots/desktop1.png?raw=true "Remote Music Player")
@@ -13,7 +13,6 @@ Stream your own music from your own server right through your browser.
 ## Requirements
 - python3 (3.4 and 3.5 tested)
 - ffmpeg/avconv (for getting audio metadata on server)
-- mplayer (for server speaker playback)
 
 ## Installation
 Simply run:
@@ -45,5 +44,9 @@ Music directory must be located within the directory that the server is started 
 
 To get to the player, visit this address in any browser:
 
-`127.0.0.1:<PORT NUMBER>/gui?stream=true`
+`127.0.0.1:<PORT NUMBER>/gui`
+
+## Alexa Setup
+
+Instructions coming soon!
 

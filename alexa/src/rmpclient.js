@@ -32,7 +32,10 @@ module.exports = class RemoteMusicPlayer {
         const songInfo = intentInfo.song;
         
         let errorResponse = null;
-        if (artistInfo.value && !songInfo.value) {
+        if (!artistInfo.value && songInfo.value) {
+          errorResponse = await self.filterSong({ handlerInput, song: songInfo.value });
+        }
+        else if (artistInfo.value && !songInfo.value) {
           errorResponse = await self.filterArtist({ handlerInput, artist: artistInfo.value });
           
         } else if (artistInfo.value && songInfo.value) {
@@ -43,7 +46,6 @@ module.exports = class RemoteMusicPlayer {
           });
         }
         if (errorResponse !== null) {
-          console.log('error response?:', errorResponse);
           return errorResponse;
         }
 
@@ -245,11 +247,29 @@ module.exports = class RemoteMusicPlayer {
         .speak(`I couldn't find any songs by ${artist}`)
         .getResponse();
       } else {
-        console.log("this should return null");
         return null;
       }
     }).catch((error) => {
-      return self.errorResponse(handlerInput, 'Error searching for artitst', error);
+      return self.errorResponse(handlerInput, 'Error searching for artist', error);
+    });
+  }
+
+  filterSong({
+    handlerInput,
+    song
+  }) {
+    const self = this;
+    const payload = { song };
+    return this.postRequest('/alexa/song', payload).then((resp) => {
+      if (resp.playlist.length === 0) {
+        return handlerInput.responseBuilder
+        .speak(`I couldn't find any songs called ${song}`)
+        .getResponse();
+      } else {
+        return null;
+      }
+    }).catch((error) => {
+      return self.errorResponse(handlerInput, 'Error searching for songs', error);
     });
   }
 
@@ -299,6 +319,7 @@ module.exports = class RemoteMusicPlayer {
   handleAuthRequests(method, response, path, data) {
     const self = this;
     if (response.status === 401) {
+      self.authToken = null;
       return self.getAuthToken().then(() => {
         if (method === 'GET')
           return self.getRequest(path, data);
