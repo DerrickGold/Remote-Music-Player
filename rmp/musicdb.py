@@ -1,11 +1,12 @@
 import os
 import logging
 import subprocess
-import globalsettings
 import shutil
 import signal
 import re
+import time
 
+from globalsettings import CONFIG, STREAM_QUALITY, TRANSCODE_CMD, COVERART_CMD
 from flask import request
 from werkzeug.datastructures import Headers
 from filehashnode import FileHashNodeTree
@@ -14,7 +15,7 @@ TRANSCODE_CACHE = []
 
 def guessTranscodedSize(codec, quality, metadata):
     # currently assumes all audio will end up as stereo output
-    quality = re.findall('\d+', quality)[0]
+    quality = re.findall(r'\d+', quality)[0]
 
     try:
         if codec == "wav":
@@ -55,16 +56,16 @@ class ListHistory:
 class MusicList:
 
     def __init__(self, root):
-        self.listFile = globalsettings.CONFIG['music-list-name']
+        self.listFile = CONFIG['music-list-name']
         self.fileHash = FileHashNodeTree(root)
         self.generate_music_list(root)
         self.transcodeProcess = []
         self.transcodeID = 0
-        self.art_cache_path = os.path.join(globalsettings.CONFIG["cache-dir"], "curcover.jpg")
+        self.art_cache_path = os.path.join(CONFIG["cache-dir"], "curcover.jpg")
         self.root = root
         self.listDiffs = []
         
-        for i in range(0, globalsettings.CONFIG['max-transcodes']):
+        for i in range(0, CONFIG['max-transcodes']):
             self.transcodeProcess.append(None)
 
     def generate_music_list(self, musicRoot, outputFile=None):
@@ -88,12 +89,12 @@ class MusicList:
             outpath = os.path.join(parent['name'], outpath)
             curFile = parent
 
-        return os.path.join(globalsettings.CONFIG['music-dir'], outpath)
+        return os.path.join(CONFIG['music-dir'], outpath)
 
     def get_file_metadata(self, path):
         response = {'artist': '', 'album': '', 'title': '', 'genre': ''}
         logging.debug("Getting metadata")
-        args = list(globalsettings.CONFIG['ffmpeg-flags'])
+        args = list(CONFIG['ffmpeg-flags'])
         args.extend(['-i', path, '-f', 'ffmetadata', '-'])
 
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
@@ -108,7 +109,7 @@ class MusicList:
                 response[info[0]] = info[1]
 
         # get track length
-        args = list(globalsettings.CONFIG['ffprobe-flags'])
+        args = list(CONFIG['ffprobe-flags'])
         args.append(path)
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         output = process.communicate()
@@ -141,11 +142,11 @@ class MusicList:
 
     def transcode_audio(self, path, quality=None, fmt=None):
         if fmt is None:
-            fmt = globalsettings.CONFIG['stream-format']
+            fmt = CONFIG['stream-format']
 
-        if quality is None or quality.lower() not in globalsettings.STREAM_QUALITY['{}'.format(fmt)]:
-            selections = globalsettings.STREAM_QUALITY[
-                "{}".format(globalsettings.CONFIG['stream-format'])]
+        if quality is None or quality.lower() not in STREAM_QUALITY['{}'.format(fmt)]:
+            selections = STREAM_QUALITY[
+                "{}".format(CONFIG['stream-format'])]
             quality = selections[len(selections) // 2]
 
         #check if audio has already been previously transcoded
@@ -157,7 +158,7 @@ class MusicList:
                     return (c['outfile'], c['proc'])
             
         self.transcodeID = (self.transcodeID +
-                            1) % globalsettings.CONFIG['max-transcodes']
+                            1) % CONFIG['max-transcodes']
         proc = self.transcodeProcess[self.transcodeID]
 
         try:
@@ -167,7 +168,7 @@ class MusicList:
             logging.debug("Process: " + str(proc.pid) + " no longer exists....")
 
         ext = os.path.splitext(path)
-        outfile = os.path.join(globalsettings.CONFIG["cache-dir"], "transcoded{}.audio".format(self.transcodeID))
+        outfile = os.path.join(CONFIG["cache-dir"], "transcoded{}.audio".format(self.transcodeID))
         
         #delete old cache file before transcoding new one
         try:
@@ -177,8 +178,8 @@ class MusicList:
         except:
             pass
         
-        args = list(globalsettings.CONFIG['ffmpeg-flags'])
-        args.extend(globalsettings.TRANSCODE_CMD['{}'.format(fmt)])
+        args = list(CONFIG['ffmpeg-flags'])
+        args.extend(TRANSCODE_CMD['{}'.format(fmt)])
 
         args[args.index("{infile}")] = path
         args[args.index("{quality}")] = quality
@@ -193,7 +194,7 @@ class MusicList:
             'fmt': fmt,
             'quality': quality
         }
-        if len(TRANSCODE_CACHE) < globalsettings.CONFIG['max-transcodes']:
+        if len(TRANSCODE_CACHE) < CONFIG['max-transcodes']:
             TRANSCODE_CACHE.append(cacheobj)
         else:
             TRANSCODE_CACHE[self.transcodeID] = cacheobj
@@ -209,16 +210,15 @@ class MusicList:
     
     def extract_album_art(self, filepath):
         self.clear_album_cache()
-        args = list(globalsettings.CONFIG['ffmpeg-flags'])
+        args = list(CONFIG['ffmpeg-flags'])
         outfile = self.art_cache_path
-        args.extend(globalsettings.COVERART_CMD)
+        args.extend(COVERART_CMD)
         
         args[args.index("{infile}")] = filepath
         args[args.index("{outfile}")] = outfile
 
         logging.debug(args)
         coverProc = subprocess.Popen(args)
-        res = coverProc.communicate()
         code = coverProc.returncode
         if not self.isalbum_art_cached():
             code = -1

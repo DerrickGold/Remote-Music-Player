@@ -1,10 +1,9 @@
 
 import os
 import uuid
-import globalsettings
+from globalsettings import AUDIO_EXT, COVER_EXT
 
 def make_file(path, name, directory=False, parent=None):
-    id = str(uuid.uuid4())
     entry = {
         'name': name,
         'directory': directory,
@@ -93,12 +92,12 @@ class FileHashNodeTree:
                     continue
             
                 ext = os.path.splitext(file)
-                if file[0] != '.' and ext[1] in globalsettings.AUDIO_EXT:
+                if file[0] != '.' and ext[1] in AUDIO_EXT:
                     newFile = make_file(root, file, False, node['id'])
                     node['children'].append(newFile)
                     fileMapping[newFile['id']] = newFile
                     pathMapping[fullpath] = newFile
-                elif file[0] != '.' and ext[1] in globalsettings.COVER_EXT:
+                elif file[0] != '.' and ext[1] in COVER_EXT:
                     pathMapping[fullpath] = file
                     if 'covers' not in node: node['covers'] = []
                     node['covers'].append(file)
