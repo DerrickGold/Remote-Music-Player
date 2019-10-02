@@ -23,14 +23,17 @@ const myErrorHandler = {
   }
 };
 
-exports.handler = async function(event, context, callback) {
+exports.handler = async function (event, context, callback) {
   JSONstringify(event);
   const player = new RemoteMusicPlayer(SEVER_URL, SERVER_PORT, SERVER_PASSWD);
-  
+
   const GetAudioPlayerDatatInterceptor = {
     process(handlerInput) {
       return new Promise(async (resolve) => {
-        const { token, offsetInMilliseconds } = player.getAudioPlayerData(handlerInput);
+        const {
+          token,
+          offsetInMilliseconds
+        } = player.getAudioPlayerData(handlerInput);
         player.setAudioOffset(offsetInMilliseconds);
         player.setAudioToken(token);
         resolve();

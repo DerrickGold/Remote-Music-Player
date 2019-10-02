@@ -23,26 +23,31 @@ module.exports = class RemoteMusicPlayer {
     const self = this;
     return {
       canHandle(handlerInput) {
-        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
-        && handlerInput.requestEnvelope.request.intent.name === 'PlayMusicIntent';
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest' &&
+          handlerInput.requestEnvelope.request.intent.name === 'PlayMusicIntent';
       },
       async handle(handlerInput) {
         const intentInfo = handlerInput.requestEnvelope.request.intent.slots;
         const artistInfo = intentInfo.artist;
         const songInfo = intentInfo.song;
-        
+
         let errorResponse = null;
         if (!artistInfo.value && songInfo.value) {
-          errorResponse = await self.filterSong({ handlerInput, song: songInfo.value });
-        }
-        else if (artistInfo.value && !songInfo.value) {
-          errorResponse = await self.filterArtist({ handlerInput, artist: artistInfo.value });
-          
+          errorResponse = await self.filterSong({
+            handlerInput,
+            song: songInfo.value
+          });
+        } else if (artistInfo.value && !songInfo.value) {
+          errorResponse = await self.filterArtist({
+            handlerInput,
+            artist: artistInfo.value
+          });
+
         } else if (artistInfo.value && songInfo.value) {
-          errorResponse = await self.filterSongByArtist({ 
-            handlerInput, 
-            artist: artistInfo.value, 
-            song: songInfo.value 
+          errorResponse = await self.filterSongByArtist({
+            handlerInput,
+            artist: artistInfo.value,
+            song: songInfo.value
           });
         }
         if (errorResponse !== null) {
@@ -50,9 +55,9 @@ module.exports = class RemoteMusicPlayer {
         }
 
         return self.getNextSong().then((songResponse) => {
-          return self.playSong({ 
-            token: songResponse.id, 
-            handlerInput 
+          return self.playSong({
+            token: songResponse.id,
+            handlerInput
           });
         }).catch((error) => {
           return errorResponse(handlerInput, 'Error retrieving next song id', error);
@@ -65,16 +70,16 @@ module.exports = class RemoteMusicPlayer {
     const self = this;
     return {
       canHandle(handlerInput) {
-        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
-        && handlerInput.requestEnvelope.request.intent.name === 'ResetPlaylistIntent';
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest' &&
+          handlerInput.requestEnvelope.request.intent.name === 'ResetPlaylistIntent';
       },
       handle(handlerInput) {
         return self.resetPlaylist().then(() => {
           return self.getNextSong();
         }).then((songResponse) => {
-          return self.playSong({ 
+          return self.playSong({
             token: songResponse.id,
-            handlerInput 
+            handlerInput
           });
         });
       }
@@ -89,9 +94,9 @@ module.exports = class RemoteMusicPlayer {
       },
       handle(handlerInput) {
         return self.getNextSong().then((songResponse) => {
-          return self.playSong({ 
+          return self.playSong({
             token: songResponse.id,
-            handlerInput, 
+            handlerInput,
             playBehavior: 'ENQUEUE'
           });
         });
@@ -103,14 +108,14 @@ module.exports = class RemoteMusicPlayer {
     const self = this;
     return {
       canHandle(handlerInput) {
-        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
-        && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.NextIntent';
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest' &&
+          handlerInput.requestEnvelope.request.intent.name === 'AMAZON.NextIntent';
       },
       handle(handlerInput) {
         return self.getNextSong().then((songResponse) => {
           return self.playSong({
             token: songResponse.id,
-            handlerInput, 
+            handlerInput,
           });
         });
       }
@@ -120,8 +125,8 @@ module.exports = class RemoteMusicPlayer {
   createStopHandler() {
     return {
       canHandle(handlerInput) {
-        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
-        && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StopIntent';
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest' &&
+          handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StopIntent';
       },
       handle(handlerInput) {
         return handlerInput.responseBuilder
@@ -135,13 +140,13 @@ module.exports = class RemoteMusicPlayer {
     const self = this;
     return {
       canHandle(handlerInput) {
-        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
-        && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StartOverIntent';
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest' &&
+          handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StartOverIntent';
       },
       handle(handlerInput) {
         return self.playSong({
           token: self.getAudioToken(),
-          handlerInput, 
+          handlerInput,
         });
       }
     }
@@ -150,8 +155,8 @@ module.exports = class RemoteMusicPlayer {
   createPauseHandler() {
     return {
       canHandle(handlerInput) {
-        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
-        && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.PauseIntent';
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest' &&
+          handlerInput.requestEnvelope.request.intent.name === 'AMAZON.PauseIntent';
       },
       handle(handlerInput) {
         return handlerInput.responseBuilder
@@ -165,13 +170,13 @@ module.exports = class RemoteMusicPlayer {
     const self = this;
     return {
       canHandle(handlerInput) {
-        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
-        && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.ResumeIntent';
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest' &&
+          handlerInput.requestEnvelope.request.intent.name === 'AMAZON.ResumeIntent';
       },
       handle(handlerInput) {
         return self.playSong({
           token: self.getAudioToken(),
-          handlerInput, 
+          handlerInput,
           offsetInMilliseconds: self.getAudioOffset()
         });
       }
@@ -217,8 +222,8 @@ module.exports = class RemoteMusicPlayer {
 
   playSong({
     token,
-    handlerInput, 
-    playBehavior = 'REPLACE_ALL', 
+    handlerInput,
+    playBehavior = 'REPLACE_ALL',
     offsetInMilliseconds = 0
   }) {
     const url = this.getAudioURL(token);
@@ -240,12 +245,14 @@ module.exports = class RemoteMusicPlayer {
     artist
   }) {
     const self = this;
-    const payload = { artist };
+    const payload = {
+      artist
+    };
     return this.postRequest('/alexa/artist', payload).then((resp) => {
       if (resp.playlist.length === 0) {
         return handlerInput.responseBuilder
-        .speak(`I couldn't find any songs by ${artist}`)
-        .getResponse();
+          .speak(`I couldn't find any songs by ${artist}`)
+          .getResponse();
       } else {
         return null;
       }
@@ -259,12 +266,14 @@ module.exports = class RemoteMusicPlayer {
     song
   }) {
     const self = this;
-    const payload = { song };
+    const payload = {
+      song
+    };
     return this.postRequest('/alexa/song', payload).then((resp) => {
       if (resp.playlist.length === 0) {
         return handlerInput.responseBuilder
-        .speak(`I couldn't find any songs called ${song}`)
-        .getResponse();
+          .speak(`I couldn't find any songs called ${song}`)
+          .getResponse();
       } else {
         return null;
       }
@@ -279,7 +288,10 @@ module.exports = class RemoteMusicPlayer {
     song
   }) {
     const self = this;
-    const payload = { artist, song };
+    const payload = {
+      artist,
+      song
+    };
     return this.postRequest('/alexa/artist/song', payload).then((resp) => {
       console.log('search response:', resp);
       if (resp.playlist.length === 0) {
@@ -297,19 +309,23 @@ module.exports = class RemoteMusicPlayer {
   getNextSong() {
     return this.getRequest('/alexa/random');
   }
-  
+
   postRequest(path, data) {
     const self = this;
-    const postData = Object.assign({}, data, {token: this.authToken });
+    const postData = Object.assign({}, data, {
+      token: this.authToken
+    });
     return httpRequest(this.serverUrl, this.port, path, 'POST', postData)
       .catch((resp) => {
         return self.handleAuthRequests('POST', resp, path, data);
       });
   }
-  
+
   getRequest(path, data) {
     const self = this;
-    const postData = Object.assign({}, data, { token: this.authToken });
+    const postData = Object.assign({}, data, {
+      token: this.authToken
+    });
     return httpRequest(this.serverUrl, this.port, path, 'GET', postData)
       .catch((resp) => {
         return self.handleAuthRequests('GET', resp, path, data)
@@ -330,29 +346,29 @@ module.exports = class RemoteMusicPlayer {
   }
 
   setAuthToken(authResponse) {
-    this.authToken =  authResponse.token;
+    this.authToken = authResponse.token;
   }
 
   getAudioURL(songId) {
     const setQuality = `quality=${this.bitrate}k`;
     const setToken = `token=${this.authToken}`;
     const serverUrl = `${this.serverUrl}:${this.port}`;
-    
+
     return `https://${serverUrl}/api/files/${songId}/stream?${setQuality}&transcode=false&${setToken}`;
   }
-  
+
   setAudioToken(token) {
     this.currentAudioToken = token;
   }
-  
+
   getAudioToken() {
     return this.currentAudioToken;
   }
-  
+
   setAudioOffset(offset) {
     this.pauseOffset = offset;
   }
-  
+
   getAudioOffset() {
     return this.pauseOffset;
   }
@@ -361,10 +377,9 @@ module.exports = class RemoteMusicPlayer {
     if (this.authToken === null) {
       return new Promise((resolve, reject) => {
         this.postRequest(
-        '/authenticate',
-        { 
-          password: this.password 
-        }).then((resp) => {
+          '/authenticate', {
+            password: this.password
+          }).then((resp) => {
           this.setAuthToken(resp);
           resolve();
         }).catch((err) => {
@@ -374,7 +389,7 @@ module.exports = class RemoteMusicPlayer {
       });
     }
   }
-  
+
   resetPlaylist() {
     return this.getRequest('/alexa/resetplaylist');
   }
