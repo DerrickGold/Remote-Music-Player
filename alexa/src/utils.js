@@ -11,22 +11,22 @@ const httpRequest = (host, port, path, method, query) => {
       host,
       port,
       path,
-      method, 
+      method,
     };
-    
+
     options.headers = {
       'Content-Type': 'application/json',
       'Content-Length': Buffer.byteLength(encodedData)
     };
-    
+
     let data = '';
-    
+
     const req = http.request(options, (res) => {
       res.on('data', function (chunk) {
         data += chunk;
       });
-      
-      res.on('end', function() {
+
+      res.on('end', function () {
         if (host === process.env.RMP_SERVER) {
           const parsed = JSON.parse(data);
           JSONstringify(parsed);
@@ -40,12 +40,12 @@ const httpRequest = (host, port, path, method, query) => {
         }
       });
     });
-    
+
     req.on('error', (e) => {
       console.log('http error', e);
       reject(e.message);
     });
-    
+
     // send the request
     req.write(encodedData);
     req.end();
