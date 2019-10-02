@@ -5,7 +5,7 @@ import sys
 import uuid
 import logging
 import time
-import globalsettings
+from globalsettings import CONFIG, STREAM_FORMAT, STREAM_QUALITY, TRANSCODE_FROM, AUDIO_MIMETYPES
 
 from pathlib import Path
 from flask import request, jsonify, redirect, url_for, render_template, send_file, Response, stream_with_context, json
@@ -24,7 +24,7 @@ def authMiddleware():
         token = data.get('token')
         
     if token is not None:
-        resp["status"] = 200 if token == globalsettings.CONFIG['auth-token'] else resp["status"]
+        resp["status"] = 200 if token == CONFIG['auth-token'] else resp["status"]
 
     return resp
 
@@ -37,8 +37,8 @@ def get_quality():
     resp = authMiddleware()
     if resp['status'] == 200:
         resp = {
-            'format': globalsettings.STREAM_FORMAT,
-            'quality': globalsettings.STREAM_QUALITY
+            'format': STREAM_FORMAT,
+            'quality': STREAM_QUALITY
         }
     return jsonify(**resp)
 
@@ -54,24 +54,24 @@ def rescanner():
     else:
         lastUpdate = int(lastUpdate)
 
-    root_dir = globalsettings.CONFIG['MusicListClass'].root
-    updated = globalsettings.CONFIG['MusicListClass'].latest_rescan_diff()
+    root_dir = CONFIG['MusicListClass'].root
+    updated = CONFIG['MusicListClass'].latest_rescan_diff()
     resp = {'more': False, 'time': updated, 'added': [], 'removed': []}
     if lastUpdate >= updated:
         #if the last update time matches both the client and the server
         #check for new files on the server to push
         #otherwise, we just need to sync the client up with the server
-        oldHash = globalsettings.CONFIG['MusicListClass'].fileHash
+        oldHash = CONFIG['MusicListClass'].fileHash
         RescanHash = FileHashNodeTree(root_dir)
         RescanHash.scan_directory(root_dir, '.', '.', oldHash)
         RescanHash.resolve_scan_diff(root_dir, '.', '.', oldHash)
         #merge the new files added back into the original file tree
         resp['added'] = RescanHash.get_files()
         resp['removed'] = oldHash.merge_scan_diff(RescanHash)
-        globalsettings.CONFIG['MusicListClass'].save_rescan_diff(RescanHash, resp['removed'])
-        resp['time'] = globalsettings.CONFIG['MusicListClass'].latest_rescan_diff()
+        CONFIG['MusicListClass'].save_rescan_diff(RescanHash, resp['removed'])
+        resp['time'] = CONFIG['MusicListClass'].latest_rescan_diff()
     else:
-        diffsList = globalsettings.CONFIG['MusicListClass'].get_rescan_diffs(lastUpdate)
+        diffsList = CONFIG['MusicListClass'].get_rescan_diffs(lastUpdate)
         combinedDiffs = diffsList.pop(0)
         resp['removed'] = combinedDiffs.deleted
         resp['time'] = combinedDiffs.date
@@ -88,9 +88,9 @@ def files():
         return jsonify(**resp)
     
     obj = {
-        'root' : globalsettings.CONFIG['music-dir'],
-        'files': globalsettings.CONFIG['MusicListClass'].fileHash.get_files(),
-        'count': len(globalsettings.CONFIG['MusicListClass'].mapping.keys())
+        'root' : CONFIG['music-dir'],
+        'files': CONFIG['MusicListClass'].fileHash.get_files(),
+        'count': len(CONFIG['MusicListClass'].mapping.keys())
     }
     return jsonify(**obj)
 
@@ -105,7 +105,7 @@ def search(keyword):
     if len(keyword) <= 0:
         return '', 400
 
-    return jsonify(**globalsettings.CONFIG["MusicListClass"].search_media(keyword))
+    return jsonify(**CONFIG["MusicListClass"].search_media(keyword))
 
 
 @app.route('/api/files/<string:identifier>')
@@ -114,7 +114,7 @@ def file(identifier):
     if resp['status'] != 200:
         return jsonify(**resp)
     
-    file = globalsettings.CONFIG['MusicListClass'].get_file(identifier)
+    file = CONFIG['MusicListClass'].get_file(identifier)
     if not file:
         return '', 400
     return jsonify(**file)
@@ -126,39 +126,23 @@ def get_cover(identifier, covername=None):
     if resp['status'] != 200:
         return jsonify(**resp)
     
-    filepath = globalsettings.CONFIG['MusicListClass'].get_file_path(identifier)
+    filepath = CONFIG['MusicListClass'].get_file_path(identifier)
     if filepath is None: return '', 400
     elif covername is not None:
-        path, code = globalsettings.CONFIG["MusicListClass"].cache_album_art(filepath, covername)
+        path, code = CONFIG["MusicListClass"].cache_album_art(filepath, covername)
         response = {
             'code': code,
             'path': path
         }
         return jsonify(**response)
     else:
-        path, code = globalsettings.CONFIG['MusicListClass'].extract_album_art(filepath)
+        path, code = CONFIG['MusicListClass'].extract_album_art(filepath)
         response = {
             'code': code,
             'path': path
         }
 
         return jsonify(**response)
-
-
-@app.route('/api/files/<string:identifier>/play')
-def play(identifier):
-    resp = authMiddleware()
-    if resp['status'] != 200:
-        return jsonify(**resp)
-    
-    offset = request.args.get('offset')
-    file = globalsettings.CONFIG['MusicListClass'].get_file(identifier)
-    if not file:
-        return '', 400
-
-    play_file(file, offset)
-    return '', 200
-
 
 @app.route('/api/files/<string:identifier>/data')
 def metadata(identifier):
@@ -166,7 +150,7 @@ def metadata(identifier):
     if resp['status'] != 200:
         return jsonify(**resp)
     
-    data = globalsettings.CONFIG['MusicListClass'].get_audio_metadata(identifier)
+    data = CONFIG['MusicListClass'].get_audio_metadata(identifier)
     return jsonify(**data)
 
 
@@ -176,17 +160,17 @@ def streamAudio(identifier):
     if resp['status'] != 200:
         return jsonify(**resp)
     
-    filename = globalsettings.CONFIG['MusicListClass'].get_file_path(identifier)
+    filename = CONFIG['MusicListClass'].get_file_path(identifier)
     if not file:
         return '', 400
 
     destType = request.args.get('format')
     if destType is not None:
         destType = destType.lower()
-        if destType not in globalsettings.STREAM_FORMAT:
-            destType = globalsettings.CONFIG['stream-format']
+        if destType not in STREAM_FORMAT:
+            destType = CONFIG['stream-format']
     else:
-        destType = globalsettings.CONFIG['stream-format']
+        destType = CONFIG['stream-format']
 
     # allow user to force transcode all audio regardless if its already
     # supported or not
@@ -200,11 +184,11 @@ def streamAudio(identifier):
     quality = request.args.get('quality')
     newFile = '{}'.format(filename)
     ext = os.path.splitext(filename)[1].lower()[1:]
-    if ext in globalsettings.TRANSCODE_FROM or doTranscode:
-        data = globalsettings.CONFIG['MusicListClass'].get_file_metadata(newFile)
+    if ext in TRANSCODE_FROM or doTranscode:
+        data = CONFIG['MusicListClass'].get_file_metadata(newFile)
         guessTranscodedSize(destType, quality, data)
         
-        newFile, proc = globalsettings.CONFIG['MusicListClass'].transcode_audio(
+        newFile, proc = CONFIG['MusicListClass'].transcode_audio(
             filename, quality, destType)
         headers, offset = makeRangeHeader(data)
         # try opening the output file until it's successful
@@ -223,7 +207,7 @@ def streamAudio(identifier):
             if pos > 0: file.seek(pos, 0)
             doneTranscode = False
             while True:
-                chunk = file.read(globalsettings.CONFIG["stream-chunk"])
+                chunk = file.read(CONFIG["stream-chunk"])
                 if len(chunk) > 0:
                     yield chunk
 
@@ -235,14 +219,14 @@ def streamAudio(identifier):
 
             file.close()
 
-        sendtype = globalsettings.AUDIO_MIMETYPES['{}'.format(destType)]
+        sendtype = AUDIO_MIMETYPES['{}'.format(destType)]
         resp = Response(stream_with_context(generate(newFile, proc, offset)), mimetype=sendtype, headers=headers)
         resp.status_code = 206
         return resp
 
     # no transcoding, just streaming if audio is already in a streamable format
-    elif ext in globalsettings.STREAM_FORMAT:
-        data = globalsettings.CONFIG['MusicListClass'].get_file_metadata(newFile)
+    elif ext in STREAM_FORMAT:
+        data = CONFIG['MusicListClass'].get_file_metadata(newFile)
         headers, offset = makeRangeHeader(data)
 
         def generate(inFile, pos):
@@ -253,14 +237,14 @@ def streamAudio(identifier):
                 return
             
             while True:
-                chunk = file.read(globalsettings.CONFIG["stream-chunk"])
+                chunk = file.read(CONFIG["stream-chunk"])
                 if chunk:
                     yield chunk
                 else:
                     break
             file.close()
 
-        sendtype = globalsettings.AUDIO_MIMETYPES['{}'.format(ext)]
+        sendtype = AUDIO_MIMETYPES['{}'.format(ext)]
         resp = Response(stream_with_context(generate(newFile, offset)), mimetype=sendtype, headers=headers)
         resp.status_code = 206
         return resp
@@ -277,9 +261,9 @@ def authenticate():
     data = json.loads(data)
     if data is not None:
         password = data.get('password')
-        if password == globalsettings.CONFIG['password']:
+        if password == CONFIG['password']:
             resp["status"] = 200;
-            resp["token"] = globalsettings.CONFIG['auth-token']
+            resp["token"] = CONFIG['auth-token']
 
     return jsonify(**resp)
 
@@ -290,7 +274,7 @@ def playTrack():
     if resp['status'] != 200:
         return jsonify(**resp)
 
-    resp = globalsettings.CONFIG['AlexaPlayer'].get_next()
+    resp = CONFIG['AlexaPlayer'].get_next()
     resp['status'] = 200
     return jsonify(**resp)
 
@@ -300,7 +284,7 @@ def randomTrack():
     if resp['status'] != 200:
         return jsonify(**resp)
 
-    resp = globalsettings.CONFIG['AlexaPlayer'].get_random()
+    resp = CONFIG['AlexaPlayer'].get_random()
     resp['status'] = 200
     return jsonify(**resp)
 
@@ -312,7 +296,7 @@ def playArtist():
 
     data = json.loads(request.data)
     artist = data.get('artist')
-    playlist = globalsettings.CONFIG['AlexaPlayer'].filter_artist(artist)
+    playlist = CONFIG['AlexaPlayer'].filter_artist(artist)
     resp = { 'status': 200, 'playlist': playlist }
     return jsonify(**resp)
 
@@ -324,7 +308,7 @@ def playSongs():
 
     data = json.loads(request.data)
     song = data.get('song')
-    playlist = globalsettings.CONFIG['AlexaPlayer'].filter_song(song)
+    playlist = CONFIG['AlexaPlayer'].filter_song(song)
     resp = { 'status': 200, 'playlist': playlist }
     return jsonify(**resp)
 
@@ -338,7 +322,7 @@ def playArtistSong():
     data = json.loads(request.data)
     artist = data.get('artist')
     song = data.get('song')
-    playlist = globalsettings.CONFIG['AlexaPlayer'].filter_artist_song(artist, song)
+    playlist = CONFIG['AlexaPlayer'].filter_artist_song(artist, song)
     resp = { 'status': 200, 'playlist': playlist }
     return jsonify(**resp)
 
@@ -348,13 +332,13 @@ def playAll():
     if resp['status'] != 200:
         return jsonify(**resp)
 
-    globalsettings.CONFIG['AlexaPlayer'].play_all()
+    CONFIG['AlexaPlayer'].play_all()
     resp = {'status': 200}
     return jsonify(**resp)
     
 @app.route('/<path:filename>')
 def serving(filename):
-    if globalsettings.CONFIG['music-dir'] in filename:
+    if CONFIG['music-dir'] in filename:
         resp = authMiddleware()
         if resp['status'] != 200:
             return jsonify(**resp)

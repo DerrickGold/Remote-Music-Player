@@ -36,7 +36,7 @@ class AlexaPlayer:
     def cleanup_filename(self, filename):
         noExtensionName = (os.path.splitext(filename)[0]).translate(self.spacer)
         sanitized = noExtensionName.translate(self.sanitizer)
-        trackNoRemoved = re.sub('^.*[0-9]{2} ?[\.-]', ' ', sanitized)
+        trackNoRemoved = re.sub(r'^.*[0-9]{2} ?[\.-]', ' ', sanitized)
 
         return trackNoRemoved
 

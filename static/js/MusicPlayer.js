@@ -6,12 +6,11 @@ const PlayBackStates = {
 
 class MusicLibrary{ 
   
-  constructor(evtSys, doStreaming, autoplay, authtoken) {
+  constructor(evtSys, autoplay, authtoken) {
     this.mediaDir = null;
     this.mediaHash = {};
     this.indentSize = 10;
     this.audioDiv = null;
-    this.streaming = doStreaming;
     this.playbackState = PlayBackStates["STOPPED"];
     this.evtSys = evtSys;
     this.curTrackInfo = null;
@@ -306,15 +305,6 @@ class MusicLibrary{
       const dest = this.mediaHash[mediaDiff["added"].id];
       this.insertTree(dest, mediaDiff["added"], false);
       if (mediaDiff['more'] === true) this.rescanFiles();
-    });
-  }
-  
-  getTrackPos(doneCb) {
-    if (this.streaming) return;
-    this.apiCall("/api/commands/info", "POST", true, (resp) => {
-      const data = JSON.parse(resp);
-      this.curTimeOffset = data.pos;
-      if (doneCb) doneCb(data);
     });
   }
 
@@ -618,14 +608,7 @@ class MusicLibrary{
   clearSearch(keyword) { this.showFiles(true); }
   
   stopSong() {
-    if (!this.streaming) {
-      this.apiCall("/api/commands/stop", "POST", true, (resp) => {
-        this.playbackState = PlayBackStates["STOPPED"];
-        this.triggerNewState();
-      });
-    } else {
-      this.audioDiv.pause();
-    }
+    this.audioDiv.pause();
   }
 
   updatePlayingEntry(entry, isPlaying) {
@@ -677,76 +660,49 @@ class MusicLibrary{
     this.updatePlayingEntry(this.curTrackInfo, false);
     this.curTrackInfo = songEntry;
     this.updatePlayingEntry(this.curTrackInfo, true);
+    
+    this.apiCall("/api/files/" + songEntry.id, "GET", true, (resp) => {
+      const trackData = JSON.parse(resp);
 
+      const streamFormat = document.getElementById("stream-format");
+      const fmt = streamFormat.options[streamFormat.selectedIndex].value;
 
-    if (!this.streaming) {
-      let url = "/api/files/" + songEntry.id + "/play";
-      if (offset >= 0) url += "?offset=" + offset;
+      const streamOptions = document.getElementById("stream-quality");
+      const quality = streamOptions.options[streamOptions.selectedIndex].value;
 
-      this.apiCall(url, "GET", true, (resp) => {
-        this.playbackState = PlayBackStates["PLAYING"];
-        this.triggerNewState();
-        this.updateTrackInfo();
+      const transcodeOptions = document.getElementById("transcoding-option");
+      const transcode = transcodeOptions.options[transcodeOptions.selectedIndex].value;
+
+      const srcURL = "api/files/" + trackData.id + "/stream?format=" + fmt +
+          "&quality=" + quality + "&transcode=" + transcode;
+      
+      const signedSrc = this.appendTokenToUrl(srcURL);
+
+      this.audioDiv.src = this.encodeURI(signedSrc);
+      this.audioDiv.play();
+      const seekHandler = (audio) => {
+        this.audioDiv.removeEventListener('canplay', seekHandler);
+        if (offset > 0) audio.target.currentTime = offset;
         this.triggerLoadingDone();
-      });
-    } else {
-      //if we are streaming, get audio file path to add to local web player
-      this.apiCall("/api/files/" + songEntry.id, "GET", true, (resp) => {
-        const trackData = JSON.parse(resp);
+      }
 
-        const streamFormat = document.getElementById("stream-format");
-        const fmt = streamFormat.options[streamFormat.selectedIndex].value;
-
-        const streamOptions = document.getElementById("stream-quality");
-        const quality = streamOptions.options[streamOptions.selectedIndex].value;
-
-        const transcodeOptions = document.getElementById("transcoding-option");
-        const transcode = transcodeOptions.options[transcodeOptions.selectedIndex].value;
-
-        const srcURL = "api/files/" + trackData.id + "/stream?format=" + fmt +
-            "&quality=" + quality + "&transcode=" + transcode;
-        
-        const signedSrc = this.appendTokenToUrl(srcURL);
-
-        this.audioDiv.src = this.encodeURI(signedSrc);
-        this.audioDiv.play();
-        const seekHandler = (audio) => {
-          this.audioDiv.removeEventListener('canplay', seekHandler);
-          if (offset > 0) audio.target.currentTime = offset;
-          this.triggerLoadingDone();
-        }
-
-        this.audioDiv.addEventListener("canplay", seekHandler);
-        this.playbackState = PlayBackStates["PLAYING"];
-        this.triggerNewState();
-        this.updateTrackInfo();
-      }, () => {
-        this.nextSong();
-      });
-    }
+      this.audioDiv.addEventListener("canplay", seekHandler);
+      this.playbackState = PlayBackStates["PLAYING"];
+      this.triggerNewState();
+      this.updateTrackInfo();
+    }, () => {
+      this.nextSong();
+    });
+    
   }
 
   pauseSong() {
-    if (!this.streaming) {
-      this.apiCall("/api/commands/pause", "POST", true, (resp) => {
-        this.playbackState = PlayBackStates["PAUSED"];
-        this.triggerNewState()
-      });
-    } else {
-      this.audioDiv.pause();
-      this.playbackState = PlayBackStates["PAUSED"];
-      this.triggerNewState()
-    }
+    this.audioDiv.pause();
+    this.playbackState = PlayBackStates["PAUSED"];
+    this.triggerNewState()
   }
 
   unpauseSong() {
-    if (!this.streaming) {
-      this.apiCall("/api/commands/pause", "POST", true, (resp) => {
-        this.playbackState = PlayBackStates["PLAYING"];
-        this.triggerNewState()
-      });
-      return
-    }
     this.audioDiv.play();
     this.playbackState = PlayBackStates["PLAYING"];
     this.triggerNewState()
