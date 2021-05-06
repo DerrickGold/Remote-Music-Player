@@ -2,7 +2,7 @@ astroid==2.3.1
 Click==7.0
 Flask==1.0.2
 Flask-Compress==1.4.0
-Flask-Cors==3.0.6
+Flask-Cors==3.0.9
 GDAL==2.3.1
 include-server==3.3.2
 isort==4.3.21
