@@ -33,7 +33,7 @@ def makeRangeHeader(metadata):
     begin = 0
     end = metadata['size']
     headers = Headers()
-    if request.headers.has_key("Range"):
+    if "Range" in request.headers:
         headers.add('Accept-Ranges', 'bytes')
         ranges = re.findall(r"\d+", request.headers["Range"])
         begin = int(ranges[0])
